@@ -79,13 +79,16 @@ model Appointment {
 
 // Un servicio es una prestación del catálogo del negocio
 model Service {
-  id          String   @id @default(cuid())
-  name        String
-  description String?
-  category    String
-  durationMin Int
-  price       Float
-  businessId  String
+  id            String   @id @default(cuid())
+  name          String
+  description   String?
+  category      String
+  durationMin   Int
+  bufferMinutes Int      @default(0)
+  price         Float
+  color         String   @default("#3B82F6")
+  isActive      Boolean  @default(true)
+  businessId    String
   business     Business      @relation(fields: [businessId], references: [id])
   appointments Appointment[]
   createdAt    DateTime      @default(now())
@@ -100,6 +103,7 @@ model Collaborator {
   specialties  String[]
   isActive     Boolean  @default(true)
   avatarUrl    String?
+  schedule     Json?
   businessId   String
   business     Business      @relation(fields: [businessId], references: [id])
   appointments Appointment[]

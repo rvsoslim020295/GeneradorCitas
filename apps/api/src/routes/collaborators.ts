@@ -7,12 +7,19 @@ const collaborators = new Hono();
 
 collaborators.use("*", requireAuth);
 
+const dayScheduleSchema = z.object({
+  enabled: z.boolean(),
+  start: z.string(),
+  end: z.string(),
+});
+
 const collaboratorSchema = z.object({
   name: z.string().min(2),
   role: z.string().min(2),
   specialties: z.array(z.string()).optional().default([]),
   isActive: z.boolean().optional().default(true),
   avatarUrl: z.string().optional(),
+  schedule: z.record(z.string(), dayScheduleSchema).optional(),
 });
 
 // ─── GET /collaborators ───────────────────────────────────────────────────────

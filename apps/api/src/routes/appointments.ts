@@ -30,7 +30,7 @@ const paymentSchema = z.object({
 const appointmentInclude = {
   client: { select: { id: true, name: true, lastName: true, phone: true } },
   collaborator: { select: { id: true, name: true, role: true } },
-  service: { select: { id: true, name: true, durationMin: true, category: true } },
+  service: { select: { id: true, name: true, durationMin: true, bufferMinutes: true, category: true } },
 } as const;
 
 // ─── GET /appointments ────────────────────────────────────────────────────────
