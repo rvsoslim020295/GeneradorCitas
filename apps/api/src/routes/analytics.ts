@@ -41,6 +41,10 @@ function getDateRange(period: Period): { start: Date; end: Date } {
   return { start, end };
 }
 
+function fmt(d: Date) {
+  return `${d.getDate()}/${d.getMonth() + 1}`;
+}
+
 // Genera el array de barras del gráfico según el período
 function buildDailyRevenue(
   completed: { startTime: Date; price: number }[],
@@ -59,19 +63,39 @@ function buildDailyRevenue(
       const amount = completed
         .filter((a) => a.startTime >= mStart && a.startTime <= mEnd)
         .reduce((s, a) => s + a.price, 0);
-      result.push({
-        day: mStart.toLocaleDateString("es-MX", { month: "short" }).slice(0, 3),
-        amount,
-      });
+      const label = mStart.toLocaleDateString("es-PE", { month: "short" });
+      result.push({ day: label.charAt(0).toUpperCase() + label.slice(1, 3), amount });
     }
+
+  } else if (period === "last_30_days") {
+    // Agrupa por semana → 4-5 barras
+    const msPerDay = 86_400_000;
+    const totalDays = Math.round((end.getTime() - start.getTime()) / msPerDay) + 1;
+    const weeks = Math.ceil(totalDays / 7);
+
+    for (let w = 0; w < weeks; w++) {
+      const wStart = new Date(start.getTime() + w * 7 * msPerDay);
+      wStart.setHours(0, 0, 0, 0);
+      const wEnd = new Date(Math.min(wStart.getTime() + 6 * msPerDay, end.getTime()));
+      wEnd.setHours(23, 59, 59, 999);
+
+      const amount = completed
+        .filter((a) => a.startTime >= wStart && a.startTime <= wEnd)
+        .reduce((s, a) => s + a.price, 0);
+
+      result.push({ day: fmt(wStart), amount });
+    }
+
   } else {
-    // Una barra por día dentro del rango
+    // Una barra por día (this_month: etiqueta solo día; last_week: etiqueta "Lun", "Mar"...)
     const msPerDay = 86_400_000;
     const days = Math.round((end.getTime() - start.getTime()) / msPerDay) + 1;
+    const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
     for (let i = 0; i < days; i++) {
       const date = new Date(start);
       date.setDate(start.getDate() + i);
+      date.setHours(12, 0, 0, 0);
 
       const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0);
       const dayEnd   = new Date(date); dayEnd.setHours(23, 59, 59, 999);
@@ -80,11 +104,11 @@ function buildDailyRevenue(
         .filter((a) => a.startTime >= dayStart && a.startTime <= dayEnd)
         .reduce((s, a) => s + a.price, 0);
 
-      result.push({
-        day: date.toLocaleDateString("es-MX", { weekday: "short", day: "numeric" })
-             .replace(".", "").slice(0, 5),
-        amount,
-      });
+      const label = period === "last_week"
+        ? DAYS_ES[date.getDay()]
+        : String(date.getDate()); // this_month → solo número de día
+
+      result.push({ day: label, amount });
     }
   }
 

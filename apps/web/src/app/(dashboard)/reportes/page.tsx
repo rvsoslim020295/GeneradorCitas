@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import {
   Calendar, CheckCircle, Banknote, TrendingUp,
-  TrendingDown, MoreHorizontal, ChevronDown, AlertCircle,
+  TrendingDown, ChevronDown, AlertCircle,
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
@@ -184,11 +184,8 @@ export default function ReportesPage() {
               <>
                 {/* Gráfica de barras — Ingresos por día */}
                 <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
-                  <div className="flex justify-between items-center mb-4">
+                  <div className="mb-4">
                     <h3 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Ingresos por Día</h3>
-                    <button className="text-[var(--color-on-surface-variant)] hover:text-[var(--color-primary)] transition-colors">
-                      <MoreHorizontal size={20} strokeWidth={1.5} />
-                    </button>
                   </div>
                   <div className="h-48 w-full flex items-stretch gap-2 px-1 relative">
                     {/* Líneas horizontales de referencia */}
