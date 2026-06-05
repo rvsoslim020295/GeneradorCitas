@@ -413,13 +413,13 @@ const res = await fetch(`${API_URL}/clients`, { headers: { Authorization: `Beare
 
 ## 10. Bugs Pendientes
 
-| ID | Descripción | Severidad | Módulo |
-|---|---|---|---|
-| BUG-01 | Anticipo sin validación: se puede registrar un anticipo mayor al precio del servicio | Media | Citas |
-| BUG-02 | Comparativos de KPIs hardcodeados: "+12% vs mes ant." en Total Citas, Completadas e Ingresos son estáticos | Media | Dashboard/Reportes |
-| BUG-03 | El logo se almacena como base64 en la BD — imágenes grandes pueden superar límites de payload | Baja | Configuración |
-| BUG-04 | La protección de rutas es solo client-side: el backend no valida el rol por endpoint | Media | Seguridad |
-| BUG-05 | El JWT se almacena en localStorage (vulnerable a XSS) en lugar de httpOnly cookie | Media | Seguridad |
+| ID | Descripción | Severidad | Módulo | Estado |
+|---|---|---|---|---|
+| BUG-01 | Anticipo sin validación: se puede registrar un anticipo mayor al precio del servicio | Media | Citas | ✅ Resuelto |
+| BUG-02 | Comparativos de KPIs hardcodeados: "+12% vs mes ant." en Total Citas, Completadas e Ingresos son estáticos | Media | Dashboard/Reportes | ✅ Resuelto |
+| BUG-03 | El logo se almacena como base64 en la BD — imágenes grandes pueden superar límites de payload | Baja | Configuración | Pendiente |
+| BUG-04 | La protección de rutas es solo client-side: el backend no valida el rol por endpoint | Media | Seguridad | Pendiente |
+| BUG-05 | El JWT se almacena en localStorage (vulnerable a XSS) en lugar de httpOnly cookie | Media | Seguridad | Pendiente |
 
 ---
 
@@ -434,9 +434,10 @@ const res = await fetch(`${API_URL}/clients`, { headers: { Authorization: `Beare
 ### Media prioridad
 | Item | Descripción |
 |---|---|
-| Comparativos reales en KPIs | Extender el delta de `noShowRate` a `totalRevenue`, `completedAppointments` en backend y frontend |
+| ~~Comparativos reales en KPIs~~ | ✅ Resuelto — deltas reales para totalAppointments, completedAppointments, totalRevenue, noShowRate |
+| ~~Validación de anticipo~~ | ✅ Resuelto — 422 en backend + error inline + botón deshabilitado en frontend |
+| Separación price / paidAmount | ✅ Resuelto — `price` es el precio base inmutable; `paidAmount` registra el total cobrado con propina |
 | Almacenamiento de logo | Migrar de base64 en BD a servicio de storage (S3, Cloudinary, Supabase Storage) |
-| Validación de anticipo | Anticipo no puede superar el precio del servicio (frontend + backend) |
 | `IN_PROGRESS` / `RESCHEDULED` | Estados no implementados en schema ni UI |
 
 ### Baja prioridad
