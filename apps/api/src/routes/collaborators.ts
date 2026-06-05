@@ -23,6 +23,7 @@ const collaboratorSchema = z.object({
   schedule: z.record(z.string(), dayScheduleSchema).optional(),
   documentType: z.enum(["DNI", "CE"]).optional(),
   documentNumber: z.string().optional(),
+  phone: z.string().optional(),
 });
 
 // ─── GET /collaborators ───────────────────────────────────────────────────────

@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, Save, User, ToggleLeft, ToggleRight,
-  AlertCircle, Tag, Search, X, Check, ChevronRight,
+  AlertCircle, Tag, Search, X, Check, ChevronRight, Phone,
 } from "lucide-react";
 import { RoleSelector } from "../_components/role-selector";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -30,6 +30,7 @@ export default function NuevoColaboradorPage() {
   const [role, setRole] = useState("");
   const [documentType, setDocumentType] = useState<"DNI" | "CE">("DNI");
   const [documentNumber, setDocumentNumber] = useState("");
+  const [phone, setPhone] = useState("");
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
 
@@ -93,6 +94,7 @@ export default function NuevoColaboradorPage() {
           specialties,
           isActive,
           ...(documentNumber.trim() && { documentType, documentNumber: documentNumber.trim() }),
+          ...(phone.trim() && { phone: phone.trim() }),
         }),
       });
 
@@ -293,6 +295,20 @@ export default function NuevoColaboradorPage() {
                 <p className="text-[11px] text-[var(--color-on-surface-variant)] mt-1 ml-0.5">
                   {documentType === "DNI" ? "8 dígitos" : "Carné de extranjería — hasta 12 dígitos"}
                 </p>
+              </div>
+
+              {/* Teléfono */}
+              <div>
+                <label className={labelClass}>Teléfono</label>
+                <div className="relative">
+                  <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)]" strokeWidth={1.5} />
+                  <input
+                    value={phone}
+                    onChange={e => setPhone(e.target.value)}
+                    inputMode="tel" autoComplete="off" spellCheck={false}
+                    className={`${inputClass} pl-9`}
+                  />
+                </div>
               </div>
 
               {/* Rol */}

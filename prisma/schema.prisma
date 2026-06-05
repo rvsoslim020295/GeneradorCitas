@@ -108,6 +108,7 @@ model Collaborator {
   schedule       Json?
   documentType   String?
   documentNumber String?
+  phone          String?
   businessId   String
   business     Business      @relation(fields: [businessId], references: [id])
   appointments Appointment[]
