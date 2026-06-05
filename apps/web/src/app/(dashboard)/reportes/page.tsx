@@ -40,7 +40,7 @@ export default function ReportesPage() {
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
-  const [period, setPeriod] = useState("this_month");
+  const [period, setPeriod] = useState("today");
 
   useEffect(() => {
     const token = localStorage.getItem("gm_token");
@@ -87,7 +87,8 @@ export default function ReportesPage() {
                   onChange={(e) => setPeriod(e.target.value)}
                   className="appearance-none bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] text-body-md rounded-lg py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] cursor-pointer"
                 >
-                  <option value="this_month">Este Mes</option>
+                  <option value="today">Este Día</option>
+                  <option value="this_week">Esta Semana</option>
                   <option value="last_week">Semana Pasada</option>
                   <option value="last_30_days">Últimos 30 días</option>
                   <option value="this_year">Este Año</option>
@@ -185,7 +186,14 @@ export default function ReportesPage() {
                 {/* Gráfica de barras — Ingresos por día */}
                 <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
                   <div className="mb-4">
-                    <h3 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Ingresos por Día</h3>
+                    <h3 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Ingresos</h3>
+                    <p className="text-[11px] text-[var(--color-on-surface-variant)] mt-0.5">
+                      {period === "today"       ? "Por hora — hoy"              :
+                       period === "this_week"   ? "Por día — esta semana"       :
+                       period === "last_week"   ? "Por día — semana pasada"     :
+                       period === "last_30_days"? "Por semana — últimos 30 días":
+                                                  "Por mes — este año"}
+                    </p>
                   </div>
                   <div className="h-48 w-full flex items-stretch gap-2 px-1 relative">
                     {/* Líneas horizontales de referencia */}

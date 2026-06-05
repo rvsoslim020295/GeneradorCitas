@@ -6,7 +6,7 @@ const analytics = new Hono();
 
 analytics.use("*", requireAuth);
 
-type Period = "this_month" | "last_week" | "last_30_days" | "this_year";
+type Period = "today" | "this_week" | "last_week" | "last_30_days" | "this_year";
 
 function getDateRange(period: Period): { start: Date; end: Date } {
   const now = new Date();
@@ -15,12 +15,18 @@ function getDateRange(period: Period): { start: Date; end: Date } {
   end.setHours(23, 59, 59, 999);
 
   switch (period) {
-    case "this_month":
-      start.setDate(1);
+    case "today":
       start.setHours(0, 0, 0, 0);
       break;
+    case "this_week": {
+      // Lunes de esta semana hasta hoy
+      const dow = now.getDay() || 7; // dom=0→7
+      start.setDate(now.getDate() - (dow - 1));
+      start.setHours(0, 0, 0, 0);
+      break;
+    }
     case "last_week":
-      // Ayer y los 6 días anteriores (7 días corridos)
+      // Los 7 días anteriores a hoy (excluye hoy)
       end.setDate(now.getDate() - 1);
       end.setHours(23, 59, 59, 999);
       start.setDate(now.getDate() - 7);
@@ -51,7 +57,18 @@ function buildDailyRevenue(
 ): { day: string; amount: number }[] {
   const result: { day: string; amount: number }[] = [];
 
-  if (period === "this_year") {
+  if (period === "today") {
+    // Una barra por hora (8am–8pm)
+    for (let h = 8; h <= 20; h++) {
+      const hStart = new Date(start); hStart.setHours(h, 0, 0, 0);
+      const hEnd   = new Date(start); hEnd.setHours(h, 59, 59, 999);
+      const amount = completed
+        .filter((a) => a.startTime >= hStart && a.startTime <= hEnd)
+        .reduce((s, a) => s + a.price, 0);
+      result.push({ day: `${h}:00`, amount });
+    }
+
+  } else if (period === "this_year") {
     // Una barra por mes (ene–mes actual)
     const currentMonth = end.getMonth();
     for (let m = 0; m <= currentMonth; m++) {
@@ -121,8 +138,8 @@ analytics.get("/", async (c) => {
   const { businessId } = c.get("user");
 
   const rawPeriod = c.req.query("period") ?? "this_month";
-  const period: Period = (["this_month", "last_week", "last_30_days", "this_year"] as const)
-    .includes(rawPeriod as Period) ? rawPeriod as Period : "this_month";
+  const period: Period = (["today", "this_week", "last_week", "last_30_days", "this_year"] as const)
+    .includes(rawPeriod as Period) ? rawPeriod as Period : "today";
 
   const { start, end } = getDateRange(period);
 
