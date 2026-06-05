@@ -2,8 +2,9 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Bell, HelpCircle, LogOut, Settings, User, X, Sun, Moon } from "lucide-react";
+import { Bell, HelpCircle, LogOut, Settings, X, Sun, Moon } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
+import { GlobalSearch } from "@/components/layout/global-search";
 
 type TopBarProps = {
   searchPlaceholder?: string;
@@ -57,18 +58,8 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
 
   return (
     <header className="bg-[var(--color-surface)]/80 backdrop-blur-md fixed top-0 right-0 w-[calc(100%-16rem)] h-16 border-b border-[var(--color-outline-variant)] flex justify-between items-center px-6 z-30">
-      {/* Búsqueda */}
-      <div className="relative w-80 group">
-        <Search
-          size={16}
-          className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)] group-focus-within:text-[var(--color-primary)] transition-colors"
-        />
-        <input
-          type="text"
-          placeholder={searchPlaceholder}
-          className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-full pl-9 pr-4 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-colors placeholder:text-[var(--color-outline-variant)] shadow-sm"
-        />
-      </div>
+      {/* Búsqueda global */}
+      <GlobalSearch placeholder={searchPlaceholder} />
 
       {/* Acciones */}
       <div className="flex items-center gap-3">
