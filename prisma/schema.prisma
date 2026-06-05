@@ -65,6 +65,7 @@ model Appointment {
   notes          String?
   tipPercent     Float             @default(0)
   paymentMethod  String?
+  depositAmount  Float?
   businessId     String
   clientId       String
   collaboratorId String
