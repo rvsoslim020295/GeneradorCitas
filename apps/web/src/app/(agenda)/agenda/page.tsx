@@ -17,7 +17,7 @@ export type AppointmentData = {
   price: number;
   client: { id: string; name: string; phone: string | null };
   collaborator: { id: string; name: string; role: string };
-  service: { id: string; name: string; durationMin: number; category: string };
+  service: { id: string; name: string; durationMin: number; bufferMinutes: number; category: string };
 };
 
 export type CollaboratorData = { id: string; name: string; role: string };
