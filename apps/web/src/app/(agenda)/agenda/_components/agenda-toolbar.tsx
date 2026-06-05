@@ -118,12 +118,13 @@ export function AgendaToolbar({
               {activeCollab ? activeCollab.name : "Todos los Colaboradores"}
             </span>
             {filteredCollabId ? (
-              <button
+              <span
+                role="button"
                 onClick={e => { e.stopPropagation(); onFilterCollab(null); }}
-                className="ml-1 text-[var(--color-primary)] hover:text-[var(--color-error)] transition-colors"
+                className="ml-1 text-[var(--color-primary)] hover:text-[var(--color-error)] transition-colors cursor-pointer"
               >
                 <X size={14} strokeWidth={2} />
-              </button>
+              </span>
             ) : (
               <ChevronDown size={15} strokeWidth={1.5} className={`transition-transform ${dropdownOpen ? "rotate-180" : ""}`} />
             )}
