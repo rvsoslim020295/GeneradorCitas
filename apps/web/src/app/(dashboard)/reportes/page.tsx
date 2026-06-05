@@ -40,6 +40,7 @@ export default function ReportesPage() {
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [period, setPeriod] = useState("this_month");
 
   useEffect(() => {
     const token = localStorage.getItem("gm_token");
@@ -52,14 +53,16 @@ export default function ReportesPage() {
       } catch { /* ignore */ }
     }
 
-    fetch(`${API_URL}/analytics`, {
+    setLoading(true);
+    setError("");
+    fetch(`${API_URL}/analytics?period=${period}`, {
       headers: { Authorization: `Bearer ${token}` },
     })
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then(setData)
       .catch(() => setError("No se pudo cargar las analíticas."))
       .finally(() => setLoading(false));
-  }, [router]);
+  }, [router, period]);
 
   const maxDailyRevenue = data
     ? Math.max(...data.dailyRevenue.map((d) => d.amount), 1)
@@ -79,11 +82,15 @@ export default function ReportesPage() {
             <div className="flex items-center justify-between">
               <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Resumen</h2>
               <div className="relative">
-                <select className="appearance-none bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] text-body-md rounded-lg py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] cursor-pointer">
-                  <option>Este Mes</option>
-                  <option>Semana Pasada</option>
-                  <option>Últimos 30 días</option>
-                  <option>Este Año</option>
+                <select
+                  value={period}
+                  onChange={(e) => setPeriod(e.target.value)}
+                  className="appearance-none bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] text-body-md rounded-lg py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] cursor-pointer"
+                >
+                  <option value="this_month">Este Mes</option>
+                  <option value="last_week">Semana Pasada</option>
+                  <option value="last_30_days">Últimos 30 días</option>
+                  <option value="this_year">Este Año</option>
                 </select>
                 <ChevronDown size={16} strokeWidth={1.5} className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)] pointer-events-none" />
               </div>
