@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, Save, PenLine, SlidersHorizontal,
-  Users, ChevronDown, AlertCircle, CheckCircle,
+  Users, ChevronDown, AlertCircle, CheckCircle, Timer,
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
@@ -14,6 +14,11 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 const CATEGORIES = ["Peluquería", "Estética", "Barbería", "Nail Bar", "Spa", "Otro"];
 const DURATIONS = [15, 20, 30, 45, 60, 90, 120, 150, 180];
+const BUFFERS = [0, 5, 10, 15, 20, 30];
+const PALETTE = [
+  "#4441c4", "#006591", "#854300", "#16a34a", "#dc2626",
+  "#9333ea", "#0891b2", "#d97706", "#be185d", "#475569",
+];
 
 type Collaborator = { id: string; name: string; role: string };
 
@@ -24,6 +29,8 @@ export default function NuevoServicioPage() {
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
   const [durationMin, setDurationMin] = useState(30);
+  const [bufferMin, setBufferMin] = useState(0);
+  const [color, setColor] = useState("#4441c4");
   const [price, setPrice] = useState("");
   const [selectedCollabs, setSelectedCollabs] = useState<string[]>([]);
   const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
@@ -71,6 +78,8 @@ export default function NuevoServicioPage() {
           description: description || undefined,
           category,
           durationMin,
+          bufferMin,
+          color,
           price: parseFloat(price),
         }),
       });
@@ -193,6 +202,56 @@ export default function NuevoServicioPage() {
                     ))}
                   </select>
                   <ChevronDown size={16} strokeWidth={1.5} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)] pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Buffer */}
+              <div className="space-y-1">
+                <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider flex items-center gap-1.5">
+                  <Timer size={13} strokeWidth={2} />
+                  Buffer post-servicio
+                </label>
+                <p className="text-[11px] text-[var(--color-outline)]">Tiempo de limpieza o preparación entre citas.</p>
+                <div className="relative">
+                  <select
+                    value={bufferMin}
+                    onChange={(e) => setBufferMin(Number(e.target.value))}
+                    className="w-full appearance-none bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all cursor-pointer"
+                  >
+                    {BUFFERS.map((b) => (
+                      <option key={b} value={b}>{b === 0 ? "Sin buffer" : `${b} min`}</option>
+                    ))}
+                  </select>
+                  <ChevronDown size={16} strokeWidth={1.5} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)] pointer-events-none" />
+                </div>
+              </div>
+
+              {/* Color en el calendario */}
+              <div className="space-y-2">
+                <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">
+                  Color en el calendario
+                </label>
+                <div className="flex items-center gap-2 flex-wrap">
+                  {PALETTE.map((c) => (
+                    <button
+                      key={c}
+                      type="button"
+                      onClick={() => setColor(c)}
+                      className={`w-7 h-7 rounded-full transition-all ${color === c ? "ring-2 ring-offset-2 ring-[var(--color-on-surface)] scale-110" : "hover:scale-105"}`}
+                      style={{ backgroundColor: c }}
+                    />
+                  ))}
+                  <input
+                    type="color"
+                    value={color}
+                    onChange={(e) => setColor(e.target.value)}
+                    className="w-7 h-7 rounded-full cursor-pointer border border-[var(--color-outline-variant)] p-0.5 bg-transparent"
+                    title="Color personalizado"
+                  />
+                </div>
+                <div className="flex items-center gap-2 mt-1">
+                  <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: color }} />
+                  <span className="text-[11px] text-[var(--color-outline)] font-mono">{color}</span>
                 </div>
               </div>
 
