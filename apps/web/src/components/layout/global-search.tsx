@@ -43,14 +43,17 @@ export function GlobalSearch({ placeholder = "Buscar cliente, servicio o cita...
     setLoading(true);
     const h = { Authorization: `Bearer ${token}` };
     try {
-      const [clients, services, appointments] = await Promise.all([
-        fetch(`${API_URL}/clients?q=${encodeURIComponent(q)}`, { headers: h }).then(r => r.ok ? r.json() : []),
-        fetch(`${API_URL}/services?q=${encodeURIComponent(q)}`, { headers: h }).then(r => r.ok ? r.json() : []),
-        fetch(`${API_URL}/appointments?q=${encodeURIComponent(q)}`, { headers: h }).then(r => r.ok ? r.json() : []),
+      const enc = encodeURIComponent(q);
+      const [clients, servicesRes, appointments] = await Promise.all([
+        fetch(`${API_URL}/clients?search=${enc}`, { headers: h }).then(r => r.ok ? r.json() : []),
+        fetch(`${API_URL}/services?search=${enc}`, { headers: h }).then(r => r.ok ? r.json() : []),
+        fetch(`${API_URL}/appointments?search=${enc}`, { headers: h }).then(r => r.ok ? r.json() : []),
       ]);
+      // /services devuelve { services, grouped } — extraemos el array plano
+      const serviceList = Array.isArray(servicesRes) ? servicesRes : (servicesRes?.services ?? []);
       setResults({
         clients: (Array.isArray(clients) ? clients : []).slice(0, 5),
-        services: (Array.isArray(services) ? services : []).slice(0, 5),
+        services: (Array.isArray(serviceList) ? serviceList : []).slice(0, 5),
         appointments: (Array.isArray(appointments) ? appointments : []).slice(0, 5),
       });
       setOpen(true);
