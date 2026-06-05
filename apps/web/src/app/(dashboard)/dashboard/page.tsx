@@ -1,24 +1,16 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { CalendarDays, Clock, User, Banknote, TrendingUp, AlertTriangle, Hourglass, CheckCircle, CheckCheck, XCircle, Users, UserX, Check, ChevronRight } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
+import { useAppointments, useAnalytics, useUpdateAppointmentStatus } from "@/lib/api/hooks";
+import { apiFetch } from "@/lib/api/client";
+import { useQuery } from "@tanstack/react-query";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
-type Appointment = {
-  id: string;
-  startTime: string;
-  endTime: string;
-  status: string;
-  price: number;
-  client: { name: string; lastName: string | null; phone: string | null };
-  collaborator: { name: string };
-  service: { name: string };
-};
+type UserData = { name: string; business: { name: string } };
 
 function fullName(c: { name: string; lastName: string | null }) {
   return [c.name, c.lastName].filter(Boolean).join(" ");
@@ -28,12 +20,6 @@ function initials(c: { name: string; lastName: string | null }) {
   return [c.name[0], c.lastName ? c.lastName[0] : c.name.split(" ")[1]?.[0]]
     .filter(Boolean).join("").toUpperCase();
 }
-
-type Analytics = {
-  kpis: { totalAppointments: number; completedAppointments: number; totalRevenue: number; noShowRate: number };
-};
-
-type UserData = { name: string; business: { name: string } };
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -45,93 +31,29 @@ function today() {
 
 export default function DashboardPage() {
   const router = useRouter();
-  const [appointments, setAppointments] = useState<Appointment[]>([]);
-  const [analytics, setAnalytics] = useState<Analytics | null>(null);
-  const [userData, setUserData] = useState<UserData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
   const [confirmingAll, setConfirmingAll] = useState(false);
   const [statusDrawer, setStatusDrawer] = useState<{ status: string; label: string } | null>(null);
 
-  const loadData = useCallback(async () => {
-    const token = localStorage.getItem("gm_token");
-    if (!token) { router.push("/login"); return; }
-    try {
-      const h = { Authorization: `Bearer ${token}` };
-      const [aptsRes, analRes, userRes] = await Promise.all([
-        fetch(`${API_URL}/appointments`, { headers: h }),
-        fetch(`${API_URL}/analytics`, { headers: h }),
-        fetch(`${API_URL}/auth/me`, { headers: h }),
-      ]);
-      // Solo redirigir al login si el token expiró (401)
-      if (aptsRes.status === 401 || userRes.status === 401) {
-        localStorage.removeItem("gm_token");
-        localStorage.removeItem("gm_user");
-        router.push("/login");
-        return;
-      }
-      const [apts, anal, user] = await Promise.all([
-        aptsRes.ok ? aptsRes.json() : [],
-        analRes.ok ? analRes.json() : null,
-        userRes.ok ? userRes.json() : null,
-      ]);
-      setAppointments(Array.isArray(apts) ? apts : []);
-      if (anal) setAnalytics(anal);
-      if (user) setUserData(user);
-    } catch {
-      // Error de red — no redirigir, la app sigue funcionando con datos vacíos
-    } finally {
-      setLoading(false);
-    }
-  }, [router]);
+  const { data: appointments = [], isLoading: loadingApts } = useAppointments();
+  const { data: analytics, isLoading: loadingAnalytics } = useAnalytics("this_month");
+  const { data: userData, isLoading: loadingUser } = useQuery<UserData>({
+    queryKey: ["me"],
+    queryFn: () => apiFetch<UserData>("/auth/me"),
+  });
+  const updateStatus = useUpdateAppointmentStatus();
 
-  useEffect(() => { loadData(); }, [loadData]);
-
-  async function confirmAll() {
-    const token = localStorage.getItem("gm_token");
-    if (!token || pendingUpcoming.length === 0) return;
-    setConfirmingAll(true);
-    try {
-      await Promise.all(
-        pendingUpcoming.map((apt) =>
-          fetch(`${API_URL}/appointments/${apt.id}/status`, {
-            method: "PATCH",
-            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-            body: JSON.stringify({ status: "CONFIRMED" }),
-          })
-        )
-      );
-      await loadData();
-    } finally {
-      setConfirmingAll(false);
-    }
-  }
-
-  async function confirmAppointment(id: string) {
-    const token = localStorage.getItem("gm_token");
-    if (!token) return;
-    setConfirmingId(id);
-    try {
-      const res = await fetch(`${API_URL}/appointments/${id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status: "CONFIRMED" }),
-      });
-      if (res.ok) await loadData();
-    } finally {
-      setConfirmingId(null);
-    }
-  }
+  const loading = loadingApts || loadingAnalytics || loadingUser;
 
   const now = new Date();
+
   const todayApts = appointments.filter(a => {
     const d = new Date(a.startTime);
     return d.toDateString() === now.toDateString();
   });
 
-  // Próxima cita: la más cercana en el futuro de cualquier día, no cancelada/completada
   const nextApt = appointments
-    .filter(a => new Date(a.startTime) >= now && !["CANCELLED","NO_SHOW","COMPLETED"].includes(a.status))
+    .filter(a => new Date(a.startTime) >= now && !["CANCELLED", "NO_SHOW", "COMPLETED"].includes(a.status))
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0] ?? null;
 
   const pending   = appointments.filter(a => a.status === "PENDING").length;
@@ -139,13 +61,35 @@ export default function DashboardPage() {
   const completed = appointments.filter(a => a.status === "COMPLETED").length;
   const cancelled = appointments.filter(a => a.status === "CANCELLED").length;
 
-  // Alertas: citas PENDING en los próximos 2 días que aún no están confirmadas
   const in2Days = new Date(now);
   in2Days.setDate(in2Days.getDate() + 2);
   const pendingUpcoming = appointments.filter(a => {
     const d = new Date(a.startTime);
     return d > now && d <= in2Days && a.status === "PENDING";
   });
+
+  async function confirmAll() {
+    if (pendingUpcoming.length === 0) return;
+    setConfirmingAll(true);
+    try {
+      await Promise.all(
+        pendingUpcoming.map((apt) =>
+          updateStatus.mutateAsync({ id: apt.id, status: "CONFIRMED" })
+        )
+      );
+    } finally {
+      setConfirmingAll(false);
+    }
+  }
+
+  async function confirmAppointment(id: string) {
+    setConfirmingId(id);
+    try {
+      await updateStatus.mutateAsync({ id, status: "CONFIRMED" });
+    } finally {
+      setConfirmingId(null);
+    }
+  }
 
   function handleCounterClick(status: string, label: string, count: number) {
     if (count === 0) return;
@@ -178,7 +122,6 @@ export default function DashboardPage() {
       <main className="flex-1 ml-64 flex flex-col h-full bg-[var(--color-background)] relative">
         <TopBar />
 
-        {/* Panel lateral de citas por estado */}
         {statusDrawer && (
           <>
             <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setStatusDrawer(null)} />
@@ -216,8 +159,6 @@ export default function DashboardPage() {
         )}
 
         <div className="flex-1 overflow-y-auto pt-[88px] px-8 pb-8" style={{ scrollbarWidth: "thin" }}>
-
-          {/* Header */}
           <div className="flex justify-between items-end mb-6">
             <div>
               <h2 className="text-display-lg font-bold text-[var(--color-on-surface)] mb-1">
@@ -275,7 +216,7 @@ export default function DashboardPage() {
               )}
             </div>
 
-            {/* Ingresos del día */}
+            {/* Ingresos */}
             <div className="col-span-4 bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] shadow-sm p-6 flex flex-col items-center justify-center gap-3">
               <div className="flex items-center gap-2 text-[var(--color-on-surface-variant)] text-label-md font-semibold uppercase tracking-wider">
                 <Banknote size={16} strokeWidth={1.5} /> Ingresos Totales
@@ -339,7 +280,7 @@ export default function DashboardPage() {
             {/* Contadores */}
             <div className="col-span-12 grid grid-cols-4 gap-6 mt-3">
               {[
-                { label: "Pendientes", status: "PENDING",   count: pending,   icon: Hourglass,  bg: "bg-[var(--color-surface-container-high)]",  color: "text-[var(--color-on-surface-variant)]", accent: null,                              opacity: "" },
+                { label: "Pendientes",  status: "PENDING",   count: pending,   icon: Hourglass,  bg: "bg-[var(--color-surface-container-high)]",  color: "text-[var(--color-on-surface-variant)]", accent: null,                              opacity: "" },
                 { label: "Confirmadas", status: "CONFIRMED", count: confirmed, icon: CheckCircle, bg: "bg-[var(--color-secondary-fixed)]",          color: "text-[var(--color-on-secondary-container)]", accent: "bg-[var(--color-secondary-container)]", opacity: "" },
                 { label: "Completadas", status: "COMPLETED", count: completed, icon: CheckCheck,  bg: "bg-[var(--color-primary)]/20",               color: "text-[var(--color-primary)]",            accent: "bg-[var(--color-primary)]",               opacity: "" },
                 { label: "Canceladas",  status: "CANCELLED", count: cancelled, icon: XCircle,     bg: "bg-[var(--color-error-container)]/50",        color: "text-[var(--color-error)]",              accent: null,                              opacity: "opacity-75" },
@@ -363,7 +304,7 @@ export default function DashboardPage() {
               ))}
             </div>
 
-            {/* Equipo activo hoy */}
+            {/* Citas de hoy */}
             <div className="col-span-12 bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] shadow-sm mt-3 p-6">
               <div className="flex justify-between items-center mb-6 border-b border-[var(--color-outline-variant)] pb-3">
                 <h3 className="text-headline-sm font-semibold text-[var(--color-on-surface)] flex items-center gap-2">
