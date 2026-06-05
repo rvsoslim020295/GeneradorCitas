@@ -1,28 +1,13 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import {
   Calendar, CheckCircle, Banknote, TrendingUp,
-  TrendingDown, MoreHorizontal, ChevronDown, AlertCircle,
+  TrendingDown, ChevronDown, AlertCircle,
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
-import { useRole } from "@/hooks/use-role";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
-type Analytics = {
-  kpis: {
-    totalAppointments: number;
-    completedAppointments: number;
-    totalRevenue: number;
-    noShowRate: number;
-  };
-  dailyRevenue: { day: string; amount: number }[];
-  statusDistribution: { completed: number; pending: number; cancelled: number };
-  topCollaborators: { name: string; revenue: number; appointmentCount: number; percentage: number }[];
-};
+import { useAnalytics } from "@/lib/api/hooks";
 
 function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
@@ -35,34 +20,8 @@ const collabColors = [
 ];
 
 export default function ReportesPage() {
-  const router = useRouter();
-  const role = useRole();
-  const [data, setData] = useState<Analytics | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
   const [period, setPeriod] = useState("this_month");
-
-  useEffect(() => {
-    const token = localStorage.getItem("gm_token");
-    if (!token) { router.push("/login"); return; }
-    const stored = localStorage.getItem("gm_user");
-    if (stored) {
-      try {
-        const u = JSON.parse(stored);
-        if (u.role && u.role !== "OWNER") { router.replace("/dashboard"); return; }
-      } catch { /* ignore */ }
-    }
-
-    setLoading(true);
-    setError("");
-    fetch(`${API_URL}/analytics?period=${period}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.ok ? r.json() : Promise.reject())
-      .then(setData)
-      .catch(() => setError("No se pudo cargar las analíticas."))
-      .finally(() => setLoading(false));
-  }, [router, period]);
+  const { data, isLoading, error } = useAnalytics(period);
 
   const maxDailyRevenue = data
     ? Math.max(...data.dailyRevenue.map((d) => d.amount), 1)
@@ -78,7 +37,6 @@ export default function ReportesPage() {
         <div className="flex-1 overflow-y-auto pt-16" style={{ scrollbarWidth: "thin" }}>
           <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
 
-            {/* Controles */}
             <div className="flex items-center justify-between">
               <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Resumen</h2>
               <div className="relative">
@@ -99,12 +57,11 @@ export default function ReportesPage() {
             {error && (
               <div className="flex items-center gap-2 text-[var(--color-error)] bg-[var(--color-error-container)]/30 border border-[var(--color-error-container)] rounded-lg px-4 py-3 text-body-md">
                 <AlertCircle size={16} strokeWidth={1.5} />
-                {error}
+                No se pudo cargar las analíticas.
               </div>
             )}
 
-            {/* KPIs */}
-            {loading ? (
+            {isLoading ? (
               <div className="grid grid-cols-2 gap-4">
                 {[1, 2, 3, 4].map((i) => (
                   <div key={i} className={`bg-[var(--color-surface-container-lowest)] rounded-xl h-28 animate-pulse ${i === 3 || i === 4 ? "col-span-2" : ""}`} />
@@ -112,7 +69,6 @@ export default function ReportesPage() {
               </div>
             ) : data && (
               <div className="grid grid-cols-2 gap-4">
-                {/* Total Citas */}
                 <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase">Total Citas</span>
@@ -129,7 +85,6 @@ export default function ReportesPage() {
                   </div>
                 </div>
 
-                {/* Completadas */}
                 <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
                   <div className="flex justify-between items-start mb-2">
                     <span className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase">Completadas</span>
@@ -146,7 +101,6 @@ export default function ReportesPage() {
                   </div>
                 </div>
 
-                {/* Ingresos Totales */}
                 <div className="col-span-2 bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow relative overflow-hidden">
                   <div className="absolute -right-6 -top-6 w-24 h-24 bg-[var(--color-primary-container)] rounded-full opacity-10 blur-xl pointer-events-none" />
                   <div className="flex justify-between items-start mb-2 relative z-10">
@@ -164,7 +118,6 @@ export default function ReportesPage() {
                   </div>
                 </div>
 
-                {/* Tasa No-Show */}
                 <div className="col-span-2 bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow flex items-center justify-between">
                   <div>
                     <span className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase block mb-1">Tasa de Inasistencia</span>
@@ -172,26 +125,32 @@ export default function ReportesPage() {
                       {data.kpis.noShowRate}%
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 text-[var(--color-error)] bg-[var(--color-error-container)] px-2 py-1 rounded-full">
-                    <TrendingDown size={12} strokeWidth={2} />
-                    <span className="text-[10px] font-semibold">-1.2%</span>
-                  </div>
+                  {data.kpis.noShowRatePrev === null ? (
+                    <span className="text-[10px] text-[var(--color-on-surface-variant)] bg-[var(--color-surface-container)] px-2 py-1 rounded-full">Sin datos anteriores</span>
+                  ) : data.kpis.noShowRate > data.kpis.noShowRatePrev ? (
+                    <div className="flex items-center gap-1 text-[var(--color-error)] bg-[var(--color-error-container)] px-2 py-1 rounded-full">
+                      <TrendingUp size={12} strokeWidth={2} />
+                      <span className="text-[10px] font-semibold">+{(data.kpis.noShowRate - data.kpis.noShowRatePrev).toFixed(1)}%</span>
+                    </div>
+                  ) : data.kpis.noShowRate < data.kpis.noShowRatePrev ? (
+                    <div className="flex items-center gap-1 text-[var(--color-secondary-container)] bg-[var(--color-secondary-container)]/20 px-2 py-1 rounded-full">
+                      <TrendingDown size={12} strokeWidth={2} />
+                      <span className="text-[10px] font-semibold">-{(data.kpis.noShowRatePrev - data.kpis.noShowRate).toFixed(1)}%</span>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-[var(--color-on-surface-variant)] bg-[var(--color-surface-container)] px-2 py-1 rounded-full">Sin cambios</span>
+                  )}
                 </div>
               </div>
             )}
 
             {data && (
               <>
-                {/* Gráfica de barras — Ingresos por día */}
                 <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Ingresos por Día</h3>
-                    <button className="text-[var(--color-on-surface-variant)] hover:text-[var(--color-primary)] transition-colors">
-                      <MoreHorizontal size={20} strokeWidth={1.5} />
-                    </button>
                   </div>
                   <div className="h-48 w-full flex items-stretch gap-2 px-1 relative">
-                    {/* Líneas horizontales de referencia */}
                     <div className="absolute w-full border-t border-[var(--color-outline-variant)] opacity-30 bottom-[20%]" />
                     <div className="absolute w-full border-t border-[var(--color-outline-variant)] opacity-30 bottom-[50%]" />
                     <div className="absolute w-full border-t border-[var(--color-outline-variant)] opacity-30 bottom-[80%]" />
@@ -223,11 +182,9 @@ export default function ReportesPage() {
                   </div>
                 </div>
 
-                {/* Donut — Citas por estado */}
                 <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
                   <h3 className="text-body-lg font-semibold text-[var(--color-on-surface)] mb-4">Citas por Estado</h3>
                   <div className="flex items-center gap-6">
-                    {/* Donut CSS simplificado */}
                     <div className="w-24 h-24 rounded-full relative shrink-0" style={{
                       background: `conic-gradient(
                         var(--color-primary) 0% ${data.statusDistribution.completed}%,
@@ -242,8 +199,6 @@ export default function ReportesPage() {
                         <span className="text-[8px] text-[var(--color-on-surface-variant)] uppercase">Total</span>
                       </div>
                     </div>
-
-                    {/* Leyenda */}
                     <div className="flex-1 space-y-2">
                       {[
                         { label: "Completadas", pct: data.statusDistribution.completed, color: "bg-[var(--color-primary)]" },
@@ -262,7 +217,6 @@ export default function ReportesPage() {
                   </div>
                 </div>
 
-                {/* Top 3 colaboradores */}
                 <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Top 3 Colaboradores</h3>
