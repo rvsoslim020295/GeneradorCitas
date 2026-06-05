@@ -322,12 +322,12 @@ export default function CollaboratorProfilePage() {
                       <button
                         type="button"
                         onClick={() => updateDay(key, "enabled", !enabled)}
-                        className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${enabled ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-variant)]"}`}>
-                        <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${enabled ? "translate-x-5" : "translate-x-0.5"}`} />
+                        className={`relative inline-flex shrink-0 items-center w-11 h-6 rounded-full overflow-hidden transition-colors focus:outline-none ${enabled ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-variant)]"}`}>
+                        <span className={`inline-block w-5 h-5 bg-white rounded-full shadow transition-transform ${enabled ? "translate-x-5" : "translate-x-1"}`} />
                       </button>
 
                       {/* Día */}
-                      <span className="w-10 shrink-0 text-body-md font-semibold text-[var(--color-on-surface)]">{DAY_LABELS[key]}</span>
+                      <span className="w-12 shrink-0 text-body-md font-semibold text-[var(--color-on-surface)]">{DAY_LABELS[key]}</span>
 
                       {enabled ? (
                         <div className="flex items-center gap-2 flex-1">
