@@ -1,8 +1,8 @@
 # Estado del Proyecto — GlowManager
-**Fecha:** Junio 2026  
-**Versión:** 1.3  
+**Fecha:** 5 de Junio 2026  
+**Versión:** 1.5  
 **Repositorio:** https://github.com/rvsoslim020295/GeneradorCitas  
-**Rama principal:** `main`
+**Rama activa:** `feat/tanstack-query` (PR #25, pendiente de merge)
 
 ---
 
@@ -10,7 +10,7 @@
 
 GlowManager es un panel administrativo B2B para negocios de belleza (salones, barberías, spas, nail bars). Permite gestionar citas, clientes, colaboradores, servicios, pagos y reportes desde una sola interfaz web orientada a dueños y recepcionistas en desktop.
 
-**Estado actual:** ~98% del MVP completado. Todas las pantallas implementadas, schema de base de datos completo y sincronizado, flujo de nueva cita con disponibilidad real, bugs críticos de sesión resueltos.
+**Estado actual:** MVP 100% funcional. Esta sesión completó la integración de TanStack Query v5 en la totalidad del frontend — ya no existe ningún `fetch` manual ni acceso directo a `localStorage.getItem("gm_token")` en páginas o componentes. Todo el acceso a datos pasa por hooks centralizados con caché automático.
 
 ---
 
@@ -25,6 +25,7 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
 | Design System | Material Design 3 (tokens CSS) | — |
 | Fuente | Inter (Google Fonts) | — |
 | Íconos | Lucide React | 1.x |
+| **Data fetching** | **TanStack Query** | **v5** |
 
 ### Backend (`apps/api`)
 | Capa | Tecnología |
@@ -60,9 +61,9 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
 
 (agenda)/
   agenda/                   CAL-01 — Calendario Día/Semana/Mes
-  nueva-cita/               CAL-03 — Nueva cita con slots reales de disponibilidad
-  citas/[id]/               CAL-02 — Detalle de cita
-  citas/[id]/cobrar/        CAL-04 — Cierre y pago
+  nueva-cita/               CAL-03 — Nueva cita con slots reales
+  citas/[id]/               CAL-02 — Detalle de cita (modal centrado)
+  citas/[id]/cobrar/        CAL-04 — Cierre y pago con anticipo descontado
 
 (dashboard)/
   dashboard/                DASH-01 — KPIs y alertas
@@ -70,14 +71,14 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
   clientes/[id]/            CLI-02 — Perfil + historial + edición inline
   clientes/nuevo/
   colaboradores/            STAFF-01 — Lista
-  colaboradores/[id]/       STAFF-02 — Perfil, horarios, avatar, ausencias
+  colaboradores/[id]/       STAFF-02 — Perfil, horarios, avatar, ausencias, DNI/CE, teléfono
   colaboradores/nuevo/
   servicios/                SRV-01 — Catálogo
   servicios/[id]/           SRV-02 — Editar (bufferMinutes, color, isActive)
   servicios/nuevo/
-  reportes/                 RPT-01 — Analytics (solo OWNER)
-  configuracion/            CFG hub (solo OWNER)
-  configuracion/negocio/    CFG-01
+  reportes/                 RPT-01 — Analytics con filtros reales por período
+  configuracion/            CFG hub
+  configuracion/negocio/    CFG-01 — Nombre, categoría, teléfono, dirección, logo, localización
   configuracion/agenda/     CFG-02
   configuracion/usuarios/   CFG-03
   configuracion/whatsapp/   CFG-04
@@ -87,8 +88,26 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
 ```
 src/components/layout/
   sidebar.tsx          Navegación lateral — filtro por rol
-  top-bar.tsx          Búsqueda global + campana de notificaciones reales
-  global-search.tsx    Buscador (clientes, servicios, citas) con debounce 300ms
+  top-bar.tsx          Búsqueda + campana de notificaciones con estado de lectura
+  global-search.tsx    Buscador con debounce 300ms
+  query-provider.tsx   QueryClientProvider + ReactQuery DevTools
+
+src/lib/api/
+  client.ts            apiFetch — centraliza auth header y redirección 401
+
+src/lib/api/hooks/
+  index.ts             Barrel de exports
+  use-clients.ts
+  use-collaborators.ts
+  use-services.ts
+  use-appointments.ts
+  use-analytics.ts
+  use-notifications.ts
+  use-settings.ts
+  use-availability.ts
+
+src/lib/hooks/
+  use-debounce.ts
 
 src/hooks/
   use-role.ts          Lee rol del usuario desde localStorage
@@ -104,14 +123,17 @@ src/hooks/
 |---|---|
 | `auth.ts` | `POST /auth/login`, `POST /auth/register`, `GET /auth/me` |
 | `clients.ts` | CRUD `/clients` — búsqueda con `?search=` |
-| `collaborators.ts` | CRUD `/collaborators` — incluye `schedule`, `avatarUrl` |
+| `collaborators.ts` | CRUD `/collaborators` — incluye `schedule`, `avatarUrl`, `lastName`, `documentType`, `documentNumber`, `phone` |
 | `collaborators.ts` | `GET/POST/DELETE /collaborators/:id/absences` |
 | `services.ts` | CRUD `/services` — incluye `bufferMinutes`, `color`, `isActive` |
 | `appointments.ts` | CRUD `/appointments` — búsqueda, estados, pago |
+| `appointments.ts` | `PATCH /appointments/:id/status` |
+| `appointments.ts` | `POST /appointments/:id/payment` — registra pago completo |
+| `appointments.ts` | `POST /appointments/:id/deposit` — registra anticipo parcial |
 | `availability.ts` | `GET /availability/slots?collaboratorId&serviceId&date` |
 | `notifications.ts` | `GET /notifications` — derivadas de citas |
-| `analytics.ts` | `GET /analytics` — KPIs del negocio |
-| `settings.ts` | `GET/PATCH /settings` — configuración del negocio |
+| `analytics.ts` | `GET /analytics?period=` — KPIs filtrados por período |
+| `settings.ts` | `GET /settings`, `PATCH /settings/business` |
 
 ### Middleware
 - `auth.ts` — `requireAuth`: verifica JWT, expone `c.get("user")` con `{ userId, email, businessId, role }`
@@ -135,20 +157,24 @@ model User {
 }
 
 model Collaborator {
-  id, name, role, specialties String[]
+  id, name, lastName String?
+  role, specialties String[]
   isActive Boolean
-  avatarUrl String?          ← agregado esta sesión
-  schedule  Json?            ← agregado esta sesión (horario semanal Mon-Sun)
+  avatarUrl String?
+  schedule  Json?
+  documentType   String?     ← DNI | CE
+  documentNumber String?
+  phone          String?
   businessId
 }
 
 model Service {
   id, name, description, category
   durationMin Int
-  bufferMinutes Int @default(0)    ← agregado esta sesión
+  bufferMinutes Int @default(0)
   price Float
-  color String @default("#3B82F6") ← agregado esta sesión
-  isActive Boolean @default(true)  ← agregado esta sesión
+  color String @default("#3B82F6")
+  isActive Boolean @default(true)
   businessId
 }
 
@@ -156,6 +182,7 @@ model Appointment {
   id, startTime, endTime
   status (PENDING|CONFIRMED|COMPLETED|CANCELLED|NO_SHOW)
   price, notes, tipPercent, paymentMethod
+  depositAmount Float?       ← anticipo parcial
   businessId, clientId, collaboratorId, serviceId
 }
 
@@ -166,11 +193,12 @@ model Client {
 }
 ```
 
-### Migraciones aplicadas
+### Migraciones aplicadas (sesiones anteriores)
 | Migración | Descripción |
 |---|---|
-| `20260605142527` | `avatarUrl` en Collaborator |
-| `20260605143343` | `bufferMinutes`, `color`, `isActive` en Service + `schedule` en Collaborator |
+| `20260605152210` | `depositAmount Float?` en Appointment |
+| `20260605154104` | `lastName`, `documentType`, `documentNumber` en Collaborator |
+| `20260605154508` | `phone String?` en Collaborator |
 
 ---
 
@@ -184,21 +212,21 @@ model Client {
 | SETUP-01 | Onboarding wizard 4 pasos | ✅ |
 | DASH-01 | Dashboard con KPIs y alertas | ✅ |
 | CAL-01 | Calendario Día/Semana/Mes | ✅ |
-| CAL-02 | Detalle de cita | ✅ |
+| CAL-02 | Detalle de cita (modal centrado) | ✅ |
 | CAL-03 | Nueva cita con slots reales | ✅ |
-| CAL-04 | Cierre de cita / pago | ✅ |
+| CAL-04 | Cierre de cita / pago con anticipo | ✅ |
 | CLI-01 | Directorio de clientes | ✅ |
 | CLI-02 | Perfil cliente | ✅ |
 | STAFF-01 | Lista colaboradores | ✅ |
-| STAFF-02 | Perfil colaborador (horarios + avatar + ausencias) | ✅ |
+| STAFF-02 | Perfil colaborador (horarios + avatar + ausencias + DNI/CE + teléfono) | ✅ |
 | SRV-01 | Catálogo de servicios | ✅ |
 | SRV-02 | Formulario nuevo/editar servicio | ✅ |
-| RPT-01 | Analytics (OWNER) | ✅ |
+| RPT-01 | Analytics con filtros por período | ✅ |
 | CFG-01 | Datos del negocio | ✅ |
 | CFG-02 | Agenda y políticas | ✅ |
 | CFG-03 | Gestión de usuarios del sistema | ✅ |
 | CFG-04 | Notificaciones WhatsApp (UI) | ✅ |
-| SYS-01 | Notificaciones in-app reales | ✅ |
+| SYS-01 | Notificaciones in-app con estado de lectura | ✅ |
 | SYS-02 | 404 | ✅ |
 | SYS-03 | Error general | ✅ |
 
@@ -206,30 +234,60 @@ model Client {
 
 ---
 
-## 7. Todo lo implementado en esta sesión
+## 7. Lo implementado en esta sesión (PRs #24 y #25)
 
-### PRs mergeados (#11 al #22)
+### PR #24 — Infraestructura TanStack Query
 
-| PR | Descripción |
+**Archivos nuevos creados:**
+
+- `src/components/query-provider.tsx` — `QueryClientProvider` con `staleTime: 60s` + `ReactQueryDevtools` en desarrollo
+- `src/lib/api/client.ts` — `apiFetch`: centraliza el header `Authorization`, redirección automática al `/login` en 401, y `Content-Type: application/json`
+- `src/lib/hooks/use-debounce.ts` — hook genérico de debounce (300ms en búsquedas)
+- `src/lib/api/hooks/use-clients.ts` — `useClients`, `useClient`, `useCreateClient`, `useUpdateClient`, `useDeleteClient`
+- `src/lib/api/hooks/use-collaborators.ts` — `useCollaborators`, `useCollaborator`, `useCollaboratorAbsences`, `useCreateCollaborator`, `useUpdateCollaborator`, `useDeleteCollaborator`, `useAddAbsence`, `useDeleteAbsence`
+- `src/lib/api/hooks/use-services.ts` — `useServices`, `useService`, `useCreateService`, `useUpdateService`, `useDeleteService`
+- `src/lib/api/hooks/use-appointments.ts` — `useAppointments`, `useAppointment`, `useCreateAppointment`, `useUpdateAppointmentStatus`, `useRegisterPayment`, `useRegisterDeposit`
+- `src/lib/api/hooks/use-analytics.ts` — `useAnalytics(period)`
+- `src/lib/api/hooks/use-notifications.ts` — `useNotifications()` con polling cada 60s
+- `src/lib/api/hooks/use-settings.ts` — `useSettings`, `useUpdateSettings`
+- `src/lib/api/hooks/use-availability.ts` — `useAvailabilitySlots(collaboratorId, serviceId, date)`
+- `src/lib/api/hooks/index.ts` — barrel de exports
+
+**Páginas migradas en PR #24:**
+- `dashboard`, `clientes`, `colaboradores`, `servicios`, `reportes`
+
+### PR #25 — Migración completa del resto del frontend
+
+**Páginas migradas:**
+
+| Página | Cambio principal |
 |---|---|
-| #11 | `feat(sug-C)`: buffer visual post-cita en calendario (zonas rayadas) |
-| #12 | `feat(sug-D)`: buscador global funcional en top-bar |
-| #13 | `feat(sug-E)`: upload de avatar en perfil del colaborador |
-| #14 | `feat(SYS-01)`: notificaciones in-app reales (endpoint + campana) |
-| #15 | `fix(buscador)`: alinear `?q=` → `?search=`, agregar búsqueda a appointments |
-| #16 | `feat(avatar)`: campo `avatarUrl` en schema Prisma + migración |
-| #17 | `fix(schema)`: `bufferMinutes`, `color`, `isActive` en Service; `schedule` en Collaborator |
-| #18 | `feat(availability)`: endpoint `/availability/slots` + slots reales en nueva cita |
-| #19 | `fix(auth)`: no redirigir al login en errores de red, solo en 401 explícito |
-| #20 | `fix(agenda)`: `<button>` anidado en filtro de colaboradores → hydration error |
-| #21 | `fix(colaboradores)`: alineación toggle/label en horario laboral (v1) |
-| #22 | `fix(colaboradores)`: toggle horario — `overflow-hidden` + `inline-flex` + label `w-12` |
+| `agenda` | `useAppointments` + `useCollaborators` — eliminados 2 `useEffect` + `fetch` paralelos |
+| `citas/[id]` | `useAppointment` + mutaciones; `updateStatus` y `handleSaveDeposit` → `useMutation` |
+| `citas/[id]/cobrar` | `useAppointment` + `useRegisterPayment`; sin `useEffect` ni token manual |
+| `nueva-cita/_components/new-appointment-modal` | 3 fetches paralelos → 3 hooks; slots → `useAvailabilitySlots`; submit → `useCreateAppointment` |
+| `clientes/[id]` | `useQuery` + `useUpdateClient` + `useDeleteClient`; edición inline sin fetch manual |
+| `clientes/nuevo` | `useCreateClient`; `setSaving` → `createClient.isPending` |
+| `colaboradores/[id]` | `useCollaborator` + `useCollaboratorAbsences` + todas las mutaciones |
+| `colaboradores/nuevo` | `useCreateCollaborator` |
+| `servicios/[id]` | `useService` + `useCollaborators` + `useUpdateService` + `useDeleteService` |
+| `servicios/nuevo` | `useCollaborators` + `useCreateService` |
+| `configuracion/negocio` | `useQuery("/settings")` + `useMutation("/settings/business")`; edits quirúrgicos preservando PERU_GEO |
 
-### Bugs resueltos esta sesión
-1. **Login → redirige al login en 1 segundo** — el `catch` genérico del dashboard mandaba al login ante cualquier error de red. Corregido para redirigir solo en 401.
-2. **Citas vacías** — la migración `fix-service-collaborator-fields` estaba creada pero no aplicada. Al hacer `prisma generate` sin migrar, el client de Prisma pedía `bufferMinutes` que no existía en la DB. Resuelto aplicando `prisma migrate dev` + `prisma generate`.
-3. **Hydration error en filtro de agenda** — `<button>` dentro de `<button>` en `agenda-toolbar.tsx`. Reemplazado por `<span role="button">`.
-4. **Toggle de horario desalineado** — thumb con `absolute` sin `overflow-hidden` se desbordaba visualmente sobre el label. Corregido con `inline-flex` + `overflow-hidden` + label más ancho.
+**CLAUDE.md creado** en `apps/web/` — instrucciones permanentes para Claude y el equipo:
+- Prohibición explícita de `fetch` directo y `localStorage.getItem("gm_token")` en páginas
+- Referencia a todos los hooks disponibles por dominio
+- Patrón para crear mutaciones ad-hoc cuando no hay hook específico
+
+### Beneficios conseguidos
+
+| Antes | Después |
+|---|---|
+| ~15 copias de `localStorage.getItem("gm_token")` | 0 — solo en `apiFetch` |
+| Re-fetch al navegar entre páginas | Caché de 60s — navegación instantánea |
+| `loadData()` manual tras mutaciones | `invalidateQueries` automático |
+| `useEffect` + `useState` + `fetch` en cada página | 1–3 líneas con hooks |
+| Sin indicador de estado de mutación | `isPending` nativo de TanStack |
 
 ---
 
@@ -239,17 +297,33 @@ model Client {
 - Formato: `feat/nombre`, `fix/nombre`
 - Mergear desde GitHub antes de iniciar nueva rama
 - Después de cambios de schema: siempre ejecutar `prisma migrate dev` + `prisma generate` + reiniciar el API
+- **Nuevas páginas deben usar los hooks de `src/lib/api/hooks/`** — ver `apps/web/CLAUDE.md`
 
 ---
 
-## 9. Deuda técnica pendiente
+## 9. Convención de datos — resumen rápido
+
+```ts
+// ✅ Siempre así
+import { useClients, useCreateClient } from "@/lib/api/hooks";
+const { data: clients, isLoading, error } = useClients(search);
+const create = useCreateClient();
+await create.mutateAsync({ name, phone });
+
+// ❌ Nunca más así
+const token = localStorage.getItem("gm_token");
+const res = await fetch(`${API_URL}/clients`, { headers: { Authorization: `Bearer ${token}` } });
+```
+
+---
+
+## 10. Deuda técnica pendiente
 
 ### Media prioridad
 | Item | Descripción |
 |---|---|
 | FullCalendar | Calendario implementado desde cero. Sin drag & drop ni vista multi-recurso (columnas paralelas por colaborador) |
-| Estado global | Sin TanStack Query ni Zustand. Todo se carga por componente — re-fetches innecesarios al navegar |
-| `IN_PROGRESS` / `RESCHEDULED` | Estados definidos en el doc de arquitectura, no implementados en el schema ni en la UI |
+| `IN_PROGRESS` / `RESCHEDULED` | Estados no implementados en schema ni UI |
 | `source` en Appointment | Campo de origen (MANUAL/WHATSAPP/PHONE/etc.) no está en el schema |
 | `audit_log` | Tabla de trazabilidad de acciones críticas no implementada |
 
@@ -257,19 +331,30 @@ model Client {
 | Item | Descripción |
 |---|---|
 | WhatsApp real | CFG-04 tiene la UI pero sin integración Twilio/Meta ni cron job (BullMQ + Redis) |
-| `payments` tabla separada | El pago está inline en `Appointment` (tipPercent, paymentMethod, price) |
-| `staff_services` N:M | Las especialidades son `String[]` en lugar de tabla puente con precio/duración personalizada por colaborador |
+| `payments` tabla separada | El pago está inline en `Appointment` (tipPercent, paymentMethod, price, depositAmount) |
+| `staff_services` N:M | Las especialidades son `String[]` en lugar de tabla puente con precio/duración personalizada |
 | Responsividad móvil | Diseño optimizado para desktop únicamente |
 | JWT en httpOnly cookie | Token en `localStorage` — menos seguro en producción |
-| Protección de rutas server-side | La verificación de rol es solo client-side. El backend valida el token pero no el rol en cada endpoint |
+| Protección de rutas server-side | Verificación de rol solo client-side; el backend no valida rol por endpoint |
+| Comparativos hardcodeados en KPIs | "+12% vs mes ant." en Total Citas, Completadas e Ingresos son estáticos |
 
 ---
 
-## 10. Próximos pasos sugeridos
+## 11. PRs completados en esta sesión
 
-1. **Integración WhatsApp** — cron job con BullMQ + Twilio o Meta Cloud API para recordatorios automáticos
-2. **Migrar JWT a httpOnly cookie** — más seguro para producción
-3. **Agregar `source` e `IN_PROGRESS`/`RESCHEDULED`** al modelo Appointment
-4. **TanStack Query** — reemplazar los fetches manuales por queries cacheadas
+| PR | Título | Estado |
+|---|---|---|
+| #23 | feat(cita-detail): modal centrado, separar Cobrar/Completar, anticipo y botones funcionales | ✅ Mergeado |
+| #24 | feat(data): integrar TanStack Query v5 | ✅ Mergeado |
+| #25 | feat(data): completar migración TanStack Query — todas las páginas | 🔄 Pendiente de merge |
+
+---
+
+## 12. Próximos pasos sugeridos
+
+1. **Merge PR #25** — completar la migración TanStack Query
+2. **Comparativos reales en todos los KPIs** — extender el delta de `noShowRate` a `totalRevenue`, `completedAppointments` y `totalAppointments` en el backend y mostrarlos en Dashboard y Reportes
+3. **Protección de rutas server-side** — middleware Next.js + validación de rol en endpoints del backend
+4. **Integración WhatsApp** — cron job con BullMQ + Twilio o Meta Cloud API
 5. **Drag & drop en calendario** — evaluar migrar a FullCalendar
-6. **Protección de rutas server-side** — middleware en Next.js + validación de rol en endpoints del backend
+6. **Migrar JWT a httpOnly cookie** — más seguro para producción
