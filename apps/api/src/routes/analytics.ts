@@ -68,7 +68,8 @@ function buildDailyRevenue(
     }
 
   } else if (period === "last_30_days") {
-    // Agrupa por semana → 4-5 barras
+    // Agrupa por semana → 4-5 barras con rango explícito "Lun 7 - Dom 13"
+    const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
     const msPerDay = 86_400_000;
     const totalDays = Math.round((end.getTime() - start.getTime()) / msPerDay) + 1;
     const weeks = Math.ceil(totalDays / 7);
@@ -83,11 +84,12 @@ function buildDailyRevenue(
         .filter((a) => a.startTime >= wStart && a.startTime <= wEnd)
         .reduce((s, a) => s + a.price, 0);
 
-      result.push({ day: fmt(wStart), amount });
+      const label = `${DAYS_ES[wStart.getDay()]} ${wStart.getDate()} - ${DAYS_ES[wEnd.getDay()]} ${wEnd.getDate()}`;
+      result.push({ day: label, amount });
     }
 
   } else {
-    // Una barra por día (this_month: etiqueta solo día; last_week: etiqueta "Lun", "Mar"...)
+    // Una barra por día → "Lun 2", "Mar 3", etc.
     const msPerDay = 86_400_000;
     const days = Math.round((end.getTime() - start.getTime()) / msPerDay) + 1;
     const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
@@ -104,11 +106,7 @@ function buildDailyRevenue(
         .filter((a) => a.startTime >= dayStart && a.startTime <= dayEnd)
         .reduce((s, a) => s + a.price, 0);
 
-      const label = period === "last_week"
-        ? DAYS_ES[date.getDay()]
-        : String(date.getDate()); // this_month → solo número de día
-
-      result.push({ day: label, amount });
+      result.push({ day: `${DAYS_ES[date.getDay()]} ${date.getDate()}`, amount });
     }
   }
 
