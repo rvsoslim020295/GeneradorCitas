@@ -133,6 +133,15 @@ function buildDailyRevenue(
   return result;
 }
 
+// Devuelve el rango del período anterior equivalente para comparación
+function getPrevDateRange(period: Period, current: { start: Date; end: Date }): { start: Date; end: Date } {
+  const spanMs = current.end.getTime() - current.start.getTime();
+  const prevEnd = new Date(current.start.getTime() - 1); // 1ms antes del inicio actual
+  const prevStart = new Date(prevEnd.getTime() - spanMs);
+  prevStart.setHours(0, 0, 0, 0);
+  return { start: prevStart, end: prevEnd };
+}
+
 // ─── GET /analytics?period= ───────────────────────────────────────────────────
 analytics.get("/", async (c) => {
   const { businessId } = c.get("user");
@@ -142,16 +151,18 @@ analytics.get("/", async (c) => {
     .includes(rawPeriod as Period) ? rawPeriod as Period : "today";
 
   const { start, end } = getDateRange(period);
+  const prev = getPrevDateRange(period, { start, end });
 
-  const appointments = await prisma.appointment.findMany({
-    where: {
-      businessId,
-      startTime: { gte: start, lte: end },
-    },
-    include: {
-      collaborator: { select: { id: true, name: true } },
-    },
-  });
+  const [appointments, prevAppointments] = await Promise.all([
+    prisma.appointment.findMany({
+      where: { businessId, startTime: { gte: start, lte: end } },
+      include: { collaborator: { select: { id: true, name: true } } },
+    }),
+    prisma.appointment.findMany({
+      where: { businessId, startTime: { gte: prev.start, lte: prev.end } },
+      select: { status: true },
+    }),
+  ]);
 
   const total     = appointments.length;
   const completed = appointments.filter((a) => a.status === "COMPLETED");
@@ -161,6 +172,11 @@ analytics.get("/", async (c) => {
 
   const totalRevenue = completed.reduce((sum, a) => sum + a.price, 0);
   const noShowRate   = total > 0 ? (noShow.length / total) * 100 : 0;
+
+  // Tasa del período anterior para comparación
+  const prevTotal   = prevAppointments.length;
+  const prevNoShow  = prevAppointments.filter((a) => a.status === "NO_SHOW").length;
+  const prevNoShowRate = prevTotal > 0 ? (prevNoShow / prevTotal) * 100 : null;
 
   const dailyRevenue = buildDailyRevenue(
     completed.map((a) => ({ startTime: a.startTime, price: a.price })),
@@ -197,6 +213,9 @@ analytics.get("/", async (c) => {
       completedAppointments: completed.length,
       totalRevenue,
       noShowRate: Math.round(noShowRate * 10) / 10,
+      noShowRateDelta: prevNoShowRate !== null
+        ? Math.round((noShowRate - prevNoShowRate) * 10) / 10
+        : null,
     },
     dailyRevenue,
     statusDistribution,

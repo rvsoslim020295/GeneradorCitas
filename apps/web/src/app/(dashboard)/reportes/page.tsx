@@ -18,6 +18,7 @@ type Analytics = {
     completedAppointments: number;
     totalRevenue: number;
     noShowRate: number;
+    noShowRateDelta: number | null;
   };
   dailyRevenue: { day: string; amount: number }[];
   statusDistribution: { completed: number; pending: number; cancelled: number };
@@ -173,10 +174,26 @@ export default function ReportesPage() {
                       {data.kpis.noShowRate}%
                     </span>
                   </div>
-                  <div className="flex items-center gap-1 text-[var(--color-error)] bg-[var(--color-error-container)] px-2 py-1 rounded-full">
-                    <TrendingDown size={12} strokeWidth={2} />
-                    <span className="text-[10px] font-semibold">-1.2%</span>
-                  </div>
+                  {data.kpis.noShowRateDelta !== null ? (
+                    <div className={`flex items-center gap-1 px-2 py-1 rounded-full ${
+                      data.kpis.noShowRateDelta > 0
+                        ? "text-[var(--color-error)] bg-[var(--color-error-container)]"
+                        : data.kpis.noShowRateDelta < 0
+                          ? "text-emerald-700 bg-emerald-100"
+                          : "text-[var(--color-on-surface-variant)] bg-[var(--color-surface-container-high)]"
+                    }`}>
+                      {data.kpis.noShowRateDelta > 0
+                        ? <TrendingUp size={12} strokeWidth={2} />
+                        : data.kpis.noShowRateDelta < 0
+                          ? <TrendingDown size={12} strokeWidth={2} />
+                          : null}
+                      <span className="text-[10px] font-semibold">
+                        {data.kpis.noShowRateDelta > 0 ? "+" : ""}{data.kpis.noShowRateDelta}% vs período ant.
+                      </span>
+                    </div>
+                  ) : (
+                    <span className="text-[10px] text-[var(--color-on-surface-variant)]">Sin datos anteriores</span>
+                  )}
                 </div>
               </div>
             )}
