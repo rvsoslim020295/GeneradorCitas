@@ -160,7 +160,7 @@ export default function ReportesPage() {
                 {/* Tasa No-Show */}
                 <div className="col-span-2 bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow flex items-center justify-between">
                   <div>
-                    <span className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase block mb-1">Tasa No-Show</span>
+                    <span className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase block mb-1">Tasa de Inasistencia</span>
                     <span className="text-headline-md font-semibold text-[var(--color-on-surface)]">
                       {data.kpis.noShowRate}%
                     </span>
@@ -183,7 +183,7 @@ export default function ReportesPage() {
                       <MoreHorizontal size={20} strokeWidth={1.5} />
                     </button>
                   </div>
-                  <div className="h-48 w-full flex items-end gap-2 px-1 relative">
+                  <div className="h-48 w-full flex items-stretch gap-2 px-1 relative">
                     {/* Líneas horizontales de referencia */}
                     <div className="absolute w-full border-t border-[var(--color-outline-variant)] opacity-30 bottom-[20%]" />
                     <div className="absolute w-full border-t border-[var(--color-outline-variant)] opacity-30 bottom-[50%]" />
@@ -195,16 +195,16 @@ export default function ReportesPage() {
                         : 2;
                       const isMax = day.amount === maxDailyRevenue && day.amount > 0;
                       return (
-                        <div key={i} className="flex-1 relative group">
-                          <div
-                            className={`w-full rounded-t-sm transition-colors ${isMax ? "bg-[var(--color-primary-container)] shadow-[0_0_8px_rgba(93,92,222,0.4)]" : "bg-[var(--color-primary-fixed)] hover:bg-[var(--color-primary-container)]"}`}
-                            style={{ height: `${heightPct}%` }}
-                          />
+                        <div key={i} className="flex-1 flex flex-col justify-end relative group">
                           {day.amount > 0 && (
-                            <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[var(--color-inverse-surface)] text-[var(--color-inverse-on-surface)] text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">
+                            <div className="absolute bottom-[calc(100%+4px)] left-1/2 -translate-x-1/2 bg-[var(--color-inverse-surface)] text-[var(--color-inverse-on-surface)] text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10 pointer-events-none">
                               S/{day.amount.toLocaleString("es-PE")}
                             </div>
                           )}
+                          <div
+                            className={`w-full rounded-t-sm transition-colors ${isMax ? "bg-[var(--color-primary)] shadow-[0_0_8px_rgba(93,92,222,0.3)]" : "bg-[var(--color-primary-fixed)] hover:bg-[var(--color-primary-container)]"}`}
+                            style={{ height: `${heightPct}%` }}
+                          />
                         </div>
                       );
                     })}
