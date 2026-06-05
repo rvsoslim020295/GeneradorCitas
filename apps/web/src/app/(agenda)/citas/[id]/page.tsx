@@ -82,6 +82,10 @@ export default function CitaDetailPage() {
         ? appointment.price * (depositPercent / 100)
         : parseFloat(depositCustom);
     if (!amount || amount <= 0) return;
+    if (amount > appointment.price) {
+      setActionError(`El anticipo no puede superar el precio del servicio (S/${appointment.price.toFixed(2)}).`);
+      return;
+    }
 
     setActionError("");
     try {
@@ -332,14 +336,19 @@ export default function CitaDetailPage() {
                               type="number" min="0" step="0.50"
                               value={depositCustom}
                               onChange={(e) => setDepositCustom(e.target.value)}
-                              className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-[var(--color-outline-variant)] bg-[var(--color-surface)] text-[var(--color-on-surface)] text-body-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+                              className={`w-full pl-9 pr-4 py-2.5 rounded-lg border bg-[var(--color-surface)] text-[var(--color-on-surface)] text-body-md focus:outline-none focus:ring-2 focus:border-transparent ${parseFloat(depositCustom) > appointment.price ? "border-[var(--color-error)] focus:ring-[var(--color-error)]" : "border-[var(--color-outline-variant)] focus:ring-[var(--color-primary)]"}`}
                             />
+                            {parseFloat(depositCustom) > appointment.price && (
+                              <p className="text-[11px] text-[var(--color-error)] mt-1">
+                                Máximo S/{appointment.price.toFixed(2)}
+                              </p>
+                            )}
                           </div>
                         )}
 
                         <button
                           onClick={handleSaveDeposit}
-                          disabled={savingDeposit || (!depositCustom && depositMode === "amount")}
+                          disabled={savingDeposit || (!depositCustom && depositMode === "amount") || (depositMode === "amount" && parseFloat(depositCustom) > appointment.price)}
                           className="w-full bg-[var(--color-primary)] hover:bg-[var(--color-on-primary-fixed-variant)] text-[var(--color-on-primary)] text-label-md font-semibold py-2.5 rounded-lg transition-all disabled:opacity-60 flex items-center justify-center gap-2"
                         >
                           <DollarSign size={15} strokeWidth={1.5} />

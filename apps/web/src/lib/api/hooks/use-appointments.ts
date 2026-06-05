@@ -9,6 +9,7 @@ export type Appointment = {
   price: number;
   notes: string | null;
   tipPercent: number | null;
+  paidAmount: number | null;
   paymentMethod: string | null;
   depositAmount: number | null;
   client: { id: string; name: string; lastName: string | null; phone: string | null };
