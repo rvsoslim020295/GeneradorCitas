@@ -65,6 +65,7 @@ model Appointment {
   notes          String?
   tipPercent     Float             @default(0)
   paymentMethod  String?
+  depositAmount  Float?
   businessId     String
   clientId       String
   collaboratorId String
@@ -98,12 +99,16 @@ model Service {
 // Un colaborador es miembro del equipo del negocio
 model Collaborator {
   id           String   @id @default(cuid())
-  name         String
-  role         String
-  specialties  String[]
-  isActive     Boolean  @default(true)
-  avatarUrl    String?
-  schedule     Json?
+  name           String
+  lastName       String?
+  role           String
+  specialties    String[]
+  isActive       Boolean  @default(true)
+  avatarUrl      String?
+  schedule       Json?
+  documentType   String?
+  documentNumber String?
+  phone          String?
   businessId   String
   business     Business      @relation(fields: [businessId], references: [id])
   appointments Appointment[]

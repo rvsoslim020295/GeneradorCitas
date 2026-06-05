@@ -16,6 +16,7 @@ type Appointment = {
   startTime: string;
   endTime: string;
   price: number;
+  depositAmount: number | null;
   client: { name: string; phone: string | null };
   collaborator: { name: string };
   service: { name: string };
@@ -52,6 +53,8 @@ export default function CobrarPage() {
   const [appointment, setAppointment] = useState<Appointment | null>(null);
   const [loading, setLoading] = useState(true);
   const [tipPercent, setTipPercent] = useState(0);
+  const [tipMode, setTipMode] = useState<"percent" | "amount">("percent");
+  const [tipCustom, setTipCustom] = useState("");
   const [paymentMethod, setPaymentMethod] = useState<PaymentMethod>("card");
   const [confirming, setConfirming] = useState(false);
 
@@ -77,7 +80,10 @@ export default function CobrarPage() {
       const res = await fetch(`${API_URL}/appointments/${id}/payment`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ tipPercent, paymentMethod }),
+        body: JSON.stringify({
+          tipPercent: tipMode === "percent" ? tipPercent : tipAmount / balance,
+          paymentMethod,
+        }),
       });
 
       if (res.ok) {
@@ -96,9 +102,12 @@ export default function CobrarPage() {
     );
   }
 
-  const subtotal = appointment.price;
-  const tipAmount = subtotal * tipPercent;
-  const total = subtotal + tipAmount;
+  const servicePrice = appointment.price;
+  const deposit = appointment.depositAmount ?? 0;
+  const balance = servicePrice - deposit;
+  const tipAmount =
+    tipMode === "percent" ? balance * tipPercent : parseFloat(tipCustom || "0");
+  const total = balance + (isNaN(tipAmount) ? 0 : tipAmount);
 
   return (
     <div className="bg-[var(--color-surface)] text-[var(--color-on-surface)] h-screen flex flex-col overflow-hidden">
@@ -154,13 +163,23 @@ export default function CobrarPage() {
                     </p>
                   </div>
                   <p className="text-body-lg text-[var(--color-on-surface)]">
-                    S/{subtotal.toLocaleString("es-PE")}
+                    S/{servicePrice.toLocaleString("es-PE")}
                   </p>
                 </div>
+                {deposit > 0 && (
+                  <div className="flex justify-between items-center text-emerald-600">
+                    <p className="text-body-md flex items-center gap-1">
+                      <span className="text-lg leading-none">−</span> Anticipo pagado
+                    </p>
+                    <p className="text-body-md font-medium">−S/{deposit.toLocaleString("es-PE")}</p>
+                  </div>
+                )}
                 <div className="border-t border-[var(--color-outline-variant)]/40 pt-3 flex justify-between items-center">
-                  <p className="text-body-md text-[var(--color-on-surface-variant)]">Subtotal</p>
+                  <p className="text-body-md text-[var(--color-on-surface-variant)]">
+                    {deposit > 0 ? "Saldo pendiente" : "Subtotal"}
+                  </p>
                   <p className="text-headline-sm font-semibold text-[var(--color-on-surface)]">
-                    S/{subtotal.toLocaleString("es-PE")}
+                    S/{balance.toLocaleString("es-PE")}
                   </p>
                 </div>
               </div>
@@ -173,24 +192,64 @@ export default function CobrarPage() {
                   Agregar Propina
                 </h3>
                 <p className="text-label-md font-semibold text-[var(--color-primary)]">
-                  +S/{tipAmount.toFixed(0)}
+                  +S/{(isNaN(tipAmount) ? 0 : tipAmount).toFixed(0)}
                 </p>
               </div>
-              <div className="grid grid-cols-4 gap-2">
-                {TIP_OPTIONS.map((opt) => (
-                  <button
-                    key={opt.value}
-                    onClick={() => setTipPercent(opt.value)}
-                    className={`h-12 flex items-center justify-center rounded-lg border transition-all text-body-md font-medium ${
-                      tipPercent === opt.value
-                        ? "border-[var(--color-primary)] bg-[var(--color-primary-container)]/20 text-[var(--color-primary)] ring-1 ring-[var(--color-primary)]"
-                        : "border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] hover:border-[var(--color-primary)]/50"
-                    }`}
-                  >
-                    {opt.label}
-                  </button>
-                ))}
+
+              {/* Toggle modo propina */}
+              <div className="grid grid-cols-2 gap-2 mb-3">
+                <button
+                  onClick={() => setTipMode("percent")}
+                  className={`py-2 rounded-lg text-label-md font-medium border transition-all ${
+                    tipMode === "percent"
+                      ? "border-[var(--color-primary)] bg-[var(--color-primary-container)]/20 text-[var(--color-primary)]"
+                      : "border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface-variant)]"
+                  }`}
+                >
+                  Porcentaje
+                </button>
+                <button
+                  onClick={() => setTipMode("amount")}
+                  className={`py-2 rounded-lg text-label-md font-medium border transition-all ${
+                    tipMode === "amount"
+                      ? "border-[var(--color-primary)] bg-[var(--color-primary-container)]/20 text-[var(--color-primary)]"
+                      : "border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface-variant)]"
+                  }`}
+                >
+                  Monto fijo
+                </button>
               </div>
+
+              {tipMode === "percent" ? (
+                <div className="grid grid-cols-4 gap-2">
+                  {TIP_OPTIONS.map((opt) => (
+                    <button
+                      key={opt.value}
+                      onClick={() => setTipPercent(opt.value)}
+                      className={`h-12 flex items-center justify-center rounded-lg border transition-all text-body-md font-medium ${
+                        tipPercent === opt.value
+                          ? "border-[var(--color-primary)] bg-[var(--color-primary-container)]/20 text-[var(--color-primary)] ring-1 ring-[var(--color-primary)]"
+                          : "border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] hover:border-[var(--color-primary)]/50"
+                      }`}
+                    >
+                      {opt.label}
+                    </button>
+                  ))}
+                </div>
+              ) : (
+                <div className="relative">
+                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)] text-body-md font-medium">S/</span>
+                  <input
+                    type="number"
+                    min="0"
+                    step="0.50"
+                    value={tipCustom}
+                    onChange={(e) => setTipCustom(e.target.value)}
+                    placeholder="0.00"
+                    className="w-full pl-9 pr-4 py-3 rounded-lg border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] text-body-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
+                  />
+                </div>
+              )}
             </section>
 
             {/* Selector de método de pago */}
@@ -235,7 +294,9 @@ export default function CobrarPage() {
         {/* Footer fijo */}
         <div className="absolute bottom-0 w-full bg-[var(--color-surface-bright)]/90 backdrop-blur-xl border-t border-[var(--color-outline-variant)]/30 px-4 py-5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 rounded-t-2xl">
           <div className="flex justify-between items-end mb-4">
-            <span className="text-body-lg text-[var(--color-on-surface-variant)]">Total a Pagar</span>
+            <span className="text-body-lg text-[var(--color-on-surface-variant)]">
+              {deposit > 0 ? "Saldo a Cobrar" : "Total a Pagar"}
+            </span>
             <span className="text-display-lg font-bold text-[var(--color-primary)] tracking-tight leading-none">
               S/{total.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </span>

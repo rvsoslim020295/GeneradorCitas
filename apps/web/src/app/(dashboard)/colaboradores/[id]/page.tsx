@@ -5,7 +5,7 @@ import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, Save, Scissors, CalendarDays, CalendarX,
-  Plus, Trash2, AlertCircle, CheckCircle, X, Camera,
+  Plus, Trash2, AlertCircle, CheckCircle, X, Camera, Phone,
 } from "lucide-react";
 import { RoleSelector } from "../_components/role-selector";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -32,11 +32,15 @@ type Absence = { id: string; label: string; startDate: string; endDate: string; 
 type Collaborator = {
   id: string;
   name: string;
+  lastName?: string;
   role: string;
   specialties: string[];
   isActive: boolean;
   schedule?: Schedule;
   avatarUrl?: string;
+  documentType?: string;
+  documentNumber?: string;
+  phone?: string;
 };
 
 const defaultSchedule = (): Schedule =>
@@ -53,13 +57,17 @@ export default function CollaboratorProfilePage() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  const [name, setName] = useState("");
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
   const [avatarUrl, setAvatarUrl] = useState<string>("");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [role, setRole] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [schedule, setSchedule] = useState<Schedule>(defaultSchedule());
+  const [documentType, setDocumentType] = useState<"DNI" | "CE">("DNI");
+  const [documentNumber, setDocumentNumber] = useState("");
+  const [phone, setPhone] = useState("");
 
   // Absences
   const [absences, setAbsences] = useState<Absence[]>([]);
@@ -78,11 +86,23 @@ export default function CollaboratorProfilePage() {
       fetch(`${API_URL}/collaborators/${id}`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()),
       fetch(`${API_URL}/collaborators/${id}/absences`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.ok ? r.json() : []).catch(() => []),
     ]).then(([data, abs]: [Collaborator, Absence[]]) => {
-      setName(data.name);
+      // Si ya tiene lastName guardado úsalo, sino parte el name por el primer espacio
+      if (data.lastName) {
+        const parts = data.name.split(" ");
+        setFirstName(parts[0] ?? data.name);
+        setLastName(data.lastName);
+      } else {
+        const parts = data.name.split(" ");
+        setFirstName(parts[0] ?? "");
+        setLastName(parts.slice(1).join(" "));
+      }
       setRole(data.role);
       setIsActive(data.isActive);
       setAvatarUrl(data.avatarUrl ?? "");
       setSpecialties(data.specialties ?? []);
+      if (data.documentType) setDocumentType(data.documentType as "DNI" | "CE");
+      setDocumentNumber(data.documentNumber ?? "");
+      setPhone(data.phone ?? "");
       // Merge server schedule over defaults so any missing day keeps defaults
       if (data.schedule) {
         setSchedule((prev) => {
@@ -119,7 +139,18 @@ export default function CollaboratorProfilePage() {
       const res = await fetch(`${API_URL}/collaborators/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, role, isActive, specialties, schedule, avatarUrl: avatarUrl || undefined }),
+        body: JSON.stringify({
+          name: `${firstName.trim()} ${lastName.trim()}`.trim(),
+          lastName: lastName.trim() || undefined,
+          role,
+          isActive,
+          specialties,
+          schedule,
+          avatarUrl: avatarUrl || undefined,
+          documentType: documentNumber.trim() ? documentType : undefined,
+          documentNumber: documentNumber.trim() || undefined,
+          phone: phone.trim() || undefined,
+        }),
       });
       if (!res.ok) throw new Error();
       setFeedback({ type: "success", msg: "Perfil guardado correctamente" });
@@ -234,10 +265,10 @@ export default function CollaboratorProfilePage() {
               >
                 {avatarUrl ? (
                   // eslint-disable-next-line @next/next/no-img-element
-                  <img src={avatarUrl} alt={name} className="w-24 h-24 rounded-full object-cover" />
+                  <img src={avatarUrl} alt={`${firstName} ${lastName}`} className="w-24 h-24 rounded-full object-cover" />
                 ) : (
                   <div className="w-24 h-24 rounded-full bg-[var(--color-primary-container)]/20 flex items-center justify-center text-[var(--color-primary)] text-display-lg font-bold">
-                    {name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
+                    {[firstName, lastName].filter(Boolean).map((w) => w[0]).join("").toUpperCase()}
                   </div>
                 )}
                 <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
@@ -256,15 +287,67 @@ export default function CollaboratorProfilePage() {
 
             {/* Datos básicos */}
             <div className="space-y-4">
-              <div className="space-y-1">
-                <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Nombre Completo</label>
-                <input value={name} onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+
+              {/* Nombre y Apellido */}
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Nombre *</label>
+                  <input value={firstName} onChange={(e) => setFirstName(e.target.value)}
+                    autoComplete="off" spellCheck={false}
+                    className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Apellido *</label>
+                  <input value={lastName} onChange={(e) => setLastName(e.target.value)}
+                    autoComplete="off" spellCheck={false}
+                    className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                </div>
               </div>
+
+              {/* Documento de identidad */}
               <div className="space-y-1">
-                <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Cargo / Rol</label>
+                <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Documento de identidad</label>
+                <div className="flex gap-2">
+                  <div className="flex rounded-lg border border-[var(--color-outline-variant)] overflow-hidden shrink-0">
+                    <button type="button" onClick={() => { setDocumentType("DNI"); setDocumentNumber(""); }}
+                      className={`px-3 py-2.5 text-label-md font-semibold transition-colors ${documentType === "DNI" ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]" : "bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)]"}`}>
+                      DNI
+                    </button>
+                    <button type="button" onClick={() => { setDocumentType("CE"); setDocumentNumber(""); }}
+                      className={`px-3 py-2.5 text-label-md font-semibold border-l border-[var(--color-outline-variant)] transition-colors ${documentType === "CE" ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]" : "bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)]"}`}>
+                      CE
+                    </button>
+                  </div>
+                  <input
+                    value={documentNumber}
+                    onChange={(e) => setDocumentNumber(e.target.value.replace(/\D/g, "").slice(0, documentType === "DNI" ? 8 : 12))}
+                    inputMode="numeric" autoComplete="off" spellCheck={false}
+                    className="flex-1 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                </div>
+                <p className="text-[11px] text-[var(--color-on-surface-variant)] mt-0.5">
+                  {documentType === "DNI" ? "8 dígitos" : "Carné de extranjería — hasta 12 dígitos"}
+                </p>
+              </div>
+
+              {/* Teléfono */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Teléfono</label>
+                <div className="relative">
+                  <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)]" strokeWidth={1.5} />
+                  <input
+                    value={phone}
+                    onChange={(e) => setPhone(e.target.value)}
+                    inputMode="tel" autoComplete="off" spellCheck={false}
+                    className="w-full pl-9 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                </div>
+              </div>
+
+              {/* Rol */}
+              <div className="space-y-1">
+                <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Cargo / Rol</label>
                 <RoleSelector value={role} onChange={setRole} />
               </div>
+
               <div onClick={() => setIsActive(v => !v)}
                 className={`flex items-center justify-between gap-4 p-3 rounded-lg border cursor-pointer transition-all select-none ${
                   isActive ? "bg-[var(--color-primary-container)]/10 border-[var(--color-primary)]/30" : "bg-[var(--color-surface-container-lowest)] border-[var(--color-outline-variant)] hover:bg-[var(--color-surface-container-low)]"

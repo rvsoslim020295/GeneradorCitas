@@ -229,4 +229,27 @@ appointments.post("/:id/payment", async (c) => {
   return c.json(result);
 });
 
+// ─── POST /appointments/:id/deposit ──────────────────────────────────────────
+// Registra un anticipo parcial en la cita
+appointments.post("/:id/deposit", async (c) => {
+  const { businessId } = c.get("user");
+  const id = c.req.param("id");
+  const body = await c.req.json().catch(() => null);
+
+  const parsed = z.object({ depositAmount: z.number().positive() }).safeParse(body);
+  if (!parsed.success) return c.json({ error: "Monto de anticipo inválido" }, 400);
+
+  const existing = await prisma.appointment.findFirst({ where: { id, businessId } });
+  if (!existing) return c.json({ error: "Cita no encontrada" }, 404);
+  if (existing.status === "COMPLETED") return c.json({ error: "La cita ya fue cobrada" }, 400);
+
+  const appointment = await prisma.appointment.update({
+    where: { id },
+    data: { depositAmount: parsed.data.depositAmount },
+    include: appointmentInclude,
+  });
+
+  return c.json(appointment);
+});
+
 export default appointments;

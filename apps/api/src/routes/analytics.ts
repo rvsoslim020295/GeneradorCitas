@@ -6,64 +6,137 @@ const analytics = new Hono();
 
 analytics.use("*", requireAuth);
 
-// ─── GET /analytics ───────────────────────────────────────────────────────────
-// Devuelve todos los KPIs y métricas del negocio calculados desde la DB
+type Period = "this_month" | "last_week" | "last_30_days" | "this_year";
+
+function getDateRange(period: Period): { start: Date; end: Date } {
+  const now = new Date();
+  const start = new Date();
+  const end = new Date(now);
+  end.setHours(23, 59, 59, 999);
+
+  switch (period) {
+    case "this_month":
+      start.setDate(1);
+      start.setHours(0, 0, 0, 0);
+      break;
+    case "last_week": {
+      // Lunes al domingo de la semana pasada
+      const day = now.getDay() || 7; // dom=0 → 7
+      start.setDate(now.getDate() - day - 6);
+      start.setHours(0, 0, 0, 0);
+      end.setDate(now.getDate() - day);
+      end.setHours(23, 59, 59, 999);
+      break;
+    }
+    case "last_30_days":
+      start.setDate(now.getDate() - 29);
+      start.setHours(0, 0, 0, 0);
+      break;
+    case "this_year":
+      start.setMonth(0, 1);
+      start.setHours(0, 0, 0, 0);
+      break;
+  }
+
+  return { start, end };
+}
+
+// Genera el array de barras del gráfico según el período
+function buildDailyRevenue(
+  completed: { startTime: Date; price: number }[],
+  period: Period,
+  start: Date,
+  end: Date,
+): { day: string; amount: number }[] {
+  const result: { day: string; amount: number }[] = [];
+
+  if (period === "this_year") {
+    // Una barra por mes (ene–mes actual)
+    const currentMonth = end.getMonth();
+    for (let m = 0; m <= currentMonth; m++) {
+      const mStart = new Date(start.getFullYear(), m, 1, 0, 0, 0, 0);
+      const mEnd   = new Date(start.getFullYear(), m + 1, 0, 23, 59, 59, 999);
+      const amount = completed
+        .filter((a) => a.startTime >= mStart && a.startTime <= mEnd)
+        .reduce((s, a) => s + a.price, 0);
+      result.push({
+        day: mStart.toLocaleDateString("es-MX", { month: "short" }).slice(0, 3),
+        amount,
+      });
+    }
+  } else {
+    // Una barra por día dentro del rango
+    const msPerDay = 86_400_000;
+    const days = Math.round((end.getTime() - start.getTime()) / msPerDay) + 1;
+
+    for (let i = 0; i < days; i++) {
+      const date = new Date(start);
+      date.setDate(start.getDate() + i);
+
+      const dayStart = new Date(date); dayStart.setHours(0, 0, 0, 0);
+      const dayEnd   = new Date(date); dayEnd.setHours(23, 59, 59, 999);
+
+      const amount = completed
+        .filter((a) => a.startTime >= dayStart && a.startTime <= dayEnd)
+        .reduce((s, a) => s + a.price, 0);
+
+      result.push({
+        day: date.toLocaleDateString("es-MX", { weekday: "short", day: "numeric" })
+             .replace(".", "").slice(0, 5),
+        amount,
+      });
+    }
+  }
+
+  return result;
+}
+
+// ─── GET /analytics?period= ───────────────────────────────────────────────────
 analytics.get("/", async (c) => {
   const { businessId } = c.get("user");
 
-  // Traemos todas las citas del negocio de una sola vez para calcular todo
+  const rawPeriod = c.req.query("period") ?? "this_month";
+  const period: Period = (["this_month", "last_week", "last_30_days", "this_year"] as const)
+    .includes(rawPeriod as Period) ? rawPeriod as Period : "this_month";
+
+  const { start, end } = getDateRange(period);
+
   const appointments = await prisma.appointment.findMany({
-    where: { businessId },
+    where: {
+      businessId,
+      startTime: { gte: start, lte: end },
+    },
     include: {
       collaborator: { select: { id: true, name: true } },
     },
   });
 
-  const total = appointments.length;
+  const total     = appointments.length;
   const completed = appointments.filter((a) => a.status === "COMPLETED");
   const cancelled = appointments.filter((a) => a.status === "CANCELLED");
-  const noShow = appointments.filter((a) => a.status === "NO_SHOW");
-  const pending = appointments.filter((a) => a.status === "PENDING" || a.status === "CONFIRMED");
+  const noShow    = appointments.filter((a) => a.status === "NO_SHOW");
+  const pending   = appointments.filter((a) => a.status === "PENDING" || a.status === "CONFIRMED");
 
   const totalRevenue = completed.reduce((sum, a) => sum + a.price, 0);
-  const noShowRate = total > 0 ? (noShow.length / total) * 100 : 0;
+  const noShowRate   = total > 0 ? (noShow.length / total) * 100 : 0;
 
-  // ── Ingresos por día (últimos 7 días) ──────────────────────────────────────
-  const today = new Date();
-  const dailyRevenue: { day: string; amount: number }[] = [];
+  const dailyRevenue = buildDailyRevenue(
+    completed.map((a) => ({ startTime: a.startTime, price: a.price })),
+    period,
+    start,
+    end,
+  );
 
-  for (let i = 6; i >= 0; i--) {
-    const date = new Date(today);
-    date.setDate(date.getDate() - i);
-    const dayLabel = date.toLocaleDateString("es-MX", { weekday: "short" }).slice(0, 1).toUpperCase();
-
-    const dayStart = new Date(date);
-    dayStart.setHours(0, 0, 0, 0);
-    const dayEnd = new Date(date);
-    dayEnd.setHours(23, 59, 59, 999);
-
-    const dayRevenue = completed
-      .filter((a) => new Date(a.startTime) >= dayStart && new Date(a.startTime) <= dayEnd)
-      .reduce((sum, a) => sum + a.price, 0);
-
-    dailyRevenue.push({ day: dayLabel, amount: dayRevenue });
-  }
-
-  // ── Distribución por estado (porcentajes) ─────────────────────────────────
   const statusDistribution = {
     completed: total > 0 ? Math.round((completed.length / total) * 100) : 0,
-    pending: total > 0 ? Math.round((pending.length / total) * 100) : 0,
+    pending:   total > 0 ? Math.round((pending.length   / total) * 100) : 0,
     cancelled: total > 0 ? Math.round(((cancelled.length + noShow.length) / total) * 100) : 0,
   };
 
-  // ── Top 3 colaboradores por ingresos ──────────────────────────────────────
   const collabRevenue: Record<string, { name: string; revenue: number; appointmentCount: number }> = {};
-
   for (const apt of completed) {
     const cid = apt.collaborator.id;
-    if (!collabRevenue[cid]) {
-      collabRevenue[cid] = { name: apt.collaborator.name, revenue: 0, appointmentCount: 0 };
-    }
+    if (!collabRevenue[cid]) collabRevenue[cid] = { name: apt.collaborator.name, revenue: 0, appointmentCount: 0 };
     collabRevenue[cid].revenue += apt.price;
     collabRevenue[cid].appointmentCount++;
   }
