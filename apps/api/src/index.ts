@@ -9,6 +9,7 @@ import services from "./routes/services.js";
 import appointments from "./routes/appointments.js";
 import analytics from "./routes/analytics.js";
 import settings from "./routes/settings.js";
+import notifications from "./routes/notifications.js";
 
 const app = new Hono();
 
@@ -35,6 +36,7 @@ app.route("/services", services);
 app.route("/appointments", appointments);
 app.route("/analytics", analytics);
 app.route("/settings", settings);
+app.route("/notifications", notifications);
 
 const PORT = Number(process.env.PORT) || 3001;
 
