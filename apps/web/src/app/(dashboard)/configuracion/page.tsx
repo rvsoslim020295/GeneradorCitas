@@ -12,7 +12,7 @@ const sections = [
     href: "/configuracion/negocio",
     icon: Building2,
     title: "Datos del Negocio",
-    description: "Nombre, categoría, teléfono, dirección y zona horaria",
+    description: "Nombre, categoría, teléfono y dirección",
   },
   {
     href: "/configuracion/agenda",
