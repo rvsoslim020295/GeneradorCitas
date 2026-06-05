@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GlowManager - Staff</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary": "#006591",
+                    "on-background": "#191c1e",
+                    "surface-container-low": "#f2f4f6",
+                    "primary": "#4441c4",
+                    "surface-bright": "#f7f9fb",
+                    "on-secondary": "#ffffff",
+                    "surface": "#f7f9fb",
+                    "inverse-primary": "#c2c1ff",
+                    "tertiary-fixed-dim": "#ffb782",
+                    "surface-container": "#eceef0",
+                    "error": "#ba1a1a",
+                    "surface-container-high": "#e6e8ea",
+                    "tertiary-fixed": "#ffdcc5",
+                    "tertiary": "#854300",
+                    "tertiary-container": "#a95700",
+                    "inverse-on-surface": "#eff1f3",
+                    "on-tertiary": "#ffffff",
+                    "on-surface-variant": "#464554",
+                    "error-container": "#ffdad6",
+                    "on-tertiary-fixed-variant": "#703800",
+                    "secondary-fixed": "#c9e6ff",
+                    "surface-variant": "#e0e3e5",
+                    "primary-container": "#5d5cde",
+                    "inverse-surface": "#2d3133",
+                    "on-error-container": "#93000a",
+                    "surface-container-highest": "#e0e3e5",
+                    "surface-tint": "#4e4cce",
+                    "secondary-container": "#39b8fd",
+                    "on-primary-container": "#f1eeff",
+                    "on-surface": "#191c1e",
+                    "on-primary-fixed": "#0b006b",
+                    "surface-dim": "#d8dadc",
+                    "secondary-fixed-dim": "#89ceff",
+                    "primary-fixed": "#e2dfff",
+                    "on-tertiary-container": "#ffede2",
+                    "on-primary-fixed-variant": "#3530b6",
+                    "on-primary": "#ffffff",
+                    "on-secondary-fixed-variant": "#004c6e",
+                    "on-secondary-fixed": "#001e2f",
+                    "outline-variant": "#c7c4d6",
+                    "surface-container-lowest": "#ffffff",
+                    "on-secondary-container": "#004666",
+                    "on-error": "#ffffff",
+                    "primary-fixed-dim": "#c2c1ff",
+                    "outline": "#777585",
+                    "on-tertiary-fixed": "#301400",
+                    "background": "#f7f9fb"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "gutter-desktop": "24px",
+                    "stack-md": "12px",
+                    "gutter-tablet": "16px",
+                    "stack-sm": "4px",
+                    "stack-lg": "24px",
+                    "base": "8px",
+                    "margin-page": "32px"
+            },
+            "fontFamily": {
+                    "display-lg": ["Inter"],
+                    "label-md": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-md-mobile": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "body-lg": ["Inter"]
+            },
+            "fontSize": {
+                    "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                    "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                    "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                    "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                    "headline-md-mobile": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                    "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                    "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface antialiased min-h-screen pb-24 selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="bg-surface-bright border-b border-surface-variant shadow-sm w-full top-0 sticky z-40 flex items-center justify-between px-4 h-16">
+<div class="flex items-center gap-3">
+<button class="text-primary hover:bg-surface-container-high transition-colors p-2 rounded-full active:scale-95 flex items-center justify-center">
+<span class="material-symbols-outlined">menu</span>
+</button>
+<span class="text-headline-md font-headline-md text-primary tracking-tight">SalonPro</span>
+</div>
+<button class="w-9 h-9 rounded-full overflow-hidden border border-outline-variant hover:bg-surface-container-high transition-colors active:scale-95 flex-shrink-0">
+<img alt="Profile" class="w-full h-full object-cover" data-alt="A close-up, high-quality portrait of a professional salon manager in a modern, brightly lit environment. The lighting is soft and flattering, creating a premium light-mode aesthetic. The individual has a confident, welcoming expression, styled impeccably to reflect the beauty industry standards." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCYK1_pn-C1mLH8f2kBlSL9t5sNSXEVz8ZqkEVhppC9J18ILvdtAtjDFh7wPE3DdLDWXcU6FKgZo0pUh14wfHtPFre0xmPHubvdn7oaskAxJUklUPkoeF30fyIxOqhii1pbMpXTX1L4ZTHhWuu1OaHL9BnuZ1GFz58RBZqGod1w1R-kkTXDI8SgY6kDVB9aBGye9YxciINVvs3avO6UVQ0xB3rY5hVcffoQ4ID9LXCDRCJ66wT446JrUxCrMItRMok7TEHTpYaP8nI"/>
+</button>
+</header>
+<!-- Main Content -->
+<main class="max-w-3xl mx-auto w-full">
+<!-- Page Header -->
+<div class="px-4 py-6 space-y-6">
+<div class="flex justify-between items-center">
+<h1 class="font-display-lg text-display-lg text-on-surface">Equipo</h1>
+<button class="bg-primary text-on-primary h-12 px-5 rounded-lg flex items-center justify-center gap-2 shadow-sm hover:shadow-md active:scale-95 transition-all font-label-md text-label-md">
+<span class="material-symbols-outlined" style="font-size: 20px;">add</span>
+<span>NUEVO</span>
+</button>
+</div>
+<!-- Search Bar -->
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full bg-surface-container-lowest border border-surface-variant rounded-xl py-3.5 pl-12 pr-4 text-body-lg font-body-lg text-on-surface focus:border-primary focus:ring-4 focus:ring-primary/10 outline-none transition-all placeholder:text-outline shadow-sm" placeholder="Buscar colaboradores..." type="text"/>
+</div>
+</div>
+<!-- Staff List (Bento-inspired cards) -->
+<div class="px-4 space-y-4 pb-8">
+<!-- Staff Card 1 (Active) -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] relative hover:shadow-md transition-shadow group">
+<!-- Status Badge -->
+<div class="absolute top-5 right-5 px-3 py-1 bg-secondary-fixed text-on-secondary-fixed rounded-full font-label-md text-label-md flex items-center gap-1.5 border border-secondary-fixed-dim/30">
+<div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+                    Activo
+                </div>
+<div class="flex gap-5">
+<!-- Photo -->
+<div class="w-16 h-16 rounded-full overflow-hidden shrink-0 border-2 border-surface shadow-sm ring-1 ring-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of a female senior hairstylist with vibrant, styled hair. She is smiling warmly in a modern salon setting with bright, natural lighting. The background is slightly blurred to keep focus on her face, maintaining a clean, high-end corporate aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCQpj_FPIZwFJAMJVB_kxCGadwXJrF4NUbbYWTV8wpz52Hy9vMnCahAFrSysJtv3v-g37eNx6yHVfZRx8mUJ5MUf5vUpIkNuOiQ2RQRe57bz_lGA0iucypKE59MXQGA2V0IL56xF1ev8kJSbsR-WQIrQtFM8DptYJD9xRiTjIpFQc0-hH4kS2QOUiOfxNbVv7RvhDM4GNEbxMZHsEFh6099kDitWnhbjk3alOZMQA-BxrMp4myEUi3H1G3bHEVjPrE-A6FvJ1mdYj8"/>
+</div>
+<!-- Details -->
+<div class="flex-1 pt-0.5">
+<h2 class="font-headline-md-mobile text-headline-md-mobile text-on-surface group-hover:text-primary transition-colors">Elena Rodriguez</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-0.5 mb-3 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">content_cut</span>
+                            Senior Stylist
+                        </p>
+<!-- Services Tags -->
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-container-low border border-surface-variant px-2.5 py-1 rounded-md font-label-md text-label-md text-on-surface-variant">Corte Mujer</span>
+<span class="bg-surface-container-low border border-surface-variant px-2.5 py-1 rounded-md font-label-md text-label-md text-on-surface-variant">Balayage</span>
+<span class="bg-surface-container-low border border-surface-variant px-2.5 py-1 rounded-md font-label-md text-label-md text-on-surface-variant">Coloración</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Staff Card 2 (Active) -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] relative hover:shadow-md transition-shadow group">
+<div class="absolute top-5 right-5 px-3 py-1 bg-secondary-fixed text-on-secondary-fixed rounded-full font-label-md text-label-md flex items-center gap-1.5 border border-secondary-fixed-dim/30">
+<div class="w-1.5 h-1.5 rounded-full bg-secondary"></div>
+                    Activo
+                </div>
+<div class="flex gap-5">
+<div class="w-16 h-16 rounded-full overflow-hidden shrink-0 border-2 border-surface shadow-sm ring-1 ring-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A sharp, confident headshot of a male barber with a well-groomed beard. He is wearing a dark, professional apron over a clean shirt. The lighting is crisp and modern, set against a bright, minimalist background that conveys luxury and precision." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAiDTsnGKVjXo-ccSR8G1uHhLF2kK2NY0dDs8oPBhP-OtAE7-tCMeuZnCjBvuETmq6wP1rt59JS0Staoc1D2rbB6jsmFfzW_Uz_HjQ4NBzovK7IPI8xP30zoRhngJ4pYssjk-9-B0Va0XJBevr98Xoq846gdS0oFZeTCE36fL5VgLwTnfMNYA3kKPYuFBd227A3DXDM4P4dHtixYYi9SOmxJnd3o91pGUMQay5c6A-eYSbB-zEN5U5NwKLGxIkE71t74rc695ZtIyw"/>
+</div>
+<div class="flex-1 pt-0.5">
+<h2 class="font-headline-md-mobile text-headline-md-mobile text-on-surface group-hover:text-primary transition-colors">Carlos Mendoza</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-0.5 mb-3 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">face_retouching_natural</span>
+                            Master Barber
+                        </p>
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-container-low border border-surface-variant px-2.5 py-1 rounded-md font-label-md text-label-md text-on-surface-variant">Corte Hombre</span>
+<span class="bg-surface-container-low border border-surface-variant px-2.5 py-1 rounded-md font-label-md text-label-md text-on-surface-variant">Barba</span>
+<span class="bg-surface-container-low border border-surface-variant px-2.5 py-1 rounded-md font-label-md text-label-md text-on-surface-variant">Tratamiento</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Staff Card 3 (Inactive) -->
+<div class="bg-surface-container-lowest border border-surface-variant rounded-xl p-5 shadow-sm relative opacity-80 grayscale-[20%]">
+<div class="absolute top-5 right-5 px-3 py-1 bg-surface-variant text-on-surface-variant rounded-full font-label-md text-label-md flex items-center gap-1.5">
+<div class="w-1.5 h-1.5 rounded-full bg-outline"></div>
+                    Inactivo
+                </div>
+<div class="flex gap-5">
+<div class="w-16 h-16 rounded-full overflow-hidden shrink-0 border-2 border-surface shadow-sm ring-1 ring-surface-variant">
+<img class="w-full h-full object-cover" data-alt="A portrait of a female salon professional with a calm, neutral expression. She is softly lit against a muted, light-mode background. The overall aesthetic is clean and corporate, though the image appears slightly desaturated to indicate an inactive status within the system." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBUaUlXqW5f1GJ29tczV1b5OriAkiKU0svZy8EQjvgOOCO0CdXziAVqIPQjisYX-9TaGXRdLL4QmY_xJi6o3LuDkty3ynIZc3JDlAe1icv3rsn65HpolCIxEwGRAd7410MCkfaSKCsRumYstDL1eO45Ese83uvX2LxwFl-o7V3z5oTjeohBZy8jeK1vM6YxQmVNgATIWoeiu3yin1bJF6Kv8cChjlHYz1GNFifnfbxc8EZeVg-SiZWGFUV0fDPJlE2HJfCZ_87u8A4"/>
+</div>
+<div class="flex-1 pt-0.5">
+<h2 class="font-headline-md-mobile text-headline-md-mobile text-on-surface-variant">Sofia Laurent</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-0.5 mb-3 flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px]">brush</span>
+                            Colorista
+                        </p>
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface border border-surface-variant px-2.5 py-1 rounded-md font-label-md text-label-md text-outline">Tintes</span>
+<span class="bg-surface border border-surface-variant px-2.5 py-1 rounded-md font-label-md text-label-md text-outline">Mechas</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="md:hidden fixed bottom-0 left-0 w-full flex justify-around items-center px-4 py-2 bg-surface-container-lowest border-t border-surface-variant shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] z-50 rounded-t-xl pb-safe">
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-90 transition-transform duration-200 w-16 py-1">
+<span class="material-symbols-outlined mb-1">event</span>
+<span class="font-label-md text-label-md">Agenda</span>
+</button>
+<!-- Active Tab: Staff -->
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-5 py-1.5 hover:bg-surface-container transition-transform duration-200 active:scale-95 shadow-sm">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">group</span>
+<span class="font-label-md text-label-md mt-0.5 font-bold">Staff</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-90 transition-transform duration-200 w-16 py-1">
+<span class="material-symbols-outlined mb-1">style</span>
+<span class="font-label-md text-label-md">Services</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container active:scale-90 transition-transform duration-200 w-16 py-1">
+<span class="material-symbols-outlined mb-1">more_horiz</span>
+<span class="font-label-md text-label-md">More</span>
+</button>
+</nav>
+<!-- Safe area padding for newer iPhones -->
+<style>
+        .pb-safe { padding-bottom: env(safe-area-inset-bottom, 8px); }
+    </style>
+</body></html>

@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GlowManager - Login</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                            "primary-fixed-dim": "#c2c1ff",
+                            "on-primary-fixed-variant": "#3530b6",
+                            "primary": "#4441c4",
+                            "on-tertiary": "#ffffff",
+                            "surface-bright": "#f7f9fb",
+                            "secondary-container": "#39b8fd",
+                            "surface-tint": "#4e4cce",
+                            "on-surface": "#191c1e",
+                            "surface-dim": "#d8dadc",
+                            "error-container": "#ffdad6",
+                            "surface-container-highest": "#e0e3e5",
+                            "inverse-surface": "#2d3133",
+                            "surface-variant": "#e0e3e5",
+                            "on-tertiary-fixed-variant": "#703800",
+                            "on-tertiary-container": "#ffede2",
+                            "on-secondary-fixed": "#001e2f",
+                            "secondary-fixed-dim": "#89ceff",
+                            "on-background": "#191c1e",
+                            "on-error": "#ffffff",
+                            "background": "#f7f9fb",
+                            "on-primary-fixed": "#0b006b",
+                            "on-secondary-fixed-variant": "#004c6e",
+                            "primary-fixed": "#e2dfff",
+                            "on-secondary": "#ffffff",
+                            "on-primary": "#ffffff",
+                            "error": "#ba1a1a",
+                            "on-error-container": "#93000a",
+                            "tertiary": "#854300",
+                            "inverse-on-surface": "#eff1f3",
+                            "inverse-primary": "#c2c1ff",
+                            "primary-container": "#5d5cde",
+                            "on-tertiary-fixed": "#301400",
+                            "surface-container-low": "#f2f4f6",
+                            "outline-variant": "#c7c4d6",
+                            "surface-container-lowest": "#ffffff",
+                            "tertiary-fixed": "#ffdcc5",
+                            "outline": "#777585",
+                            "on-secondary-container": "#004666",
+                            "tertiary-container": "#a95700",
+                            "surface-container-high": "#e6e8ea",
+                            "on-surface-variant": "#464554",
+                            "tertiary-fixed-dim": "#ffb782",
+                            "secondary-fixed": "#c9e6ff",
+                            "surface": "#f7f9fb",
+                            "surface-container": "#eceef0",
+                            "on-primary-container": "#f1eeff",
+                            "secondary": "#006591"
+                    },
+                    "borderRadius": {
+                            "DEFAULT": "0.25rem",
+                            "lg": "0.5rem",
+                            "xl": "0.75rem",
+                            "full": "9999px"
+                    },
+                    "spacing": {
+                            "gutter-tablet": "16px",
+                            "stack-md": "12px",
+                            "stack-lg": "24px",
+                            "gutter-desktop": "24px",
+                            "base": "8px",
+                            "stack-sm": "4px",
+                            "margin-page": "32px"
+                    },
+                    "fontFamily": {
+                            "body-md": ["Inter"],
+                            "headline-sm": ["Inter"],
+                            "label-md": ["Inter"],
+                            "headline-md-mobile": ["Inter"],
+                            "headline-md": ["Inter"],
+                            "display-lg": ["Inter"],
+                            "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                            "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                            "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                            "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                            "headline-md-mobile": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                            "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                            "display-lg": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                            "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Ambient shadow for cards */
+        .ambient-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05);
+        }
+        /* Custom input focus ring to match primary color glow */
+        .input-glow:focus {
+            box-shadow: 0 0 0 3px rgba(68, 65, 196, 0.15); /* Primary color with opacity */
+            border-color: #4441c4;
+            outline: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body-md min-h-screen flex antialiased">
+<!-- Split Screen Layout -->
+<div class="flex w-full min-h-screen">
+<!-- Left Side: Hero Image (Hidden on Mobile) -->
+<div class="hidden lg:flex lg:w-7/12 relative bg-surface-container-high overflow-hidden">
+<!-- Overlay gradient for sophisticated depth -->
+<div class="absolute inset-0 bg-gradient-to-tr from-on-surface/40 to-transparent z-10 pointer-events-none mix-blend-multiply"></div>
+<img alt="High-end salon interior" class="absolute inset-0 w-full h-full object-cover object-center" data-alt="A pristine, high-end hair salon interior bathed in soft, diffused natural daylight. The scene features minimalist modern styling chairs with chrome accents facing sleek, frameless illuminated mirrors. The overall palette relies on bright whites, soft grays, and natural wood tones, creating a serene, professional light-mode aesthetic. The composition emphasizes clean lines, generous whitespace, and a sense of calm, organized luxury fitting for a premium business tool environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsXuxXAPTc7kutLtbxCXLCQ-0pVwI472LARw_Qz1wUl72Lqjxc0u-TEoWgq1ACzKiSE7Jnk9yFEBP5ouCtch1ZjBolNddRCoih6WgXnMtr3o_6SvhCcpMOMdqhUifJHzdRiv8XRro3gdnenpNxMB1dKvr5ac63nsjydUyMIMRu0QvIsdMty24bb5sKUbabMBQBL9POzXaMJaXPHY_iWi7r2rWFMfeAWqXShwFEPZaHcepbDXpLMmqDez1YHniH7anUltHTKUlotjw"/>
+<!-- Optional subtle brand watermark or quote over image could go here, keeping it minimalist for now -->
+</div>
+<!-- Right Side: Login Form Canvas -->
+<div class="w-full lg:w-5/12 flex flex-col justify-center items-center p-gutter-desktop sm:p-margin-page relative">
+<!-- Login Container (Bento/Card style) -->
+<div class="w-full max-w-[420px] bg-surface-container-lowest rounded-xl border border-outline-variant/50 ambient-shadow p-stack-lg md:p-margin-page relative overflow-hidden">
+<!-- Subtle top edge highlight -->
+<div class="absolute top-0 left-0 w-full h-[4px] bg-primary"></div>
+<!-- Header -->
+<div class="mb-stack-lg text-center sm:text-left">
+<h1 class="font-headline-md text-headline-md text-primary tracking-tight mb-stack-sm flex items-center justify-center sm:justify-start gap-2">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">spa</span>
+                        GlowManager
+                    </h1>
+<h2 class="font-headline-md text-headline-md text-on-surface mt-stack-md">Welcome back</h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-stack-sm">Sign in to manage your schedule and clients.</p>
+</div>
+<!-- Form -->
+<form action="#" class="space-y-stack-md" method="POST">
+<!-- Email Input -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-stack-sm uppercase tracking-wider" for="email">Email Address</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline text-[20px]">mail</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface placeholder-outline transition-colors duration-200 input-glow" id="email" name="email" placeholder="name@yourbusiness.com" required="" type="email"/>
+</div>
+</div>
+<!-- Password Input -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-stack-sm uppercase tracking-wider" for="password">Password</label>
+<div class="relative">
+<div class="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+<span class="material-symbols-outlined text-outline text-[20px]">lock</span>
+</div>
+<input class="block w-full pl-10 pr-3 py-[10px] bg-surface-container-lowest border border-outline-variant rounded-lg font-body-md text-body-md text-on-surface placeholder-outline transition-colors duration-200 input-glow" id="password" name="password" placeholder="••••••••" required="" type="password"/>
+</div>
+</div>
+<!-- Options Row -->
+<div class="flex items-center justify-between pt-stack-sm">
+<div class="flex items-center">
+<input class="h-4 w-4 text-primary bg-surface-container-lowest border-outline-variant rounded focus:ring-primary focus:ring-2 focus:ring-offset-2 focus:ring-offset-surface-container-lowest transition-colors cursor-pointer" id="remember-me" name="remember-me" type="checkbox"/>
+<label class="ml-2 block font-body-md text-body-md text-on-surface cursor-pointer" for="remember-me">
+                                Remember me
+                            </label>
+</div>
+<div class="text-sm">
+<a class="font-label-md text-label-md text-primary hover:text-primary-container transition-colors" href="#">
+                                Forgot password?
+                            </a>
+</div>
+</div>
+<!-- Submit Button -->
+<div class="pt-stack-md">
+<button class="w-full flex justify-center items-center py-[12px] px-4 border border-transparent rounded-lg shadow-sm font-label-md text-label-md text-on-primary bg-primary hover:bg-surface-tint focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-all duration-200 active:scale-[0.98]" type="submit">
+                            Login
+                            <span class="material-symbols-outlined ml-2 text-[18px]">login</span>
+</button>
+</div>
+</form>
+</div>
+<!-- Support Link below card -->
+<div class="mt-stack-lg text-center">
+<p class="font-body-md text-body-md text-on-surface-variant">
+                    Having trouble accessing your account? 
+                    <a class="font-label-md text-label-md text-primary hover:underline underline-offset-4 transition-all" href="#">Contact Support</a>
+</p>
+</div>
+</div>
+</div>
+</body></html>

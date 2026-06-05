@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>WhatsApp Notifications - Configuration</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "tertiary-container": "#a95700",
+                        "on-secondary": "#ffffff",
+                        "on-secondary-fixed-variant": "#004c6e",
+                        "surface-variant": "#e0e3e5",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface": "#f7f9fb",
+                        "secondary-fixed-dim": "#89ceff",
+                        "primary-fixed": "#e2dfff",
+                        "outline-variant": "#c7c4d6",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-container": "#ffede2",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed": "#301400",
+                        "on-secondary-fixed": "#001e2f",
+                        "inverse-primary": "#c2c1ff",
+                        "error": "#ba1a1a",
+                        "primary-container": "#5d5cde",
+                        "secondary-fixed": "#c9e6ff",
+                        "on-background": "#191c1e",
+                        "on-primary-fixed": "#0b006b",
+                        "on-error": "#ffffff",
+                        "surface-tint": "#4e4cce",
+                        "surface-container-highest": "#e0e3e5",
+                        "surface-container": "#eceef0",
+                        "surface-dim": "#d8dadc",
+                        "surface-container-high": "#e6e8ea",
+                        "background": "#f7f9fb",
+                        "inverse-surface": "#2d3133",
+                        "tertiary-fixed-dim": "#ffb782",
+                        "outline": "#777585",
+                        "error-container": "#ffdad6",
+                        "secondary": "#006591",
+                        "on-tertiary-fixed-variant": "#703800",
+                        "on-primary-container": "#f1eeff",
+                        "on-surface": "#191c1e",
+                        "tertiary-fixed": "#ffdcc5",
+                        "surface-bright": "#f7f9fb",
+                        "on-surface-variant": "#464554",
+                        "on-secondary-container": "#004666",
+                        "primary-fixed-dim": "#c2c1ff",
+                        "tertiary": "#854300",
+                        "secondary-container": "#39b8fd",
+                        "on-primary-fixed-variant": "#3530b6",
+                        "primary": "#4441c4",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "surface-container-low": "#f2f4f6"
+                    },
+                    borderRadius: {
+                        DEFAULT: "0.25rem",
+                        lg: "0.5rem",
+                        xl: "0.75rem",
+                        full: "9999px"
+                    },
+                    spacing: {
+                        "gutter-tablet": "16px",
+                        "stack-sm": "4px",
+                        "base": "8px",
+                        "stack-lg": "24px",
+                        "gutter-desktop": "24px",
+                        "stack-md": "12px",
+                        "margin-page": "32px"
+                    },
+                    fontFamily: {
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md-mobile": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    fontSize: {
+                        "label-md": ["12px", { lineHeight: "16px", letterSpacing: "0.05em", fontWeight: "600" }],
+                        "headline-md": ["24px", { lineHeight: "32px", letterSpacing: "-0.01em", fontWeight: "600" }],
+                        "body-md": ["14px", { lineHeight: "20px", fontWeight: "400" }],
+                        "headline-md-mobile": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+                        "display-lg": ["36px", { lineHeight: "44px", letterSpacing: "-0.02em", fontWeight: "700" }],
+                        "headline-sm": ["20px", { lineHeight: "28px", fontWeight: "600" }],
+                        "body-lg": ["16px", { lineHeight: "24px", fontWeight: "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .toggle-checkbox:checked {
+            right: 0;
+            border-color: #4441c4;
+        }
+        .toggle-checkbox:checked + .toggle-label {
+            background-color: #4441c4;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen font-body-md antialiased selection:bg-primary-container selection:text-on-primary-container">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-inverse-surface text-primary dark:text-primary-fixed-dim font-headline-md-mobile text-headline-md-mobile w-full top-0 sticky border-b border-outline-variant dark:border-outline shadow-sm flex justify-between items-center px-gutter-tablet h-16 z-50">
+<button class="text-on-surface-variant hover:bg-surface-container-high transition-colors p-2 rounded-full active:scale-95 duration-100 flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="arrow_back" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</button>
+<h1 class="font-headline-md text-headline-md text-primary dark:text-primary-fixed-dim font-bold truncate px-4">WhatsApp Settings</h1>
+<button class="text-on-surface-variant hover:bg-surface-container-high transition-colors p-2 rounded-full active:scale-95 duration-100 flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="help_outline" style="font-variation-settings: 'FILL' 0;">help_outline</span>
+</button>
+</header>
+<main class="max-w-3xl mx-auto px-gutter-tablet md:px-gutter-desktop py-stack-lg space-y-stack-lg pb-32">
+<!-- Connection Status -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-lg shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+<div class="flex items-start justify-between">
+<div class="flex items-center space-x-stack-md">
+<div class="w-12 h-12 bg-surface-container rounded-lg flex items-center justify-center text-[#25D366]">
+<span class="material-symbols-outlined text-[32px]" data-icon="chat" style="font-variation-settings: 'FILL' 1;">chat</span>
+</div>
+<div>
+<div class="flex items-center space-x-2">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Connection Status</h2>
+<span class="inline-flex items-center px-2 py-0.5 rounded-full bg-[#E8F5E9] text-[#1B5E20] font-label-md text-label-md">
+<span class="w-2 h-2 rounded-full bg-[#4CAF50] mr-1.5"></span>Connected
+                            </span>
+</div>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">+1 (555) 019-8372</p>
+</div>
+</div>
+<button class="px-4 py-2 border border-outline-variant bg-surface-container-lowest text-error font-label-md text-label-md rounded-lg hover:bg-error-container transition-colors focus:outline-none focus:ring-2 focus:ring-error focus:ring-offset-2">
+                    Disconnect
+                </button>
+</div>
+</section>
+<!-- Automated Reminders -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] overflow-hidden">
+<div class="p-stack-lg border-b border-outline-variant bg-surface">
+<div class="flex items-center justify-between">
+<div class="flex items-center space-x-stack-md">
+<span class="material-symbols-outlined text-primary" data-icon="schedule" style="font-variation-settings: 'FILL' 0;">schedule</span>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Automated Reminders</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Send timely messages to reduce no-shows.</p>
+</div>
+</div>
+<!-- Master Toggle -->
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" id="master_toggle" name="master_toggle" style="top: 2px; right: 2px; border-color: #4441c4;" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-7 rounded-full bg-primary cursor-pointer" for="master_toggle"></label>
+</div>
+</div>
+</div>
+<div class="p-stack-lg space-y-stack-lg">
+<div class="flex items-center justify-between">
+<div>
+<p class="font-body-lg text-body-lg text-on-surface">24 hours before</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Best for allowing timely cancellations.</p>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" id="toggle_24h" name="toggle_24h" style="top: 2px; right: 2px; border-color: #4441c4;" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-7 rounded-full bg-primary cursor-pointer" for="toggle_24h"></label>
+</div>
+</div>
+<div class="h-px bg-outline-variant w-full"></div>
+<div class="flex items-center justify-between">
+<div>
+<p class="font-body-lg text-body-lg text-on-surface">2 hours before</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Final nudge for upcoming appointments.</p>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 border-outline-variant appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" id="toggle_2h" name="toggle_2h" style="top: 2px; right: 22px;" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-7 rounded-full bg-surface-variant cursor-pointer" for="toggle_2h"></label>
+</div>
+</div>
+</div>
+</section>
+<!-- Message Templates -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)] overflow-hidden">
+<div class="p-stack-lg border-b border-outline-variant bg-surface">
+<div class="flex items-center space-x-stack-md">
+<span class="material-symbols-outlined text-primary" data-icon="edit_document" style="font-variation-settings: 'FILL' 0;">edit_document</span>
+<div>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Message Templates</h2>
+<p class="font-body-md text-body-md text-on-surface-variant">Customize what your clients see.</p>
+</div>
+</div>
+</div>
+<div class="divide-y divide-outline-variant">
+<!-- Template 1 -->
+<div class="p-stack-lg flex flex-col md:flex-row md:items-start justify-between gap-stack-md">
+<div class="flex-1">
+<h3 class="font-body-lg text-body-lg text-on-surface font-semibold mb-2">Appointment Reminder</h3>
+<div class="bg-surface-container rounded-lg p-stack-md border border-outline-variant">
+<p class="font-body-md text-body-md text-on-surface-variant italic">"Hi [Client Name], just a quick reminder about your appointment at GlowManager on [Date] at [Time]..."</p>
+</div>
+</div>
+<button class="mt-2 md:mt-0 px-4 py-2 bg-surface-container-lowest border border-outline-variant text-primary font-label-md text-label-md rounded-lg hover:bg-surface-container transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="edit">edit</span>
+                        Edit
+                    </button>
+</div>
+<!-- Template 2 -->
+<div class="p-stack-lg flex flex-col md:flex-row md:items-start justify-between gap-stack-md">
+<div class="flex-1">
+<h3 class="font-body-lg text-body-lg text-on-surface font-semibold mb-2">Booking Confirmation</h3>
+<div class="bg-surface-container rounded-lg p-stack-md border border-outline-variant">
+<p class="font-body-md text-body-md text-on-surface-variant italic">"Success! Your appointment with [Staff Name] for [Service] is confirmed for [Date]..."</p>
+</div>
+</div>
+<button class="mt-2 md:mt-0 px-4 py-2 bg-surface-container-lowest border border-outline-variant text-primary font-label-md text-label-md rounded-lg hover:bg-surface-container transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]" data-icon="edit">edit</span>
+                        Edit
+                    </button>
+</div>
+</div>
+</section>
+<!-- Timing & Logic -->
+<section class="bg-surface-container-lowest border border-outline-variant rounded-xl p-stack-lg shadow-[0_4px_6px_-1px_rgba(0,0,0,0.05)]">
+<div class="flex items-center space-x-stack-md mb-stack-lg">
+<span class="material-symbols-outlined text-primary" data-icon="tune" style="font-variation-settings: 'FILL' 0;">tune</span>
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Timing &amp; Logic</h2>
+</div>
+<div class="flex items-center justify-between">
+<div>
+<p class="font-body-lg text-body-lg text-on-surface">Send during business hours only</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Prevents messages from being sent late at night.</p>
+</div>
+<div class="relative inline-block w-12 mr-2 align-middle select-none transition duration-200 ease-in">
+<input checked="" class="toggle-checkbox absolute block w-6 h-6 rounded-full bg-white border-4 appearance-none cursor-pointer focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2" id="toggle_business_hours" name="toggle_business_hours" style="top: 2px; right: 2px; border-color: #4441c4;" type="checkbox"/>
+<label class="toggle-label block overflow-hidden h-7 rounded-full bg-primary cursor-pointer" for="toggle_business_hours"></label>
+</div>
+</div>
+</section>
+</main>
+<!-- Navigation suppressed per intent rule (Focused Settings sub-page) -->
+<script>
+        // Simple toggle logic for visual feedback if needed, though CSS handles the state via :checked
+        document.querySelectorAll('.toggle-checkbox').forEach(toggle => {
+            toggle.addEventListener('change', function() {
+                if(this.checked) {
+                    this.style.borderColor = '#4441c4';
+                    this.style.right = '2px';
+                    this.nextElementSibling.style.backgroundColor = '#4441c4';
+                } else {
+                    this.style.borderColor = '#c7c4d6';
+                    this.style.right = '22px';
+                    this.nextElementSibling.style.backgroundColor = '#e0e3e5';
+                }
+            });
+        });
+    </script>
+</body></html>

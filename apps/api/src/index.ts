@@ -1,0 +1,43 @@
+import "dotenv/config";
+import { serve } from "@hono/node-server";
+import { Hono } from "hono";
+import { cors } from "hono/cors";
+import auth from "./routes/auth.js";
+import clients from "./routes/clients.js";
+import collaborators from "./routes/collaborators.js";
+import services from "./routes/services.js";
+import appointments from "./routes/appointments.js";
+import analytics from "./routes/analytics.js";
+import settings from "./routes/settings.js";
+
+const app = new Hono();
+
+// CORS: permite que el frontend en localhost:3000 llame a la API en localhost:3001
+app.use(
+  "*",
+  cors({
+    origin: "http://localhost:3000",
+    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
+    allowHeaders: ["Content-Type", "Authorization"],
+  })
+);
+
+// Health check — útil para saber si el servidor está corriendo
+app.get("/health", (c) => c.json({ status: "ok", service: "GlowManager API" }));
+
+// Rutas de autenticación bajo el prefijo /auth
+app.route("/auth", auth);
+
+// Rutas de clientes (requieren JWT)
+app.route("/clients", clients);
+app.route("/collaborators", collaborators);
+app.route("/services", services);
+app.route("/appointments", appointments);
+app.route("/analytics", analytics);
+app.route("/settings", settings);
+
+const PORT = Number(process.env.PORT) || 3001;
+
+serve({ fetch: app.fetch, port: PORT }, () => {
+  console.log(`🚀 API corriendo en http://localhost:${PORT}`);
+});

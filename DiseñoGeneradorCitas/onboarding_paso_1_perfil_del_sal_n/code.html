@@ -1,0 +1,211 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GlowManager - Onboarding Paso 1</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#3530b6",
+                        "tertiary-fixed": "#ffdcc5",
+                        "on-primary-fixed": "#0b006b",
+                        "tertiary": "#854300",
+                        "secondary-fixed-dim": "#89ceff",
+                        "outline-variant": "#c7c4d6",
+                        "on-surface": "#191c1e",
+                        "on-error-container": "#93000a",
+                        "inverse-surface": "#2d3133",
+                        "surface-container-highest": "#e0e3e5",
+                        "secondary-fixed": "#c9e6ff",
+                        "error-container": "#ffdad6",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-container-low": "#f2f4f6",
+                        "surface-bright": "#f7f9fb",
+                        "outline": "#777585",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#4e4cce",
+                        "inverse-primary": "#c2c1ff",
+                        "on-surface-variant": "#464554",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed": "#301400",
+                        "tertiary-fixed-dim": "#ffb782",
+                        "secondary-container": "#39b8fd",
+                        "primary-fixed": "#e2dfff",
+                        "on-secondary-container": "#004666",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "tertiary-container": "#a95700",
+                        "surface": "#f7f9fb",
+                        "surface-container": "#eceef0",
+                        "background": "#f7f9fb",
+                        "surface-container-high": "#e6e8ea",
+                        "primary-container": "#5d5cde",
+                        "on-tertiary-container": "#ffede2",
+                        "on-secondary-fixed": "#001e2f",
+                        "on-background": "#191c1e",
+                        "secondary": "#006591",
+                        "surface-variant": "#e0e3e5",
+                        "surface-dim": "#d8dadc",
+                        "on-tertiary-fixed-variant": "#703800",
+                        "on-secondary-fixed-variant": "#004c6e",
+                        "primary": "#4441c4",
+                        "on-primary-container": "#f1eeff",
+                        "primary-fixed-dim": "#c2c1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter-desktop": "24px",
+                        "base": "8px",
+                        "stack-lg": "24px",
+                        "margin-page": "32px",
+                        "stack-md": "12px",
+                        "gutter-tablet": "16px",
+                        "stack-sm": "4px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "headline-md-mobile": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md-mobile": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        body {
+            background-color: theme('colors.background');
+            color: theme('colors.on-background');
+        }
+        
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.5);
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+
+        .input-glow:focus-within {
+            border-color: theme('colors.primary');
+            box-shadow: 0 0 0 3px rgba(68, 65, 196, 0.15);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="min-h-screen flex items-center justify-center p-4 md:p-gutter-desktop">
+<!-- TopAppBar suppressed for transactional onboarding screen -->
+<main class="w-full max-w-4xl grid md:grid-cols-2 gap-8 md:gap-12 items-center">
+<!-- Left: Branding & Imagery -->
+<div class="hidden md:flex flex-col justify-center h-full space-y-8 rounded-2xl overflow-hidden relative min-h-[600px]">
+<img alt="Luxury salon interior" class="absolute inset-0 w-full h-full object-cover z-0" data-alt="A brightly lit, modern luxury salon interior. The space features sleek styling stations with large frameless mirrors and minimalist white leather chairs. Sunlight streams through large windows, creating a clean, high-end professional atmosphere. The color palette is composed of crisp whites, soft grays, and natural light, reflecting an efficient and sophisticated business environment." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAB8p4TT9Jk73LCQAkJxy_khZqBMcXMdH6eXAZUrlwaOP2BxIP9lH_8Cv5Z68b98wejQid9G4ripowxdde8j5_tR0ZtWY6XRHqWYG41EkxQdBsEzKTdCBNl8BZthLVhxxc6W6u0y2b9op3RYoHljQU3vZGGWRwCQM-ufPPnp0uM9nH-rMfjAzparxl8ySrayNS2XnoQfMcam7k-YaWDGu6mbnIjJ0SVOPqXrNaBHzn3GPBTLPmmWsMhgtFDzfTvXHPwdUeyo3EDrCU"/>
+<div class="absolute inset-0 bg-gradient-to-t from-primary/80 to-transparent z-10"></div>
+<div class="relative z-20 p-8 flex flex-col h-full justify-between">
+<div class="font-display-lg text-display-lg text-on-primary">
+                    GlowManager
+                </div>
+<div class="space-y-4">
+<p class="font-headline-md text-headline-md text-on-primary">
+                        Hagamos brillar tu negocio
+                    </p>
+<p class="font-body-lg text-body-lg text-on-primary/90 max-w-md">
+                        Configura tu espacio de trabajo en minutos y toma el control total de tu agenda, servicios y clientes con precisión suiza.
+                    </p>
+</div>
+</div>
+</div>
+<!-- Right: Form Area -->
+<div class="w-full max-w-md mx-auto space-y-8">
+<!-- Mobile Brand (hidden on desktop where image panel shows it) -->
+<div class="md:hidden text-center mb-8">
+<div class="font-display-lg text-display-lg text-primary">
+                    GlowManager
+                </div>
+</div>
+<!-- Progress Indicator -->
+<div class="space-y-2">
+<div class="flex justify-between items-center">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider">Paso 1 de 4</span>
+<span class="font-label-md text-label-md text-primary">Bienvenida y Perfil</span>
+</div>
+<div class="flex gap-2">
+<div class="h-1 flex-1 bg-primary rounded-full"></div>
+<div class="h-1 flex-1 bg-surface-variant rounded-full"></div>
+<div class="h-1 flex-1 bg-surface-variant rounded-full"></div>
+<div class="h-1 flex-1 bg-surface-variant rounded-full"></div>
+</div>
+</div>
+<!-- Header -->
+<div class="space-y-2">
+<h1 class="font-headline-md text-headline-md text-on-surface">Comencemos con lo básico</h1>
+<p class="font-body-md text-body-md text-on-surface-variant">Necesitamos algunos detalles para personalizar tu experiencia.</p>
+</div>
+<!-- Form -->
+<form class="glass-panel p-6 rounded-2xl space-y-6">
+<!-- Input Group: Salon Name -->
+<div class="space-y-1">
+<label class="block font-label-md text-label-md text-on-surface" for="salonName">Nombre del Negocio</label>
+<div class="relative input-glow rounded-lg transition-all duration-200 bg-surface-container-lowest border border-outline-variant flex items-center overflow-hidden">
+<span class="material-symbols-outlined text-outline ml-3" style="font-variation-settings: 'FILL' 0;">storefront</span>
+<input class="w-full bg-transparent border-none focus:ring-0 font-body-md text-body-md text-on-surface py-3 px-3 placeholder-outline-variant" id="salonName" name="salonName" placeholder="Ej. Studio Elegance" type="text"/>
+</div>
+</div>
+<!-- Input Group: Business Type -->
+<div class="space-y-1">
+<label class="block font-label-md text-label-md text-on-surface" for="businessType">Tipo de Negocio</label>
+<div class="relative input-glow rounded-lg transition-all duration-200 bg-surface-container-lowest border border-outline-variant flex items-center overflow-hidden pr-3">
+<span class="material-symbols-outlined text-outline ml-3" style="font-variation-settings: 'FILL' 0;">content_cut</span>
+<select class="w-full bg-transparent border-none focus:ring-0 font-body-md text-body-md text-on-surface py-3 px-3 appearance-none cursor-pointer" id="businessType" name="businessType">
+<option disabled="" selected="" value="">Selecciona una categoría...</option>
+<option value="salon">Peluquería / Salón de Belleza</option>
+<option value="barbershop">Barbería</option>
+<option value="spa">Spa / Centro de Estética</option>
+<option value="nails">Nail Bar</option>
+<option value="other">Otro</option>
+</select>
+<span class="material-symbols-outlined text-outline pointer-events-none absolute right-3" style="font-variation-settings: 'FILL' 0;">expand_more</span>
+</div>
+</div>
+<!-- Action Button -->
+<div class="pt-4">
+<button class="w-full bg-primary text-on-primary font-label-md text-label-md py-3 px-4 rounded-lg hover:bg-on-primary-fixed-variant transition-colors flex items-center justify-center gap-2 shadow-sm active:scale-95 duration-200" type="button">
+                        Continuar
+                        <span class="material-symbols-outlined text-base" style="font-variation-settings: 'FILL' 0;">arrow_forward</span>
+</button>
+</div>
+</form>
+</div>
+</main>
+<!-- BottomNavBar suppressed for transactional onboarding screen -->
+</body></html>

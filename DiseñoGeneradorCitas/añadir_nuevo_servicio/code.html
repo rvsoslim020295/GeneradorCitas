@@ -1,0 +1,325 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Nuevo Servicio - GlowManager</title>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Google Fonts: Inter -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind Configuration -->
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "on-primary-fixed-variant": "#3530b6",
+                        "tertiary-fixed": "#ffdcc5",
+                        "on-primary-fixed": "#0b006b",
+                        "tertiary": "#854300",
+                        "secondary-fixed-dim": "#89ceff",
+                        "outline-variant": "#c7c4d6",
+                        "on-surface": "#191c1e",
+                        "on-error-container": "#93000a",
+                        "inverse-surface": "#2d3133",
+                        "surface-container-highest": "#e0e3e5",
+                        "secondary-fixed": "#c9e6ff",
+                        "error-container": "#ffdad6",
+                        "on-error": "#ffffff",
+                        "inverse-on-surface": "#eff1f3",
+                        "surface-container-low": "#f2f4f6",
+                        "surface-bright": "#f7f9fb",
+                        "outline": "#777585",
+                        "error": "#ba1a1a",
+                        "surface-tint": "#4e4cce",
+                        "inverse-primary": "#c2c1ff",
+                        "on-surface-variant": "#464554",
+                        "surface-container-lowest": "#ffffff",
+                        "on-tertiary-fixed": "#301400",
+                        "tertiary-fixed-dim": "#ffb782",
+                        "secondary-container": "#39b8fd",
+                        "primary-fixed": "#e2dfff",
+                        "on-secondary-container": "#004666",
+                        "on-secondary": "#ffffff",
+                        "on-tertiary": "#ffffff",
+                        "on-primary": "#ffffff",
+                        "tertiary-container": "#a95700",
+                        "surface": "#f7f9fb",
+                        "surface-container": "#eceef0",
+                        "background": "#f7f9fb",
+                        "surface-container-high": "#e6e8ea",
+                        "primary-container": "#5d5cde",
+                        "on-tertiary-container": "#ffede2",
+                        "on-secondary-fixed": "#001e2f",
+                        "on-background": "#191c1e",
+                        "secondary": "#006591",
+                        "surface-variant": "#e0e3e5",
+                        "surface-dim": "#d8dadc",
+                        "on-tertiary-fixed-variant": "#703800",
+                        "on-secondary-fixed-variant": "#004c6e",
+                        "primary": "#4441c4",
+                        "on-primary-container": "#f1eeff",
+                        "primary-fixed-dim": "#c2c1ff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter-desktop": "24px",
+                        "base": "8px",
+                        "stack-lg": "24px",
+                        "margin-page": "32px",
+                        "stack-md": "12px",
+                        "gutter-tablet": "16px",
+                        "stack-sm": "4px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "headline-md-mobile": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md-mobile": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        /* Custom styles for checkboxes to align with brand guidance */
+        .custom-checkbox:checked + div {
+            background-color: theme('colors.primary');
+            border-color: theme('colors.primary');
+        }
+        .custom-checkbox:checked + div svg {
+            display: block;
+        }
+        /* Smooth backdrop blur for floating action areas if needed */
+        .glass-panel {
+            background-color: rgba(247, 249, 251, 0.85); /* surface color with opacity */
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        
+        /* Subtle shadow for elevated cards per guidance */
+        .ambient-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-lg min-h-screen flex flex-col relative overflow-x-hidden">
+<!-- Modal/Task Header - Suppresses Main Nav -->
+<header class="sticky top-0 z-40 bg-surface/90 backdrop-blur-md border-b border-surface-variant w-full h-16 flex items-center justify-between px-4 md:px-margin-page transition-all">
+<div class="flex items-center gap-4">
+<button aria-label="Cerrar" class="p-2 rounded-full hover:bg-surface-container-high transition-colors text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/50">
+<span class="material-symbols-outlined text-[24px]">close</span>
+</button>
+<h1 class="font-headline-md-mobile md:font-headline-md text-headline-md-mobile md:text-headline-md text-on-surface">Nuevo Servicio</h1>
+</div>
+<div class="hidden md:flex">
+<!-- Desktop secondary action placeholder -->
+<button class="font-label-md text-label-md text-primary hover:text-on-primary-fixed-variant transition-colors px-4 py-2 rounded-lg hover:bg-surface-container-highest">
+                Borrador
+            </button>
+</div>
+</header>
+<!-- Main Content Area: Bento Layout -->
+<main class="flex-1 w-full max-w-7xl mx-auto px-4 sm:px-gutter-tablet md:px-gutter-desktop py-stack-lg pb-32 md:pb-stack-lg">
+<form class="grid grid-cols-1 md:grid-cols-12 gap-stack-lg items-start" id="new-service-form">
+<!-- Left Column: Primary Details & Logistics (Takes up 8 columns on desktop) -->
+<div class="md:col-span-8 flex flex-col gap-stack-lg">
+<!-- Card 1: Información Básica -->
+<section class="bg-surface-container-lowest rounded-xl border border-surface-variant ambient-shadow p-6 md:p-8">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">stylus_note</span>
+                        Información General
+                    </h2>
+<div class="space-y-stack-md">
+<!-- Input: Nombre -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-stack-sm" for="service-name">Nombre del servicio</label>
+<input class="w-full bg-surface-container-lowest border border-outline-variant text-body-lg text-on-surface rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline" id="service-name" name="service-name" placeholder="Ej. Corte de Cabello Clásico" required="" type="text"/>
+</div>
+<!-- Textarea: Descripción -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-stack-sm" for="service-desc">Descripción</label>
+<textarea class="w-full bg-surface-container-lowest border border-outline-variant text-body-lg text-on-surface rounded-lg px-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all placeholder:text-outline resize-none" id="service-desc" name="service-desc" placeholder="Describe brevemente el servicio para tus clientes..." rows="3"></textarea>
+</div>
+</div>
+</section>
+<!-- Card 2: Logística y Precios -->
+<section class="bg-surface-container-lowest rounded-xl border border-surface-variant ambient-shadow p-6 md:p-8">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-6 flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">tune</span>
+                        Logística
+                    </h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-stack-lg">
+<!-- Select: Categoría -->
+<div class="sm:col-span-2">
+<label class="block font-label-md text-label-md text-on-surface-variant mb-stack-sm" for="service-category">Categoría</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-lowest border border-outline-variant text-body-lg text-on-surface rounded-lg pl-4 pr-10 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer" id="service-category" name="service-category">
+<option disabled="" selected="" value="">Selecciona una categoría</option>
+<option value="barberia">Barbería</option>
+<option value="peluqueria">Peluquería</option>
+<option value="color">Coloración</option>
+<option value="estetica">Estética</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">expand_more</span>
+</div>
+</div>
+<!-- Select: Duración -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-stack-sm" for="service-duration">Duración</label>
+<div class="relative">
+<select class="w-full appearance-none bg-surface-container-lowest border border-outline-variant text-body-lg text-on-surface rounded-lg pl-4 pr-10 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all cursor-pointer" id="service-duration" name="service-duration">
+<option value="15">15 min</option>
+<option selected="" value="30">30 min</option>
+<option value="45">45 min</option>
+<option value="60">1h</option>
+<option value="90">1h 30min</option>
+<option value="120">2h</option>
+</select>
+<span class="material-symbols-outlined absolute right-3 top-1/2 -translate-y-1/2 text-outline pointer-events-none">schedule</span>
+</div>
+</div>
+<!-- Input: Precio -->
+<div>
+<label class="block font-label-md text-label-md text-on-surface-variant mb-stack-sm" for="service-price">Precio Base</label>
+<div class="relative">
+<span class="absolute left-4 top-1/2 -translate-y-1/2 text-on-surface-variant font-body-lg">$</span>
+<input class="w-full bg-surface-container-lowest border border-outline-variant text-body-lg text-on-surface rounded-lg pl-8 pr-4 py-3 focus:outline-none focus:border-primary focus:ring-2 focus:ring-primary/20 transition-all" id="service-price" min="0" name="service-price" placeholder="0.00" step="0.01" type="number"/>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Column: Collaborators (Takes up 4 columns on desktop) -->
+<div class="md:col-span-4 flex flex-col h-full">
+<section class="bg-surface-container-lowest rounded-xl border border-surface-variant ambient-shadow flex flex-col h-full overflow-hidden">
+<div class="p-6 border-b border-surface-variant bg-surface-bright">
+<h2 class="font-headline-sm text-headline-sm text-on-surface flex items-center gap-2">
+<span class="material-symbols-outlined text-primary" style="font-variation-settings: 'FILL' 1;">group</span>
+                            Colaboradores
+                        </h2>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Selecciona quién puede realizar este servicio.</p>
+</div>
+<!-- Collaborators List -->
+<div class="p-2 overflow-y-auto max-h-[400px] md:max-h-[600px]">
+<!-- Collaborator 1 -->
+<label class="flex items-center p-3 hover:bg-surface-container-low rounded-lg cursor-pointer transition-colors group">
+<div class="relative flex items-center justify-center w-5 h-5 mr-4">
+<input checked="" class="custom-checkbox opacity-0 absolute h-full w-full cursor-pointer z-10" type="checkbox"/>
+<div class="w-5 h-5 border-2 border-outline-variant rounded transition-colors flex items-center justify-center bg-surface-container-lowest group-hover:border-primary">
+<svg class="hidden w-3 h-3 text-on-primary pointer-events-none" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
+</div>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden mr-3 flex-shrink-0">
+<img alt="Avatar" class="w-full h-full object-cover" data-alt="A professional headshot of a young male barber with a neat beard, looking directly at the camera. The background is a blurred modern barbershop setting. Soft, natural lighting highlights his features. The mood is confident and welcoming." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDC2v5f0vFm7f6pZbFmkoNK0l9M0TUG6P5ATNaAfz31oXeTQ66jsbA-cszgh7R1NMVq3umiaBdGR9WygsJ0Y4fVQSv8nM4v8YW0s0ZhCoSal9gCt2aC3K7AMCT7naa-MmAqlVj_dH-CiBXniArgl9OJQVBjttLzSFaKQSapKEXzNuRd-sTcHOv9RI72gxrX9OykuBAHKNGWCYNzSjp9HNhoe8LnpPK8kh_4VibHSecdpEjfKztIKoSnPUgA6etW8Q8yy5oNkXO9H5U"/>
+</div>
+<div class="flex-1">
+<p class="font-body-lg text-body-lg text-on-surface font-medium">Carlos Rivera</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Barbero Senior</p>
+</div>
+</label>
+<!-- Collaborator 2 -->
+<label class="flex items-center p-3 hover:bg-surface-container-low rounded-lg cursor-pointer transition-colors group">
+<div class="relative flex items-center justify-center w-5 h-5 mr-4">
+<input checked="" class="custom-checkbox opacity-0 absolute h-full w-full cursor-pointer z-10" type="checkbox"/>
+<div class="w-5 h-5 border-2 border-outline-variant rounded transition-colors flex items-center justify-center bg-surface-container-lowest group-hover:border-primary">
+<svg class="hidden w-3 h-3 text-on-primary pointer-events-none" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
+</div>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center text-primary font-headline-sm">
+<span class="material-symbols-outlined">person</span>
+</div>
+<div class="flex-1">
+<p class="font-body-lg text-body-lg text-on-surface font-medium">Ana Gómez</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Estilista</p>
+</div>
+</label>
+<!-- Collaborator 3 -->
+<label class="flex items-center p-3 hover:bg-surface-container-low rounded-lg cursor-pointer transition-colors group">
+<div class="relative flex items-center justify-center w-5 h-5 mr-4">
+<input class="custom-checkbox opacity-0 absolute h-full w-full cursor-pointer z-10" type="checkbox"/>
+<div class="w-5 h-5 border-2 border-outline-variant rounded transition-colors flex items-center justify-center bg-surface-container-lowest group-hover:border-primary">
+<svg class="hidden w-3 h-3 text-on-primary pointer-events-none" fill="none" stroke="currentColor" viewbox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5 13l4 4L19 7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"></path></svg>
+</div>
+</div>
+<div class="w-10 h-10 rounded-full bg-surface-container-high overflow-hidden mr-3 flex-shrink-0 flex items-center justify-center text-primary font-headline-sm">
+<span class="material-symbols-outlined">person</span>
+</div>
+<div class="flex-1">
+<p class="font-body-lg text-body-lg text-on-surface font-medium">Luis Mendoza</p>
+<p class="font-body-md text-body-md text-on-surface-variant">Aprendiz</p>
+</div>
+</label>
+</div>
+</section>
+</div>
+</form>
+</main>
+<!-- Floating Action Area (Bottom) -->
+<div class="fixed bottom-0 left-0 w-full glass-panel border-t border-surface-variant p-4 md:px-margin-page md:py-6 flex justify-end z-50">
+<div class="w-full md:w-auto flex flex-col md:flex-row gap-4">
+<button class="hidden md:block w-full md:w-auto px-8 py-3 rounded-lg border border-outline-variant bg-surface-container-lowest text-primary font-label-md text-label-md hover:bg-surface-container-highest transition-colors focus:ring-2 focus:ring-primary/50 outline-none" type="button">
+                Cancelar
+            </button>
+<button class="w-full md:w-auto px-8 py-3 rounded-lg bg-primary text-on-primary font-label-md text-label-md shadow-md hover:shadow-lg hover:bg-on-primary-fixed-variant active:scale-[0.98] transition-all focus:ring-2 focus:ring-primary/50 outline-none flex items-center justify-center gap-2" form="new-service-form" id="save-btn" type="submit">
+<span class="material-symbols-outlined text-[18px]">save</span>
+                Guardar Servicio
+            </button>
+</div>
+</div>
+<!-- Micro-interaction script -->
+<script>
+        document.getElementById('new-service-form').addEventListener('submit', function(e) {
+            e.preventDefault();
+            const btn = document.getElementById('save-btn');
+            const originalContent = btn.innerHTML;
+            
+            // Visual feedback for saving state
+            btn.innerHTML = '<span class="material-symbols-outlined animate-spin text-[18px]">progress_activity</span> Guardando...';
+            btn.classList.add('opacity-90', 'pointer-events-none');
+            
+            // Simulate network request
+            setTimeout(() => {
+                btn.innerHTML = '<span class="material-symbols-outlined text-[18px]">check</span> ¡Guardado!';
+                btn.classList.remove('bg-primary', 'hover:bg-on-primary-fixed-variant');
+                btn.classList.add('bg-secondary', 'text-on-secondary');
+                
+                setTimeout(() => {
+                    // Reset or close modal logic would go here
+                    btn.innerHTML = originalContent;
+                    btn.classList.remove('bg-secondary', 'text-on-secondary', 'opacity-90', 'pointer-events-none');
+                    btn.classList.add('bg-primary', 'hover:bg-on-primary-fixed-variant');
+                }, 2000);
+            }, 1000);
+        });
+    </script>
+</body></html>

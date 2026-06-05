@@ -1,0 +1,384 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GlowManager - Directorio de Clientes</title>
+<!-- Google Fonts & Material Symbols -->
+<link href="https://fonts.googleapis.com" rel="preconnect"/>
+<link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<!-- Tailwind Configuration (Design System) -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "secondary-fixed": "#c9e6ff",
+                    "on-error-container": "#93000a",
+                    "inverse-surface": "#2d3133",
+                    "secondary-fixed-dim": "#89ceff",
+                    "on-tertiary-container": "#ffede2",
+                    "on-primary-fixed": "#0b006b",
+                    "on-primary-container": "#f1eeff",
+                    "on-error": "#ffffff",
+                    "primary": "#4441c4",
+                    "on-secondary-fixed": "#001e2f",
+                    "secondary-container": "#39b8fd",
+                    "outline": "#777585",
+                    "on-surface-variant": "#464554",
+                    "on-secondary": "#ffffff",
+                    "surface-container-highest": "#e0e3e5",
+                    "primary-fixed": "#e2dfff",
+                    "surface-dim": "#d8dadc",
+                    "surface-tint": "#4e4cce",
+                    "inverse-on-surface": "#eff1f3",
+                    "background": "#f7f9fb",
+                    "secondary": "#006591",
+                    "primary-fixed-dim": "#c2c1ff",
+                    "inverse-primary": "#c2c1ff",
+                    "surface-container-lowest": "#ffffff",
+                    "tertiary-fixed-dim": "#ffb782",
+                    "surface-variant": "#e0e3e5",
+                    "surface-container-high": "#e6e8ea",
+                    "tertiary-container": "#a95700",
+                    "tertiary-fixed": "#ffdcc5",
+                    "surface-bright": "#f7f9fb",
+                    "error": "#ba1a1a",
+                    "on-secondary-container": "#004666",
+                    "surface-container-low": "#f2f4f6",
+                    "on-tertiary-fixed": "#301400",
+                    "on-secondary-fixed-variant": "#004c6e",
+                    "error-container": "#ffdad6",
+                    "surface": "#f7f9fb",
+                    "on-tertiary-fixed-variant": "#703800",
+                    "on-background": "#191c1e",
+                    "tertiary": "#854300",
+                    "on-tertiary": "#ffffff",
+                    "on-primary": "#ffffff",
+                    "surface-container": "#eceef0",
+                    "primary-container": "#5d5cde",
+                    "on-surface": "#191c1e",
+                    "on-primary-fixed-variant": "#3530b6",
+                    "outline-variant": "#c7c4d6"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-page": "32px",
+                    "gutter-tablet": "16px",
+                    "base": "8px",
+                    "gutter-desktop": "24px",
+                    "stack-lg": "24px",
+                    "stack-sm": "4px",
+                    "stack-md": "12px"
+            },
+            "fontFamily": {
+                    "body-lg": ["Inter"],
+                    "body-md": ["Inter"],
+                    "headline-sm": ["Inter"],
+                    "label-md": ["Inter"],
+                    "headline-md": ["Inter"],
+                    "display-lg": ["Inter"],
+                    "headline-md-mobile": ["Inter"]
+            },
+            "fontSize": {
+                    "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}],
+                    "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                    "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                    "headline-md": ["24px", {"lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600"}],
+                    "display-lg": ["36px", {"lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-md-mobile": ["20px", {"lineHeight": "28px", "fontWeight": "600"}]
+            }
+          }
+        }
+      }
+    </script>
+<style>
+        /* Custom scrollbar for a cleaner look */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background-color: #c7c4d6; /* outline-variant */
+            border-radius: 10px;
+        }
+        /* Hide scrollbar for mobile lists but keep functionality */
+        .no-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .no-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background antialiased flex h-screen w-full overflow-hidden">
+<!-- Shared Component: SideNavBar (Hidden on Mobile) -->
+<aside class="hidden md:flex flex-col h-full py-base px-stack-md bg-surface dark:bg-inverse-surface border-r border-outline-variant dark:border-outline shadow-sm h-full w-64 fixed left-0 top-0 z-40">
+<div class="flex items-center gap-stack-md px-stack-md py-stack-lg mb-stack-lg">
+<div class="w-10 h-10 rounded-lg bg-primary-container flex items-center justify-center">
+<span class="material-symbols-outlined text-primary font-bold">diamond</span>
+</div>
+<div>
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim">GlowManager</h1>
+<p class="font-label-md text-label-md text-on-surface-variant">Premium Salon Suite</p>
+</div>
+</div>
+<button class="mb-stack-lg w-full bg-primary text-on-primary py-3 rounded-lg font-label-md text-label-md hover:bg-on-primary-fixed-variant transition-colors flex items-center justify-center gap-2 shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+            Nueva Cita Rápida
+        </button>
+<nav class="flex-1 flex flex-col gap-1 overflow-y-auto">
+<!-- Dashboard -->
+<a class="flex items-center gap-stack-md px-stack-md py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="font-label-md text-label-md">Dashboard</span>
+</a>
+<!-- Agenda -->
+<a class="flex items-center gap-stack-md px-stack-md py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">calendar_month</span>
+<span class="font-label-md text-label-md">Agenda</span>
+</a>
+<!-- Clientes (ACTIVE) -->
+<a class="flex items-center gap-stack-md px-stack-md py-3 rounded-lg text-primary dark:text-primary-fixed-dim font-bold bg-primary-container/10 active:scale-[0.98] transition-transform duration-150" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">groups</span>
+<span class="font-label-md text-label-md">Clientes</span>
+</a>
+<!-- Colaboradores -->
+<a class="flex items-center gap-stack-md px-stack-md py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">badge</span>
+<span class="font-label-md text-label-md">Colaboradores</span>
+</a>
+<!-- Servicios -->
+<a class="flex items-center gap-stack-md px-stack-md py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">content_cut</span>
+<span class="font-label-md text-label-md">Servicios</span>
+</a>
+<!-- Reportes -->
+<a class="flex items-center gap-stack-md px-stack-md py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+<span class="font-label-md text-label-md">Reportes</span>
+</a>
+</nav>
+<div class="mt-auto pt-stack-md border-t border-outline-variant">
+<!-- Configuración -->
+<a class="flex items-center gap-stack-md px-stack-md py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Configuración</span>
+</a>
+</div>
+</aside>
+<!-- Main Content Canvas -->
+<main class="flex-1 flex flex-col h-full md:ml-64 relative bg-background">
+<!-- Shared Component: TopNavBar (Desktop) -->
+<header class="hidden md:flex justify-between items-center px-gutter-desktop bg-surface/80 dark:bg-inverse-surface/80 backdrop-blur-md fixed top-0 right-0 w-[calc(100%-16rem)] h-16 border-b border-outline-variant dark:border-outline z-30">
+<div class="flex items-center gap-stack-md w-1/2">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Directorio de Clientes</h2>
+</div>
+<div class="flex items-center gap-stack-lg">
+<button class="text-on-surface-variant hover:bg-surface-container-low transition-all p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="text-on-surface-variant hover:bg-surface-container-low transition-all p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-primary-container text-primary flex items-center justify-center font-label-md text-label-md cursor-pointer border border-outline-variant">
+                    JD
+                </div>
+</div>
+</header>
+<!-- Mobile Header & Search Area (Sticky) -->
+<div class="md:hidden pt-stack-lg px-gutter-tablet pb-stack-sm bg-surface/90 backdrop-blur-md sticky top-0 z-30 border-b border-outline-variant shadow-sm">
+<div class="flex justify-between items-center mb-stack-md">
+<h1 class="font-headline-md-mobile text-headline-md-mobile text-on-surface font-bold">Clientes</h1>
+<div class="w-8 h-8 rounded-full bg-primary-container text-primary flex items-center justify-center font-label-md text-label-md border border-outline-variant">
+                    JD
+                </div>
+</div>
+<!-- Real-time Search Input -->
+<div class="relative group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-xl py-3 pl-10 pr-4 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Buscar por nombre o teléfono..." type="text"/>
+<button class="absolute right-3 top-1/2 -translate-y-1/2 text-on-surface-variant hover:text-primary transition-colors hidden group-focus-within:block">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+</div>
+<!-- Desktop Search & Filters Area (Below TopNavBar) -->
+<div class="hidden md:flex items-center justify-between px-gutter-desktop py-stack-lg mt-16 bg-background">
+<div class="relative w-96 group">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-on-surface-variant group-focus-within:text-primary transition-colors">search</span>
+<input class="w-full bg-surface-container-lowest border border-outline-variant rounded-lg py-2.5 pl-10 pr-4 font-body-md text-body-md text-on-surface placeholder:text-on-surface-variant focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all shadow-sm" placeholder="Buscar cliente..." type="text"/>
+</div>
+<div class="flex gap-stack-sm">
+<button class="flex items-center gap-2 px-4 py-2 bg-surface-container-lowest border border-outline-variant rounded-lg font-label-md text-label-md text-on-surface hover:bg-surface-container-low transition-colors shadow-sm">
+<span class="material-symbols-outlined text-[18px]">filter_list</span> Filtrar
+                </button>
+</div>
+</div>
+<!-- Client List Area -->
+<div class="flex-1 overflow-y-auto px-gutter-tablet md:px-gutter-desktop pb-32 md:pb-gutter-desktop pt-stack-sm md:pt-0 no-scrollbar">
+<div class="flex flex-col gap-stack-md md:grid md:grid-cols-2 lg:grid-cols-3">
+<!-- Client Card 1 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer group">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-tertiary-container/10 flex items-center justify-center text-tertiary font-headline-sm">
+                                VM
+                            </div>
+<div>
+<h3 class="font-body-lg text-body-lg text-on-surface font-semibold group-hover:text-primary transition-colors">Valeria Morales</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">+52 55 1234 5678</p>
+</div>
+</div>
+<!-- WhatsApp Quick Action -->
+<button class="w-10 h-10 rounded-full border border-outline-variant bg-surface-container-lowest flex items-center justify-center text-primary hover:bg-primary-container/20 hover:border-primary transition-all" onclick="event.stopPropagation();">
+<span class="material-symbols-outlined">chat</span>
+</button>
+</div>
+<div class="flex items-center gap-4 pt-3 border-t border-surface-container-highest">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-[10px]">Visitas Totales</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">event_available</span> 24
+                            </span>
+</div>
+<div class="h-8 w-px bg-surface-container-highest"></div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-[10px]">Gasto Acumulado</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary">payments</span> $12,450
+                            </span>
+</div>
+</div>
+</div>
+<!-- Client Card 2 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer group">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-secondary-container/20 flex items-center justify-center text-secondary font-headline-sm">
+                                CG
+                            </div>
+<div>
+<h3 class="font-body-lg text-body-lg text-on-surface font-semibold group-hover:text-primary transition-colors">Carlos Gómez</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">+52 55 9876 5432</p>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full border border-outline-variant bg-surface-container-lowest flex items-center justify-center text-primary hover:bg-primary-container/20 hover:border-primary transition-all" onclick="event.stopPropagation();">
+<span class="material-symbols-outlined">chat</span>
+</button>
+</div>
+<div class="flex items-center gap-4 pt-3 border-t border-surface-container-highest">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-[10px]">Visitas Totales</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">event_available</span> 8
+                            </span>
+</div>
+<div class="h-8 w-px bg-surface-container-highest"></div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-[10px]">Gasto Acumulado</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary">payments</span> $3,200
+                            </span>
+</div>
+</div>
+</div>
+<!-- Client Card 3 (With Image Avatar) -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer group">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<img alt="Avatar" class="w-12 h-12 rounded-full object-cover border border-surface-container-highest" data-alt="A professional headshot of a young woman with warm, glowing natural makeup and nicely styled hair, positioned against a clean, soft white minimalist studio background. The lighting is bright and modern, perfectly matching a high-end salon software interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDlTAKSLojt-M2jJF50Jp-VaKaCUv7uzut7ZLPli9Q6WWOwx6sChdHPXwahuFzBWSFBbQQ5GDAKZyqjiMgltJHJlMwXZ58acVmMskYXTWSjj36XS8JR2X99ajfBCGF_UHrOaaQsagD2ff8plN8jMuKHpSprBYuD4cXZPBkCT9-ymFL3hwydDV204oiclJh4bLJzTIiHoGc63WfZIAxGLfQKKxwJp7N1o7xggzNXK46rl8itLug-UHvWAnq1Ih0dFFg8reRYgSzU9rg"/>
+<div>
+<h3 class="font-body-lg text-body-lg text-on-surface font-semibold group-hover:text-primary transition-colors">Ana Sofía Ruiz</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">+52 81 2345 6789</p>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full border border-outline-variant bg-surface-container-lowest flex items-center justify-center text-primary hover:bg-primary-container/20 hover:border-primary transition-all" onclick="event.stopPropagation();">
+<span class="material-symbols-outlined">chat</span>
+</button>
+</div>
+<div class="flex items-center gap-4 pt-3 border-t border-surface-container-highest">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-[10px]">Visitas Totales</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">event_available</span> 45
+                            </span>
+</div>
+<div class="h-8 w-px bg-surface-container-highest"></div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-[10px]">Gasto Acumulado</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary">payments</span> $28,900
+                            </span>
+</div>
+</div>
+</div>
+<!-- Client Card 4 -->
+<div class="bg-surface-container-lowest rounded-xl border border-outline-variant shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer group">
+<div class="flex items-start justify-between">
+<div class="flex items-center gap-3">
+<div class="w-12 h-12 rounded-full bg-primary-container/20 flex items-center justify-center text-primary font-headline-sm">
+                                LR
+                            </div>
+<div>
+<h3 class="font-body-lg text-body-lg text-on-surface font-semibold group-hover:text-primary transition-colors">Luis Ramírez</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">+52 33 4567 8901</p>
+</div>
+</div>
+<button class="w-10 h-10 rounded-full border border-outline-variant bg-surface-container-lowest flex items-center justify-center text-primary hover:bg-primary-container/20 hover:border-primary transition-all" onclick="event.stopPropagation();">
+<span class="material-symbols-outlined">chat</span>
+</button>
+</div>
+<div class="flex items-center gap-4 pt-3 border-t border-surface-container-highest">
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-[10px]">Visitas Totales</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-primary">event_available</span> 2
+                            </span>
+</div>
+<div class="h-8 w-px bg-surface-container-highest"></div>
+<div class="flex flex-col">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase tracking-wider text-[10px]">Gasto Acumulado</span>
+<span class="font-body-md text-body-md text-on-surface font-medium flex items-center gap-1">
+<span class="material-symbols-outlined text-[16px] text-tertiary">payments</span> $850
+                            </span>
+</div>
+</div>
+</div>
+</div>
+<!-- Loading indicator for infinite scroll (visual only) -->
+<div class="py-stack-lg flex justify-center items-center gap-2 text-on-surface-variant">
+<span class="material-symbols-outlined animate-spin text-[20px]">refresh</span>
+<span class="font-label-md text-label-md">Cargando más clientes...</span>
+</div>
+</div>
+<!-- Floating Action Button (FAB) -->
+<button class="fixed bottom-margin-page right-gutter-tablet md:bottom-margin-page md:right-margin-page w-[56px] h-[56px] bg-primary text-on-primary rounded-2xl shadow-lg flex items-center justify-center hover:bg-on-primary-fixed-variant hover:-translate-y-1 transition-all z-50 group">
+<span class="material-symbols-outlined text-[24px]" style="font-variation-settings: 'FILL' 1;">person_add</span>
+<!-- Tooltip for desktop -->
+<span class="absolute right-full mr-4 bg-inverse-surface text-inverse-on-surface font-label-md text-label-md px-3 py-1.5 rounded-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none hidden md:block whitespace-nowrap">
+                Nuevo Cliente
+            </span>
+</button>
+</main>
+</body></html>

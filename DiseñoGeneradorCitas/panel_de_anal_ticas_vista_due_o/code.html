@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+
+<html class="light" lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Panel de Analíticas</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "on-primary-container": "#f1eeff",
+                      "surface-variant": "#e0e3e5",
+                      "on-primary-fixed": "#0b006b",
+                      "on-secondary-fixed": "#001e2f",
+                      "on-secondary": "#ffffff",
+                      "error": "#ba1a1a",
+                      "on-surface": "#191c1e",
+                      "outline": "#777585",
+                      "outline-variant": "#c7c4d6",
+                      "on-surface-variant": "#464554",
+                      "on-secondary-container": "#004666",
+                      "primary-fixed-dim": "#c2c1ff",
+                      "secondary": "#006591",
+                      "on-secondary-fixed-variant": "#004c6e",
+                      "inverse-primary": "#c2c1ff",
+                      "primary-container": "#5d5cde",
+                      "primary": "#4441c4",
+                      "on-tertiary-container": "#ffede2",
+                      "secondary-fixed": "#c9e6ff",
+                      "surface-tint": "#4e4cce",
+                      "surface-dim": "#d8dadc",
+                      "surface-container": "#eceef0",
+                      "background": "#f7f9fb",
+                      "on-error": "#ffffff",
+                      "on-tertiary-fixed": "#301400",
+                      "tertiary-container": "#a95700",
+                      "surface-container-highest": "#e0e3e5",
+                      "on-primary-fixed-variant": "#3530b6",
+                      "on-error-container": "#93000a",
+                      "tertiary-fixed-dim": "#ffb782",
+                      "primary-fixed": "#e2dfff",
+                      "on-tertiary": "#ffffff",
+                      "tertiary-fixed": "#ffdcc5",
+                      "secondary-fixed-dim": "#89ceff",
+                      "surface-bright": "#f7f9fb",
+                      "surface-container-lowest": "#ffffff",
+                      "inverse-on-surface": "#eff1f3",
+                      "tertiary": "#854300",
+                      "surface-container-low": "#f2f4f6",
+                      "secondary-container": "#39b8fd",
+                      "surface-container-high": "#e6e8ea",
+                      "on-primary": "#ffffff",
+                      "inverse-surface": "#2d3133",
+                      "on-tertiary-fixed-variant": "#703800",
+                      "surface": "#f7f9fb",
+                      "on-background": "#191c1e",
+                      "error-container": "#ffdad6"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-md": "12px",
+                      "gutter-tablet": "16px",
+                      "stack-sm": "4px",
+                      "stack-lg": "24px",
+                      "margin-page": "32px",
+                      "gutter-desktop": "24px",
+                      "base": "8px"
+              },
+              "fontFamily": {
+                      "body-lg": [
+                              "Inter"
+                      ],
+                      "body-md": [
+                              "Inter"
+                      ],
+                      "headline-sm": [
+                              "Inter"
+                      ],
+                      "label-md": [
+                              "Inter"
+                      ],
+                      "headline-md-mobile": [
+                              "Inter"
+                      ],
+                      "display-lg": [
+                              "Inter"
+                      ],
+                      "headline-md": [
+                              "Inter"
+                      ]
+              },
+              "fontSize": {
+                      "body-lg": [
+                              "16px",
+                              {
+                                      "lineHeight": "24px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "body-md": [
+                              "14px",
+                              {
+                                      "lineHeight": "20px",
+                                      "fontWeight": "400"
+                              }
+                      ],
+                      "headline-sm": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "label-md": [
+                              "12px",
+                              {
+                                      "lineHeight": "16px",
+                                      "letterSpacing": "0.05em",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "headline-md-mobile": [
+                              "20px",
+                              {
+                                      "lineHeight": "28px",
+                                      "fontWeight": "600"
+                              }
+                      ],
+                      "display-lg": [
+                              "36px",
+                              {
+                                      "lineHeight": "44px",
+                                      "letterSpacing": "-0.02em",
+                                      "fontWeight": "700"
+                              }
+                      ],
+                      "headline-md": [
+                              "24px",
+                              {
+                                      "lineHeight": "32px",
+                                      "letterSpacing": "-0.01em",
+                                      "fontWeight": "600"
+                              }
+                      ]
+              }
+      },
+          },
+        }
+      </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .fill-icon {
+             font-variation-settings: 'FILL' 1, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        
+        /* Ambient shadows for cards */
+        .ambient-shadow {
+            box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -1px rgba(0, 0, 0, 0.03);
+        }
+        
+        /* Glassmorphism for charts area */
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.8);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+            border: 1px solid rgba(255, 255, 255, 0.3);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background font-body-md antialiased pb-24 min-h-screen flex flex-col">
+<!-- TopAppBar -->
+<header class="w-full sticky top-0 bg-surface dark:bg-surface-dim border-b border-outline-variant dark:border-outline shadow-sm flex items-center justify-between px-margin-page h-16 w-full z-40">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full overflow-hidden bg-primary-container flex items-center justify-center shrink-0">
+<span class="material-symbols-outlined text-on-primary-container text-sm" data-icon="person">person</span>
+</div>
+<h1 class="text-headline-md font-headline-md font-bold text-primary dark:text-primary-fixed-dim">Panel de Analíticas</h1>
+</div>
+<button class="p-2 rounded-full hover:bg-surface-container-high transition-colors active:scale-95 transition-transform text-primary dark:text-primary-fixed-dim">
+<span class="material-symbols-outlined" data-icon="calendar_today">calendar_today</span>
+</button>
+</header>
+<main class="flex-1 px-4 py-6 w-full max-w-7xl mx-auto space-y-6">
+<!-- Controls -->
+<div class="flex justify-between items-center">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Resumen</h2>
+<div class="relative">
+<select class="appearance-none bg-surface border border-outline-variant text-on-surface-variant font-body-md text-body-md rounded-lg py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent cursor-pointer">
+<option>Este Mes</option>
+<option>Semana Pasada</option>
+<option>Últimos 30 días</option>
+<option>Este Año</option>
+</select>
+<div class="pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-on-surface-variant">
+<span class="material-symbols-outlined text-[18px]">expand_more</span>
+</div>
+</div>
+</div>
+<!-- KPIs Bento Grid -->
+<div class="grid grid-cols-2 gap-4">
+<!-- Metric 1 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Total Citas</span>
+<div class="bg-primary-container bg-opacity-20 p-1.5 rounded-lg">
+<span class="material-symbols-outlined text-primary text-[16px]">calendar_month</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-on-surface">156</span>
+</div>
+<div class="mt-2 flex items-center text-secondary-container">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span class="font-label-md text-[10px] ml-1">+12% vs mes ant.</span>
+</div>
+</div>
+<!-- Metric 2 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
+<div class="flex justify-between items-start mb-2">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Completadas</span>
+<div class="bg-secondary-container bg-opacity-20 p-1.5 rounded-lg">
+<span class="material-symbols-outlined text-secondary-container text-[16px]">check_circle</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2">
+<span class="font-display-lg text-display-lg text-on-surface">142</span>
+</div>
+<div class="mt-2 flex items-center text-secondary-container">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span class="font-label-md text-[10px] ml-1">+5% vs mes ant.</span>
+</div>
+</div>
+<!-- Metric 3 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-[#E2E8F0] ambient-shadow col-span-2 relative overflow-hidden">
+<div class="absolute -right-6 -top-6 w-24 h-24 bg-primary-container rounded-full opacity-10 blur-xl"></div>
+<div class="flex justify-between items-start mb-2 relative z-10">
+<span class="font-label-md text-label-md text-on-surface-variant uppercase">Ingresos Totales</span>
+<div class="bg-primary-container p-1.5 rounded-lg">
+<span class="material-symbols-outlined text-on-primary-container text-[16px]">payments</span>
+</div>
+</div>
+<div class="flex items-baseline gap-2 relative z-10">
+<span class="font-display-lg text-display-lg text-primary">$12,450</span>
+</div>
+<div class="mt-2 flex items-center text-secondary-container relative z-10">
+<span class="material-symbols-outlined text-[14px]">trending_up</span>
+<span class="font-label-md text-[10px] ml-1">+18.2% vs mes ant.</span>
+</div>
+</div>
+<!-- Metric 4 -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-[#E2E8F0] ambient-shadow col-span-2 flex items-center justify-between">
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant uppercase block mb-1">Tasa No-Show</span>
+<div class="flex items-baseline gap-2">
+<span class="font-headline-md-mobile text-headline-md-mobile text-on-surface">4.5%</span>
+</div>
+</div>
+<div class="flex items-center text-error bg-error-container px-2 py-1 rounded-full">
+<span class="material-symbols-outlined text-[14px]">trending_down</span>
+<span class="font-label-md text-[10px] ml-1">-1.2%</span>
+</div>
+</div>
+</div>
+<!-- Chart Section -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-headline-sm text-[16px] text-on-surface">Ingresos por Día</h3>
+<button class="text-on-surface-variant hover:text-primary transition-colors">
+<span class="material-symbols-outlined text-[20px]">more_horiz</span>
+</button>
+</div>
+<!-- Pseudo Chart Representation -->
+<div class="h-48 w-full flex items-end gap-2 px-1 relative">
+<!-- Y-Axis lines -->
+<div class="absolute w-full border-t border-outline-variant opacity-30 bottom-[20%]"></div>
+<div class="absolute w-full border-t border-outline-variant opacity-30 bottom-[50%]"></div>
+<div class="absolute w-full border-t border-outline-variant opacity-30 bottom-[80%]"></div>
+<!-- Bars (representing area/line nodes) -->
+<div class="flex-1 bg-primary-fixed rounded-t-sm h-[30%] relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">$120</div>
+</div>
+<div class="flex-1 bg-primary-fixed rounded-t-sm h-[45%] relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">$210</div>
+</div>
+<div class="flex-1 bg-primary-container rounded-t-sm h-[80%] relative group shadow-[0_0_8px_rgba(93,92,222,0.4)]">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">$450</div>
+</div>
+<div class="flex-1 bg-primary-fixed rounded-t-sm h-[60%] relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">$320</div>
+</div>
+<div class="flex-1 bg-primary-fixed rounded-t-sm h-[50%] relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">$280</div>
+</div>
+<div class="flex-1 bg-primary-fixed rounded-t-sm h-[75%] relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">$410</div>
+</div>
+<div class="flex-1 bg-primary-fixed rounded-t-sm h-[90%] relative group">
+<div class="absolute -top-8 left-1/2 -translate-x-1/2 bg-inverse-surface text-inverse-on-surface text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap z-10">$510</div>
+</div>
+</div>
+<div class="flex justify-between text-[10px] text-on-surface-variant mt-2 px-1">
+<span>L</span><span>M</span><span>M</span><span>J</span><span>V</span><span>S</span><span>D</span>
+</div>
+</div>
+<!-- Donut Chart & List Container -->
+<div class="grid grid-cols-1 gap-4">
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
+<h3 class="font-headline-sm text-[16px] text-on-surface mb-4">Citas por Estado</h3>
+<div class="flex items-center gap-4">
+<!-- Pseudo Donut -->
+<div class="w-24 h-24 rounded-full border-8 border-surface-container relative shrink-0">
+<!-- CSS trick for donut segments (simplified for HTML) -->
+<div class="absolute inset-[-8px] rounded-full border-8 border-primary border-t-transparent border-r-transparent rotate-45"></div>
+<div class="absolute inset-[-8px] rounded-full border-8 border-secondary-container border-b-transparent border-l-transparent -rotate-12"></div>
+<div class="absolute inset-0 flex items-center justify-center flex-col">
+<span class="font-headline-sm text-on-surface leading-none">156</span>
+<span class="text-[8px] text-on-surface-variant uppercase">Total</span>
+</div>
+</div>
+<!-- Legend -->
+<div class="flex-1 space-y-2">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-primary"></div>
+<span class="font-body-md text-[12px] text-on-surface">Completadas</span>
+</div>
+<span class="font-label-md text-on-surface">91%</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-secondary-container"></div>
+<span class="font-body-md text-[12px] text-on-surface">Pendientes</span>
+</div>
+<span class="font-label-md text-on-surface">4%</span>
+</div>
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-2 h-2 rounded-full bg-error"></div>
+<span class="font-body-md text-[12px] text-on-surface">Canceladas</span>
+</div>
+<span class="font-label-md text-on-surface">5%</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Top Performers -->
+<div class="bg-surface-container-lowest rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
+<div class="flex justify-between items-center mb-4">
+<h3 class="font-headline-sm text-[16px] text-on-surface">Top 3 Colaboradores</h3>
+<span class="text-[12px] text-on-surface-variant">Por ingresos</span>
+</div>
+<div class="space-y-4">
+<!-- Performer 1 -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center font-label-md font-bold text-sm shrink-0">
+                            A
+                        </div>
+<div class="flex-1">
+<h4 class="font-body-md text-[14px] font-medium text-on-surface leading-tight">Alejandro M.</h4>
+<span class="text-[11px] text-on-surface-variant">48 citas</span>
+</div>
+<div class="text-right">
+<span class="font-label-md text-[14px] text-on-surface block">$4,250</span>
+<span class="text-[10px] text-secondary-container">34% del total</span>
+</div>
+</div>
+<!-- Performer 2 -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-secondary-fixed text-on-secondary-fixed flex items-center justify-center font-label-md font-bold text-sm shrink-0">
+                            C
+                        </div>
+<div class="flex-1">
+<h4 class="font-body-md text-[14px] font-medium text-on-surface leading-tight">Carlos G.</h4>
+<span class="text-[11px] text-on-surface-variant">41 citas</span>
+</div>
+<div class="text-right">
+<span class="font-label-md text-[14px] text-on-surface block">$3,800</span>
+<span class="text-[10px] text-on-surface-variant">30% del total</span>
+</div>
+</div>
+<!-- Performer 3 -->
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded-full bg-surface-variant text-on-surface-variant flex items-center justify-center font-label-md font-bold text-sm shrink-0">
+                            M
+                        </div>
+<div class="flex-1">
+<h4 class="font-body-md text-[14px] font-medium text-on-surface leading-tight">María S.</h4>
+<span class="text-[11px] text-on-surface-variant">35 citas</span>
+</div>
+<div class="text-right">
+<span class="font-label-md text-[14px] text-on-surface block">$2,950</span>
+<span class="text-[10px] text-on-surface-variant">23% del total</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-surface-container-lowest dark:bg-inverse-surface shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] rounded-t-xl md:hidden">
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 p-2 rounded-lg group">
+<span class="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform" data-icon="calendar_month">calendar_month</span>
+<span class="font-label-md text-label-md mt-1">Agenda</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-secondary-container text-on-secondary-container rounded-full px-4 py-1 active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined fill-icon text-[24px]" data-icon="analytics">analytics</span>
+<span class="font-label-md text-label-md mt-1">Analítica</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 p-2 rounded-lg group">
+<span class="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform" data-icon="groups">groups</span>
+<span class="font-label-md text-label-md mt-1">Clientes</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-container-high transition-all duration-200 p-2 rounded-lg group">
+<span class="material-symbols-outlined text-[24px] group-hover:scale-110 transition-transform" data-icon="settings">settings</span>
+<span class="font-label-md text-label-md mt-1">Ajustes</span>
+</button>
+</nav>
+</body></html>

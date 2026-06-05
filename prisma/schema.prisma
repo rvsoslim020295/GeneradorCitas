@@ -1,0 +1,125 @@
+generator client {
+  provider = "prisma-client-js"
+  output   = "../apps/api/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// Un negocio = un salón/barbería/spa registrado en GlowManager
+model Business {
+  id                  String   @id @default(cuid())
+  name                String
+  type                String
+  phone               String?
+  address             String?
+  timezone            String   @default("America/Mexico_City")
+  slotMinutes         Int      @default(30)
+  cancellationHours   Int      @default(24)
+  operatingDays       String[] @default(["Mon","Tue","Wed","Thu","Fri"])
+  trialEndsAt         DateTime?
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
+  users          User[]
+  clients        Client[]
+  collaborators  Collaborator[]
+  services       Service[]
+  appointments   Appointment[]
+}
+
+// Un usuario pertenece a un negocio y puede ser dueño o colaborador
+model User {
+  id         String   @id @default(cuid())
+  email      String   @unique
+  password   String
+  name       String
+  role       Role     @default(OWNER)
+  businessId String
+  business   Business @relation(fields: [businessId], references: [id])
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}
+
+enum Role {
+  OWNER
+  COLLABORATOR
+  ADMIN
+}
+
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+// Una cita conecta cliente, colaborador y servicio en un horario específico
+model Appointment {
+  id             String            @id @default(cuid())
+  startTime      DateTime
+  endTime        DateTime
+  status         AppointmentStatus @default(PENDING)
+  price          Float
+  notes          String?
+  tipPercent     Float             @default(0)
+  paymentMethod  String?
+  businessId     String
+  clientId       String
+  collaboratorId String
+  serviceId      String
+  business       Business          @relation(fields: [businessId], references: [id])
+  client         Client            @relation(fields: [clientId], references: [id])
+  collaborator   Collaborator      @relation(fields: [collaboratorId], references: [id])
+  service        Service           @relation(fields: [serviceId], references: [id])
+  createdAt      DateTime          @default(now())
+  updatedAt      DateTime          @updatedAt
+}
+
+// Un servicio es una prestación del catálogo del negocio
+model Service {
+  id          String   @id @default(cuid())
+  name        String
+  description String?
+  category    String
+  durationMin Int
+  price       Float
+  businessId  String
+  business     Business      @relation(fields: [businessId], references: [id])
+  appointments Appointment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+// Un colaborador es miembro del equipo del negocio
+model Collaborator {
+  id           String   @id @default(cuid())
+  name         String
+  role         String
+  specialties  String[]
+  isActive     Boolean  @default(true)
+  businessId   String
+  business     Business      @relation(fields: [businessId], references: [id])
+  appointments Appointment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}
+
+// Un cliente pertenece a un negocio y acumula visitas y gasto a lo largo del tiempo
+model Client {
+  id           String   @id @default(cuid())
+  name         String
+  lastName     String?
+  dni          String?
+  phone        String?
+  email        String?
+  notes        String?
+  totalVisits  Int      @default(0)
+  totalSpent   Float    @default(0)
+  businessId   String
+  business     Business      @relation(fields: [businessId], references: [id])
+  appointments Appointment[]
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
+}

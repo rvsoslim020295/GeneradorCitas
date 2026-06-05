@@ -1,0 +1,228 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Centro de Notificaciones - GlowManager</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+          darkMode: "class",
+          theme: {
+            extend: {
+              "colors": {
+                      "surface-container-highest": "#e0e3e5",
+                      "surface": "#f7f9fb",
+                      "secondary-fixed-dim": "#89ceff",
+                      "tertiary-fixed": "#ffdcc5",
+                      "primary-container": "#5d5cde",
+                      "on-secondary-container": "#004666",
+                      "on-primary-container": "#f1eeff",
+                      "secondary-fixed": "#c9e6ff",
+                      "surface-variant": "#e0e3e5",
+                      "on-tertiary-container": "#ffede2",
+                      "surface-container-lowest": "#ffffff",
+                      "on-primary-fixed": "#0b006b",
+                      "inverse-primary": "#c2c1ff",
+                      "on-secondary-fixed-variant": "#004c6e",
+                      "on-tertiary-fixed": "#301400",
+                      "secondary-container": "#39b8fd",
+                      "primary": "#4441c4",
+                      "inverse-on-surface": "#eff1f3",
+                      "primary-fixed": "#e2dfff",
+                      "tertiary-fixed-dim": "#ffb782",
+                      "surface-container": "#eceef0",
+                      "on-error-container": "#93000a",
+                      "error": "#ba1a1a",
+                      "on-background": "#191c1e",
+                      "surface-container-high": "#e6e8ea",
+                      "on-tertiary-fixed-variant": "#703800",
+                      "on-primary": "#ffffff",
+                      "on-primary-fixed-variant": "#3530b6",
+                      "on-surface": "#191c1e",
+                      "surface-bright": "#f7f9fb",
+                      "secondary": "#006591",
+                      "surface-dim": "#d8dadc",
+                      "outline-variant": "#c7c4d6",
+                      "error-container": "#ffdad6",
+                      "on-secondary-fixed": "#001e2f",
+                      "on-surface-variant": "#464554",
+                      "tertiary": "#854300",
+                      "on-error": "#ffffff",
+                      "on-secondary": "#ffffff",
+                      "background": "#f7f9fb",
+                      "on-tertiary": "#ffffff",
+                      "primary-fixed-dim": "#c2c1ff",
+                      "surface-container-low": "#f2f4f6",
+                      "tertiary-container": "#a95700",
+                      "inverse-surface": "#2d3133",
+                      "surface-tint": "#4e4cce",
+                      "outline": "#777585"
+              },
+              "borderRadius": {
+                      "DEFAULT": "0.25rem",
+                      "lg": "0.5rem",
+                      "xl": "0.75rem",
+                      "full": "9999px"
+              },
+              "spacing": {
+                      "stack-sm": "4px",
+                      "stack-lg": "24px",
+                      "base": "8px",
+                      "margin-page": "32px",
+                      "gutter-desktop": "24px",
+                      "stack-md": "12px",
+                      "gutter-tablet": "16px"
+              },
+              "fontFamily": {
+                      "body-lg": ["Inter"],
+                      "headline-sm": ["Inter"],
+                      "label-md": ["Inter"],
+                      "headline-md-mobile": ["Inter"],
+                      "display-lg": ["Inter"],
+                      "headline-md": ["Inter"],
+                      "body-md": ["Inter"]
+              },
+              "fontSize": {
+                      "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                      "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                      "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                      "headline-md-mobile": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                      "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                      "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                      "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+              }
+            }
+          }
+        }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-surface text-on-surface font-body-lg text-body-lg min-h-screen pb-24">
+<!-- TopAppBar -->
+<header class="fixed top-0 left-0 w-full z-50 flex justify-between items-center px-margin-page h-16 bg-surface border-b border-outline-variant">
+<div class="flex items-center gap-4">
+<button class="text-primary hover:bg-surface-container transition-colors p-2 rounded-full scale-95 active:scale-90 transition-transform flex items-center justify-center">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">menu</span>
+</button>
+<h1 class="text-headline-md font-headline-md font-bold text-primary">GlowManager</h1>
+</div>
+<div class="flex items-center">
+<button class="hover:bg-surface-container transition-colors rounded-full scale-95 active:scale-90 transition-transform overflow-hidden w-8 h-8 flex items-center justify-center bg-primary-container text-on-primary-container">
+<span class="material-symbols-outlined text-[20px]">person</span>
+</button>
+</div>
+</header>
+<!-- Main Content Canvas -->
+<main class="pt-24 px-gutter-tablet md:px-margin-page max-w-4xl mx-auto flex flex-col gap-stack-lg">
+<!-- Header Section -->
+<div class="flex flex-col md:flex-row md:items-end justify-between gap-stack-md">
+<div>
+<h2 class="text-display-lg font-display-lg text-on-surface">Centro de Notificaciones</h2>
+<p class="text-body-md font-body-md text-on-surface-variant mt-2">Mantente al día con la actividad de tu salón.</p>
+</div>
+<div class="flex items-center gap-4 self-start md:self-auto">
+<button class="text-primary font-label-md text-label-md hover:text-primary-fixed-dim transition-colors flex items-center gap-2">
+<span class="material-symbols-outlined text-[18px]">checklist</span>
+                    Marcar todo como leído
+                </button>
+<button class="text-on-surface-variant hover:text-primary hover:bg-surface-container transition-colors p-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined">settings</span>
+</button>
+</div>
+</div>
+<!-- Notification List -->
+<div class="flex flex-col gap-stack-lg">
+<!-- Group: Hoy -->
+<div class="flex flex-col gap-stack-sm">
+<h3 class="text-label-md font-label-md text-on-surface-variant uppercase ml-2">Hoy</h3>
+<!-- Notification: New Appointment (Unread) -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex gap-4 items-start shadow-sm hover:bg-surface-container-low transition-colors relative cursor-pointer">
+<div class="w-2 h-2 rounded-full bg-primary absolute top-6 left-2"></div>
+<div class="w-10 h-10 rounded-full bg-primary-container text-on-primary-container flex items-center justify-center shrink-0 ml-2">
+<span class="material-symbols-outlined">event_available</span>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<div class="flex justify-between items-start">
+<span class="text-headline-sm font-headline-sm text-on-surface">Nueva Cita Reservada</span>
+<span class="text-label-md font-label-md text-on-surface-variant">Hace 10 min</span>
+</div>
+<p class="text-body-md font-body-md text-on-surface-variant">Maria Gomez ha reservado un <span class="font-semibold text-on-surface">Corte de Cabello Premium</span> para mañana a las 14:00.</p>
+</div>
+</div>
+<!-- Notification: Cancellation -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex gap-4 items-start shadow-sm hover:bg-surface-container-low transition-colors relative cursor-pointer">
+<div class="w-10 h-10 rounded-full bg-error-container text-on-error-container flex items-center justify-center shrink-0 ml-2">
+<span class="material-symbols-outlined">event_busy</span>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<div class="flex justify-between items-start">
+<span class="text-headline-sm font-headline-sm text-on-surface">Cita Cancelada</span>
+<span class="text-label-md font-label-md text-on-surface-variant">Hace 1 hora</span>
+</div>
+<p class="text-body-md font-body-md text-on-surface-variant">Carlos Ruiz ha cancelado su cita de <span class="font-semibold text-on-surface">Arreglo de Barba</span> programada para hoy a las 16:30.</p>
+</div>
+</div>
+</div>
+<!-- Group: Ayer -->
+<div class="flex flex-col gap-stack-sm">
+<h3 class="text-label-md font-label-md text-on-surface-variant uppercase ml-2 mt-4">Ayer</h3>
+<!-- Notification: Revenue Milestone -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex gap-4 items-start shadow-sm hover:bg-surface-container-low transition-colors relative cursor-pointer opacity-80">
+<div class="w-10 h-10 rounded-full bg-secondary-container text-on-secondary-container flex items-center justify-center shrink-0 ml-2">
+<span class="material-symbols-outlined">monetization_on</span>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<div class="flex justify-between items-start">
+<span class="text-headline-sm font-headline-sm text-on-surface">Objetivo Diario Alcanzado</span>
+<span class="text-label-md font-label-md text-on-surface-variant">Ayer, 20:00</span>
+</div>
+<p class="text-body-md font-body-md text-on-surface-variant">¡Felicidades! Has superado tu objetivo de ingresos diarios en un 15%.</p>
+</div>
+</div>
+<!-- Notification: Staff Update -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 flex gap-4 items-start shadow-sm hover:bg-surface-container-low transition-colors relative cursor-pointer opacity-80">
+<div class="w-10 h-10 rounded-full bg-tertiary-container text-on-tertiary-container flex items-center justify-center shrink-0 ml-2">
+<span class="material-symbols-outlined">badge</span>
+</div>
+<div class="flex-1 flex flex-col gap-1">
+<div class="flex justify-between items-start">
+<span class="text-headline-sm font-headline-sm text-on-surface">Actualización de Personal</span>
+<span class="text-label-md font-label-md text-on-surface-variant">Ayer, 09:15</span>
+</div>
+<p class="text-body-md font-body-md text-on-surface-variant">Laura Silva ha solicitado un cambio de turno para la próxima semana. Requiere aprobación.</p>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile Only) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center px-4 py-2 bg-surface-container-lowest border-t border-outline-variant md:hidden">
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all duration-200">
+<span class="material-symbols-outlined mb-1">calendar_today</span>
+<span class="text-label-md font-label-md">Agenda</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all duration-200">
+<span class="material-symbols-outlined mb-1">groups</span>
+<span class="text-label-md font-label-md">Clients</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all duration-200">
+<span class="material-symbols-outlined mb-1">badge</span>
+<span class="text-label-md font-label-md">Staff</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary transition-all duration-200">
+<span class="material-symbols-outlined mb-1">analytics</span>
+<span class="text-label-md font-label-md">Stats</span>
+</button>
+</nav>
+</body></html>

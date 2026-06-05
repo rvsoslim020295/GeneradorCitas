@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Business Data Settings - SalonPro</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline-variant": "#c7c4d6",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#004666",
+                        "error": "#ba1a1a",
+                        "tertiary": "#854300",
+                        "outline": "#777585",
+                        "on-secondary-fixed-variant": "#004c6e",
+                        "secondary-fixed": "#c9e6ff",
+                        "tertiary-container": "#a95700",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-primary-fixed-variant": "#3530b6",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-low": "#f2f4f6",
+                        "on-tertiary": "#ffffff",
+                        "on-secondary-fixed": "#001e2f",
+                        "error-container": "#ffdad6",
+                        "surface": "#f7f9fb",
+                        "primary-fixed-dim": "#c2c1ff",
+                        "on-primary-fixed": "#0b006b",
+                        "primary-container": "#5d5cde",
+                        "on-tertiary-container": "#ffede2",
+                        "on-background": "#191c1e",
+                        "background": "#f7f9fb",
+                        "surface-container": "#eceef0",
+                        "primary": "#4441c4",
+                        "surface-bright": "#f7f9fb",
+                        "primary-fixed": "#e2dfff",
+                        "on-surface": "#191c1e",
+                        "tertiary-fixed-dim": "#ffb782",
+                        "on-primary-container": "#f1eeff",
+                        "surface-dim": "#d8dadc",
+                        "inverse-surface": "#2d3133",
+                        "tertiary-fixed": "#ffdcc5",
+                        "secondary": "#006591",
+                        "secondary-container": "#39b8fd",
+                        "on-surface-variant": "#464554",
+                        "on-primary": "#ffffff",
+                        "secondary-fixed-dim": "#89ceff",
+                        "inverse-on-surface": "#eff1f3",
+                        "on-tertiary-fixed": "#301400",
+                        "surface-tint": "#4e4cce",
+                        "inverse-primary": "#c2c1ff",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-variant": "#e0e3e5",
+                        "on-tertiary-fixed-variant": "#703800",
+                        "on-error-container": "#93000a",
+                        "on-secondary": "#ffffff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-lg": "24px",
+                        "stack-md": "12px",
+                        "gutter-tablet": "16px",
+                        "gutter-desktop": "24px",
+                        "stack-sm": "4px",
+                        "margin-page": "32px",
+                        "base": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "headline-md-mobile": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "label-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "headline-md-mobile": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .input-focus-ring:focus-within {
+            border-color: #4441c4;
+            box-shadow: 0 0 0 3px rgba(68, 65, 196, 0.1);
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen pb-24 font-body-md">
+<!-- TopAppBar -->
+<header class="bg-surface dark:bg-surface-dim w-full top-0 sticky border-b border-outline-variant dark:border-outline shadow-sm flex justify-between items-center px-gutter-tablet py-stack-md w-full z-40">
+<div class="flex items-center gap-3">
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">arrow_back</span>
+</button>
+<h1 class="font-headline-md-mobile text-headline-md-mobile text-primary dark:text-primary-fixed-dim">Business Data</h1>
+</div>
+<button class="p-2 text-on-surface-variant hover:bg-surface-container-low transition-colors rounded-full active:scale-95 transition-transform">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 0;">notifications</span>
+</button>
+</header>
+<main class="px-gutter-tablet py-stack-lg max-w-2xl mx-auto flex flex-col gap-stack-lg">
+<!-- Business Profile Section -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-lg shadow-sm">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-stack-md">Business Profile</h2>
+<div class="flex flex-col items-center mb-stack-lg gap-3">
+<div class="relative w-24 h-24 rounded-full border border-outline-variant overflow-hidden group cursor-pointer bg-surface-container">
+<img alt="Business Logo" class="w-full h-full object-cover" data-alt="A professional logo mark featuring a stylized glowing lotus flower or abstract geometric crown, set against a clean white background. The aesthetic is modern, elegant, and corporate, utilizing deep indigo and soft gold tones. Lighting is flat and graphic, suitable for a high-end beauty salon brand identity." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA4RrWxiCJIGotLeDkMd_wFUVMqTgjvgvouIt0uW-sG425E45gtDoesddL2NHzy2I9NPHZQckv6NrQdBZpVLIhscUiyqf2TNtqh55mwU4IkCO8RW8OLrC5l1aBUz-1D7_luv6DLvIh2zTnaOyrEdH8gql0HGxXcnLRGLXdcSD7eLloH9cMXnFUwdM7JmpxNuUX2oKIZU9mroZPKoSQDo54dtz1QUIkygV2cMNaD3qdTMZ2dquGyC4yJI7EArnChv2zc4LeJqJMMP8E"/>
+<div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-white">edit</span>
+</div>
+</div>
+<button class="text-primary font-label-md text-label-md hover:underline">Change Logo</button>
+</div>
+<div class="flex flex-col gap-stack-md">
+<div class="flex flex-col gap-1 input-focus-ring rounded-DEFAULT border border-outline-variant bg-surface-container-lowest px-3 py-2 transition-all">
+<label class="font-label-md text-label-md text-on-surface-variant">Business Name</label>
+<input class="bg-transparent border-none p-0 focus:ring-0 text-on-surface font-body-md outline-none w-full" type="text" value="GlowManager Premium"/>
+</div>
+<div class="flex flex-col gap-1 input-focus-ring rounded-DEFAULT border border-outline-variant bg-surface-container-lowest px-3 py-2 transition-all">
+<label class="font-label-md text-label-md text-on-surface-variant">Category</label>
+<div class="relative">
+<select class="appearance-none bg-transparent border-none p-0 focus:ring-0 text-on-surface font-body-md outline-none w-full pr-8 cursor-pointer">
+<option>Beauty Salon &amp; Spa</option>
+<option>Barbershop</option>
+<option>Nail Salon</option>
+<option>Wellness Center</option>
+</select>
+<span class="material-symbols-outlined absolute right-0 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Contact Info Section -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-lg shadow-sm">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-stack-md">Contact Info</h2>
+<div class="flex flex-col gap-stack-md">
+<div class="flex flex-col gap-1 input-focus-ring rounded-DEFAULT border border-outline-variant bg-surface-container-lowest px-3 py-2 transition-all">
+<label class="font-label-md text-label-md text-on-surface-variant">Phone Number</label>
+<input class="bg-transparent border-none p-0 focus:ring-0 text-on-surface font-body-md outline-none w-full" type="tel" value="+52 55 1234 5678"/>
+</div>
+<div class="flex flex-col gap-1 input-focus-ring rounded-DEFAULT border border-outline-variant bg-surface-container-lowest px-3 py-2 transition-all">
+<label class="font-label-md text-label-md text-on-surface-variant">Address</label>
+<textarea class="bg-transparent border-none p-0 focus:ring-0 text-on-surface font-body-md outline-none w-full resize-none" rows="2">Av. Reforma 123, CDMX</textarea>
+</div>
+</div>
+</section>
+<!-- Localization Section -->
+<section class="bg-surface-container-lowest rounded-xl border border-outline-variant p-stack-lg shadow-sm">
+<h2 class="font-headline-sm text-headline-sm text-on-surface mb-stack-md">Localization</h2>
+<div class="flex flex-col gap-stack-md">
+<div class="flex flex-col gap-1 input-focus-ring rounded-DEFAULT border border-outline-variant bg-surface-container-lowest px-3 py-2 transition-all">
+<label class="font-label-md text-label-md text-on-surface-variant">Time Zone</label>
+<div class="relative">
+<select class="appearance-none bg-transparent border-none p-0 focus:ring-0 text-on-surface font-body-md outline-none w-full pr-8 cursor-pointer">
+<option>GMT-6 (Central Standard Time)</option>
+<option>GMT-7 (Mountain Standard Time)</option>
+<option>GMT-5 (Eastern Standard Time)</option>
+</select>
+<span class="material-symbols-outlined absolute right-0 top-1/2 -translate-y-1/2 text-on-surface-variant pointer-events-none">expand_more</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Actions -->
+<div class="mt-4">
+<button class="w-full bg-primary text-on-primary font-body-md font-semibold py-3 rounded-lg shadow-sm active:scale-95 transition-all hover:bg-surface-tint">
+                Save Changes
+            </button>
+</div>
+</main>
+<!-- BottomNavBar (Settings is Active) -->
+<nav class="bg-surface dark:bg-surface-dim font-label-md text-label-md fixed bottom-0 w-full z-50 shadow-lg fixed bottom-0 left-0 w-full z-50 flex justify-around items-center bg-surface px-2 py-3 md:hidden">
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-high transition-all active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">calendar_today</span>
+<span>Agenda</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-high transition-all active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">leaderboard</span>
+<span>Analytics</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant p-2 hover:bg-surface-container-high transition-all active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 0;">group</span>
+<span>Clients</span>
+</button>
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-xl px-4 py-1 hover:bg-surface-container-high transition-all active:scale-90 transition-all duration-200">
+<span class="material-symbols-outlined mb-1" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span>Settings</span>
+</button>
+</nav>
+</body></html>

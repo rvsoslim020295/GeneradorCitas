@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+
+<html lang="es"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>GlowManager - Detalle de Cita</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "tertiary-fixed": "#ffdcc5",
+                        "surface-bright": "#f7f9fb",
+                        "error": "#ba1a1a",
+                        "tertiary-container": "#a95700",
+                        "surface-container-high": "#e6e8ea",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-variant": "#e0e3e5",
+                        "tertiary-fixed-dim": "#ffb782",
+                        "on-primary-fixed-variant": "#3530b6",
+                        "outline-variant": "#c7c4d6",
+                        "surface-container": "#eceef0",
+                        "on-surface": "#191c1e",
+                        "primary-container": "#5d5cde",
+                        "on-background": "#191c1e",
+                        "on-tertiary-fixed-variant": "#703800",
+                        "surface": "#f7f9fb",
+                        "on-tertiary": "#ffffff",
+                        "tertiary": "#854300",
+                        "on-primary": "#ffffff",
+                        "on-tertiary-fixed": "#301400",
+                        "on-secondary-fixed-variant": "#004c6e",
+                        "surface-container-low": "#f2f4f6",
+                        "on-secondary-container": "#004666",
+                        "error-container": "#ffdad6",
+                        "secondary-container": "#39b8fd",
+                        "outline": "#777585",
+                        "on-secondary": "#ffffff",
+                        "on-surface-variant": "#464554",
+                        "on-primary-container": "#f1eeff",
+                        "on-tertiary-container": "#ffede2",
+                        "on-primary-fixed": "#0b006b",
+                        "secondary-fixed-dim": "#89ceff",
+                        "primary": "#4441c4",
+                        "on-secondary-fixed": "#001e2f",
+                        "on-error": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "secondary-fixed": "#c9e6ff",
+                        "inverse-surface": "#2d3133",
+                        "inverse-primary": "#c2c1ff",
+                        "secondary": "#006591",
+                        "primary-fixed-dim": "#c2c1ff",
+                        "surface-dim": "#d8dadc",
+                        "surface-tint": "#4e4cce",
+                        "inverse-on-surface": "#eff1f3",
+                        "background": "#f7f9fb",
+                        "primary-fixed": "#e2dfff",
+                        "surface-container-highest": "#e0e3e5"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "stack-lg": "24px",
+                        "stack-md": "12px",
+                        "stack-sm": "4px",
+                        "margin-page": "32px",
+                        "gutter-tablet": "16px",
+                        "base": "8px",
+                        "gutter-desktop": "24px"
+                    },
+                    "fontFamily": {
+                        "label-md": ["Inter"],
+                        "headline-md-mobile": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "headline-sm": ["Inter"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-md-mobile": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }],
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+    </style>
+</head>
+<body class="bg-background text-on-background h-screen w-screen overflow-hidden flex font-body-md text-body-md antialiased">
+<!-- SideNavBar Component -->
+<nav class="bg-surface dark:bg-inverse-surface h-full w-64 fixed left-0 top-0 border-r border-outline-variant dark:border-outline shadow-sm flex flex-col py-base px-stack-md z-20">
+<!-- Brand Header -->
+<div class="mb-8 px-4 mt-4">
+<h1 class="font-headline-md text-headline-md font-bold text-primary dark:text-primary-fixed-dim tracking-tight">GlowManager</h1>
+<p class="font-label-md text-label-md text-on-surface-variant mt-1">Premium Salon Suite</p>
+</div>
+<!-- CTA -->
+<button class="mb-6 w-full bg-primary hover:bg-surface-tint text-on-primary rounded-lg py-3 px-4 font-label-md text-label-md flex justify-center items-center gap-2 transition-all shadow-sm">
+<span class="material-symbols-outlined text-[18px]">add</span>
+            Nueva Cita Rápida
+        </button>
+<!-- Navigation Links -->
+<ul class="space-y-1 flex-1">
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">dashboard</span>
+                    Dashboard
+                </a>
+</li>
+<li>
+<!-- ACTIVE NAV ITEM (Semantic Match: Agenda context for appointment details) -->
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-primary dark:text-primary-fixed-dim font-bold bg-primary-container/10 font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">calendar_month</span>
+                    Agenda
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">groups</span>
+                    Clientes
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">badge</span>
+                    Colaboradores
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">content_cut</span>
+                    Servicios
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">bar_chart</span>
+                    Reportes
+                </a>
+</li>
+<li>
+<a class="flex items-center gap-3 px-4 py-3 rounded-lg text-on-surface-variant dark:text-surface-variant hover:bg-surface-container-high dark:hover:bg-surface-container-highest transition-colors font-label-md text-label-md" href="#">
+<span class="material-symbols-outlined">settings</span>
+                    Configuración
+                </a>
+</li>
+</ul>
+</nav>
+<!-- Main Workspace Area -->
+<main class="flex-1 ml-64 flex flex-col relative h-full">
+<!-- TopNavBar Component -->
+<header class="bg-surface/80 dark:bg-inverse-surface/80 backdrop-blur-md fixed top-0 right-0 w-[calc(100%-16rem)] h-16 border-b border-outline-variant dark:border-outline flex justify-between items-center px-gutter-desktop z-10">
+<!-- Left Area (Empty or Search context if needed, JSON says search_bar: on_left but doesn't detail it, keeping it clean to focus on drawer) -->
+<div class="flex items-center gap-4">
+<!-- Placeholder for breadcrumb or title context if active -->
+<span class="font-headline-sm text-headline-sm text-on-surface">Agenda Semanal</span>
+</div>
+<!-- Right Area (Actions & Profile) -->
+<div class="flex items-center gap-4">
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-all">
+<span class="material-symbols-outlined">help_outline</span>
+</button>
+<div class="w-8 h-8 rounded-full bg-secondary-container flex items-center justify-center overflow-hidden border border-outline-variant ml-2">
+<img alt="User Profile" class="w-full h-full object-cover" data-alt="A professional headshot of a female salon manager with a friendly smile, well-lit in a bright modern salon environment. She is wearing a smart dark blazer. The lighting is soft and flattering, creating a high-quality, trustworthy corporate image suitable for a business dashboard profile picture." src="https://lh3.googleusercontent.com/aida-public/AB6AXuABIDpV5qKZfKy2foUuL2zQ2O2F5UOQxTav-KEFjW1ddmF2Nalx_v4yeb-wvpouSyEmP5QUuESCttSvc1G0w_irlvPiJnEo0Xss0SoNhSSMkHi9DbGvxsxhu3JupoVo5NwA-KDhu1oil-hTZjlEj6LbRfZrk9led2TRurUa_P7kJuZwhxapjXJ6PMPiniv1w5r_QcAQS11_fYdEfAKxSdj2ls7xwh9RchI1pyX_rtLf_LwKRDOvLIPpNgplEWAcPrKr6H--aaGtpNE"/>
+</div>
+</div>
+</header>
+<!-- Dummy Agenda Canvas (Context for the Drawer) -->
+<div class="flex-1 mt-16 p-gutter-desktop overflow-y-auto bg-surface-bright">
+<div class="w-full h-[800px] rounded-xl border border-outline-variant bg-surface-container-lowest p-6 flex items-center justify-center opacity-50 pointer-events-none">
+<div class="text-center">
+<span class="material-symbols-outlined text-[48px] text-outline mb-4">calendar_view_week</span>
+<p class="font-headline-sm text-headline-sm text-on-surface-variant">Vista de Agenda Principal</p>
+<p class="font-body-md text-body-md text-outline mt-2">Interactuando con un bloque de cita...</p>
+</div>
+</div>
+</div>
+<!-- ========================================== -->
+<!-- TASK SPECIFIC: CAL-02 Detalle de Cita Drawer -->
+<!-- ========================================== -->
+<!-- Backdrop Overlay (Glassmorphism focus) -->
+<div class="fixed inset-0 bg-on-background/10 backdrop-blur-[2px] z-30 transition-opacity"></div>
+<!-- The Drawer Panel -->
+<aside class="fixed right-0 top-0 h-full w-[420px] bg-surface-container-lowest z-40 shadow-[-8px_0_24px_rgba(0,0,0,0.04)] border-l border-outline-variant flex flex-col transform translate-x-0 transition-transform duration-300 ease-in-out">
+<!-- Drawer Header -->
+<div class="h-16 px-gutter-desktop flex items-center justify-between border-b border-outline-variant bg-surface/50 backdrop-blur-md">
+<h2 class="font-headline-sm text-headline-sm text-on-surface">Detalle de Cita</h2>
+<button class="p-2 rounded-full text-on-surface-variant hover:bg-surface-container-low transition-colors" title="Cerrar panel">
+<span class="material-symbols-outlined text-[20px]">close</span>
+</button>
+</div>
+<!-- Drawer Scrollable Content -->
+<div class="flex-1 overflow-y-auto p-gutter-desktop flex flex-col gap-stack-lg">
+<!-- Status & High-level actions -->
+<div class="flex items-center justify-between">
+<!-- Prominent Status Badge -->
+<div class="bg-secondary/10 border border-secondary/20 rounded-full px-4 py-1.5 flex items-center gap-2 w-fit">
+<div class="w-2 h-2 rounded-full bg-secondary"></div>
+<span class="font-label-md text-label-md text-secondary uppercase tracking-wider">Confirmada</span>
+</div>
+<span class="font-label-md text-label-md text-on-surface-variant">Ref: #A-4829</span>
+</div>
+<!-- Client Summary Bento Card -->
+<div class="bg-surface rounded-xl p-stack-md border border-outline-variant shadow-sm flex items-center justify-between">
+<div class="flex items-center gap-4">
+<div class="w-12 h-12 rounded-full bg-surface-container-high border border-outline overflow-hidden relative shadow-sm">
+<img alt="Foto del Cliente" class="w-full h-full object-cover" data-alt="A clear, professional headshot of a young female client with styled hair, set against a neutral, well-lit background. The lighting highlights the subject's features softly, suggesting a high-quality salon customer profile image used in a modern booking interface." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBs_DhxyDrReWCbMCEjO__FPrFyVqvcJEq8nsa61nH86LyS1wWPdNz95kpq3X-1jeMafL2mzCEdmOMU9geVe9cyjGVztHlDfeSdKiFkvvNVOQAGgfvpm08-q9poZJmDHZfkmYL51e5YGpABeNXMsXQBeKkvmqNlSZ4bQfpDFqBpFG50E7LUcc3Cbz7R8hH_li593qRfo-4uL36WzkfDi8dNp_17-AbwbOV-oIOsEmv9g6B1w4uZ5-SnaLPstTkgpyHxRDrckU23JVA"/>
+</div>
+<div>
+<h3 class="font-headline-sm text-headline-sm text-on-surface leading-tight">Valeria Castro</h3>
+<p class="font-body-md text-body-md text-on-surface-variant mt-0.5">+52 55 1234 5678</p>
+</div>
+</div>
+<div class="flex gap-2">
+<button class="w-10 h-10 rounded-full bg-surface-container-low hover:bg-surface-container border border-outline-variant flex items-center justify-center text-primary transition-colors shadow-sm" title="Enviar WhatsApp">
+<span class="material-symbols-outlined text-[20px]">chat</span>
+</button>
+<button class="w-10 h-10 rounded-full bg-surface-container-low hover:bg-surface-container border border-outline-variant flex items-center justify-center text-primary transition-colors shadow-sm" title="Llamar">
+<span class="material-symbols-outlined text-[20px]">call</span>
+</button>
+</div>
+</div>
+<!-- Service Details -->
+<div class="space-y-stack-md">
+<h4 class="font-label-md text-label-md text-outline uppercase tracking-widest pl-1">Información del Servicio</h4>
+<div class="bg-surface-container-low rounded-xl p-5 border border-outline-variant/50 space-y-4">
+<div class="flex items-start justify-between">
+<div>
+<p class="font-headline-sm text-headline-sm text-on-surface">Corte de Cabello + Tinte Balayage</p>
+<p class="font-body-md text-body-md text-on-surface-variant mt-1">Servicio Premium</p>
+</div>
+<span class="font-headline-md text-headline-md text-on-surface">$1,250</span>
+</div>
+<hr class="border-outline-variant/50"/>
+<div class="grid grid-cols-2 gap-4">
+<div>
+<p class="font-label-md text-label-md text-outline mb-1">Horario</p>
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-primary">schedule</span>
+<span class="font-body-md text-body-md font-medium">10:00 - 12:30</span>
+</div>
+<p class="font-label-md text-label-md text-on-surface-variant mt-1 ml-6">2h 30m de duración</p>
+</div>
+<div>
+<p class="font-label-md text-label-md text-outline mb-1">Colaborador</p>
+<div class="flex items-center gap-2 text-on-surface">
+<span class="material-symbols-outlined text-[18px] text-primary">person</span>
+<span class="font-body-md text-body-md font-medium">Martín R.</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Contextual Action Buttons -->
+<div class="space-y-stack-md pt-2">
+<!-- Primary Flow -->
+<button class="w-full bg-primary hover:bg-surface-tint text-on-primary font-headline-sm text-headline-sm py-3 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[20px]">point_of_sale</span>
+                        Completar y Cobrar
+                    </button>
+<!-- Secondary Actions Grid -->
+<div class="grid grid-cols-2 gap-stack-md">
+<button class="w-full bg-surface-container hover:bg-surface-container-high text-on-surface border border-outline-variant font-label-md text-label-md py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">edit_calendar</span>
+                            Reprogramar
+                        </button>
+<button class="w-full bg-surface-container hover:bg-surface-container-high text-error border border-outline-variant font-label-md text-label-md py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-[18px]">cancel</span>
+                            Cancelar Cita
+                        </button>
+</div>
+<!-- Tertiary Action -->
+<button class="w-full bg-transparent hover:bg-surface-variant text-on-surface-variant font-label-md text-label-md py-2 rounded-lg transition-colors border border-transparent hover:border-outline-variant mt-2">
+                        Marcar como No-show
+                    </button>
+</div>
+<!-- Timeline / Historial -->
+<div class="mt-4 pt-4 border-t border-outline-variant">
+<h4 class="font-label-md text-label-md text-outline uppercase tracking-widest pl-1 mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px]">history</span>
+                        Historial de la Cita
+                    </h4>
+<div class="relative pl-4 space-y-6 before:content-[''] before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-outline-variant/30">
+<!-- Timeline Item 1 -->
+<div class="relative">
+<div class="absolute -left-[17px] top-1 w-[10px] h-[10px] rounded-full bg-secondary ring-4 ring-surface-container-lowest"></div>
+<p class="font-body-md text-body-md text-on-surface">Cita Confirmada</p>
+<p class="font-label-md text-label-md text-on-surface-variant mt-0.5">Hoy, 09:15 AM • Vía WhatsApp</p>
+</div>
+<!-- Timeline Item 2 -->
+<div class="relative">
+<div class="absolute -left-[17px] top-1 w-[10px] h-[10px] rounded-full bg-outline-variant ring-4 ring-surface-container-lowest"></div>
+<p class="font-body-md text-body-md text-on-surface text-opacity-80">Recordatorio enviado</p>
+<p class="font-label-md text-label-md text-on-surface-variant mt-0.5">Ayer, 10:00 AM • SMS Automático</p>
+</div>
+<!-- Timeline Item 3 -->
+<div class="relative">
+<div class="absolute -left-[17px] top-1 w-[10px] h-[10px] rounded-full bg-outline-variant ring-4 ring-surface-container-lowest"></div>
+<p class="font-body-md text-body-md text-on-surface text-opacity-80">Cita Creada</p>
+<p class="font-label-md text-label-md text-on-surface-variant mt-0.5">Hace 3 días • Por Recepción</p>
+</div>
+</div>
+</div>
+</div>
+</aside>
+</main>
+</body></html>

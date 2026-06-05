@@ -1,0 +1,208 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Gestión de Usuarios - Premium Salon Management</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "outline": "#777585",
+                        "on-secondary-container": "#004666",
+                        "on-primary-fixed-variant": "#3530b6",
+                        "surface-dim": "#d8dadc",
+                        "surface-container-highest": "#e0e3e5",
+                        "on-tertiary": "#ffffff",
+                        "surface-bright": "#f7f9fb",
+                        "primary-container": "#5d5cde",
+                        "on-primary-fixed": "#0b006b",
+                        "tertiary-fixed-dim": "#ffb782",
+                        "surface-container": "#eceef0",
+                        "on-error": "#ffffff",
+                        "surface-variant": "#e0e3e5",
+                        "on-primary": "#ffffff",
+                        "tertiary": "#854300",
+                        "secondary-container": "#39b8fd",
+                        "background": "#f7f9fb",
+                        "on-primary-container": "#f1eeff",
+                        "secondary-fixed": "#c9e6ff",
+                        "on-secondary-fixed": "#001e2f",
+                        "secondary": "#006591",
+                        "primary": "#4441c4",
+                        "on-secondary": "#ffffff",
+                        "inverse-primary": "#c2c1ff",
+                        "tertiary-container": "#a95700",
+                        "error": "#ba1a1a",
+                        "on-tertiary-container": "#ffede2",
+                        "outline-variant": "#c7c4d6",
+                        "surface-container-high": "#e6e8ea",
+                        "on-error-container": "#93000a",
+                        "on-tertiary-fixed": "#301400",
+                        "on-surface-variant": "#464554",
+                        "on-background": "#191c1e",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed-dim": "#c2c1ff",
+                        "on-secondary-fixed-variant": "#004c6e",
+                        "surface": "#f7f9fb",
+                        "tertiary-fixed": "#ffdcc5",
+                        "surface-tint": "#4e4cce",
+                        "surface-container-low": "#f2f4f6",
+                        "inverse-surface": "#2d3133",
+                        "on-surface": "#191c1e",
+                        "inverse-on-surface": "#eff1f3",
+                        "secondary-fixed-dim": "#89ceff",
+                        "error-container": "#ffdad6",
+                        "on-tertiary-fixed-variant": "#703800",
+                        "primary-fixed": "#e2dfff"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "gutter-desktop": "24px",
+                        "stack-lg": "24px",
+                        "margin-page": "32px",
+                        "stack-sm": "4px",
+                        "stack-md": "12px",
+                        "gutter-tablet": "16px",
+                        "base": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-sm": ["Inter"],
+                        "headline-md-mobile": ["Inter"],
+                        "display-lg": ["Inter"],
+                        "label-md": ["Inter"],
+                        "headline-md": ["Inter"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-sm": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "headline-md-mobile": ["20px", { "lineHeight": "28px", "fontWeight": "600" }],
+                        "display-lg": ["36px", { "lineHeight": "44px", "letterSpacing": "-0.02em", "fontWeight": "700" }],
+                        "label-md": ["12px", { "lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600" }],
+                        "headline-md": ["24px", { "lineHeight": "32px", "letterSpacing": "-0.01em", "fontWeight": "600" }],
+                        "body-md": ["14px", { "lineHeight": "20px", "fontWeight": "400" }],
+                        "body-lg": ["16px", { "lineHeight": "24px", "fontWeight": "400" }]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .no-scrollbar::-webkit-scrollbar { display: none; }
+        .no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+  </head>
+<body class="bg-background text-on-background min-h-screen flex flex-col font-sans">
+<!-- TopAppBar (From Shared Components JSON) -->
+<header class="w-full top-0 sticky z-40 bg-surface border-b border-outline-variant shadow-sm flex items-center justify-between px-margin-page py-stack-md">
+<button class="text-primary active:scale-95 transition-transform hover:bg-surface-container-high p-2 -ml-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="menu">menu</span>
+</button>
+<h1 class="font-headline-md-mobile text-headline-md-mobile text-primary">Team Management</h1>
+<button class="text-primary active:scale-95 transition-transform hover:bg-surface-container-high p-2 -mr-2 rounded-full flex items-center justify-center">
+<span class="material-symbols-outlined" data-icon="add">add</span>
+</button>
+</header>
+<!-- Main Content Canvas -->
+<main class="flex-1 overflow-y-auto pb-24">
+<!-- Header Actions -->
+<section class="px-margin-page py-stack-lg flex items-center justify-between">
+<h2 class="font-headline-md-mobile text-headline-md-mobile text-on-surface">Gestión de Usuarios</h2>
+<button class="bg-primary text-on-primary font-label-md text-label-md px-4 py-2 rounded-lg flex items-center gap-2 shadow-sm hover:bg-primary-container transition-colors active:scale-95">
+<span class="material-symbols-outlined text-[18px]" data-icon="person_add">person_add</span>
+                Nuevo
+            </button>
+</section>
+<!-- Role Filters -->
+<section class="px-margin-page pb-stack-lg flex gap-2 overflow-x-auto no-scrollbar">
+<button class="bg-primary-container text-on-primary-container font-label-md text-label-md px-4 py-2 rounded-full whitespace-nowrap transition-colors">Todos</button>
+<button class="bg-surface-container text-on-surface-variant border border-outline-variant font-label-md text-label-md px-4 py-2 rounded-full whitespace-nowrap hover:bg-surface-container-high transition-colors">Dueño</button>
+<button class="bg-surface-container text-on-surface-variant border border-outline-variant font-label-md text-label-md px-4 py-2 rounded-full whitespace-nowrap hover:bg-surface-container-high transition-colors">Estilista</button>
+<button class="bg-surface-container text-on-surface-variant border border-outline-variant font-label-md text-label-md px-4 py-2 rounded-full whitespace-nowrap hover:bg-surface-container-high transition-colors">Recepcionista</button>
+</section>
+<!-- User List (Bento-style Cards) -->
+<section class="px-margin-page flex flex-col gap-stack-md">
+<!-- User Card 1 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-[0_4px_6px_rgba(0,0,0,0.02)] flex items-center gap-4 transition-transform duration-200 hover:scale-[1.02]">
+<img class="w-12 h-12 rounded-full object-cover border border-surface-variant" data-alt="A professional headshot of a confident woman with dark hair tied back, wearing a minimalist black blazer in a bright, modern salon environment. The lighting is soft and flattering, highlighting a clean, high-end corporate aesthetic. The background is slightly blurred to emphasize the subject." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPHsD8ZIkVnbPo4LsaF7u1_q7QnGTiz5s2fCUGK9hi5_gFxe1PqggqnLLEDFDOlhFa5IxQfgowv5qfhIW-o5GQLesdkxsdOFpndJFMufRiE1wPcOfSeo6WqsNIkycPDAJ6IvL6O2JWHuwvEqfaZl-H2AW8Zy3JhoZ2-wJqSWjTVDPZo2Gb18TzjHrq741aNAqToWY30y-Dq390Eg5LMA_aaAqBOeHuBucCeny_QKUBAAb9DI2lufqQA-wpl0J2dcWayMF2OliQQ3k"/>
+<div class="flex-1 min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate">Elena Rodriguez</h3>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">Dueño • Acceso Total</p>
+</div>
+<div class="flex flex-col items-end gap-2 shrink-0">
+<span class="bg-[#e8f5e9] text-[#1b5e20] font-label-md text-label-md px-3 py-1 rounded-full border border-[#c8e6c9]">Activo</span>
+<button class="text-outline hover:text-primary transition-colors flex items-center justify-center p-1 rounded-full hover:bg-surface-container">
+<span class="material-symbols-outlined text-[20px]" data-icon="edit">edit</span>
+</button>
+</div>
+</div>
+<!-- User Card 2 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-[0_4px_6px_rgba(0,0,0,0.02)] flex items-center gap-4 transition-transform duration-200 hover:scale-[1.02]">
+<img class="w-12 h-12 rounded-full object-cover border border-surface-variant" data-alt="A professional portrait of a young man with a neat beard and stylish haircut, wearing a crisp white apron over a grey shirt. He is standing in a brightly lit, minimalist salon with a warm, inviting atmosphere. The image uses a light-mode color palette with soft depth of field." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdq7HB4vzqGNBHnJW06mbgiXcgnO5URYlLKhkRHJafj9vovagmCxY5rZM1c7JZnFydfGdFvfPkIl5ubtM7ZrNO6arlR4KLLE6WKPPyCPFJv0m8GY5Et9YHCQImA3btbS_7e6EmW3tKrrM21ZZVHlPSr53fB_FnyKYCz0a-Zh-mtmAQ5CQyiiYTuugpbtrVMbmYroZydx5rcSj4yXRUT8Y38h_6Q5hEnEXXdfP--jpZpP_TpjMyhCQ1X4rRngn-aTno8GXhgDy3MfI"/>
+<div class="flex-1 min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate">Carlos Mendez</h3>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">Estilista Senior</p>
+</div>
+<div class="flex flex-col items-end gap-2 shrink-0">
+<span class="bg-[#e8f5e9] text-[#1b5e20] font-label-md text-label-md px-3 py-1 rounded-full border border-[#c8e6c9]">Activo</span>
+<button class="text-outline hover:text-primary transition-colors flex items-center justify-center p-1 rounded-full hover:bg-surface-container">
+<span class="material-symbols-outlined text-[20px]" data-icon="edit">edit</span>
+</button>
+</div>
+</div>
+<!-- User Card 3 -->
+<div class="bg-surface-container-lowest border border-outline-variant rounded-xl p-4 shadow-[0_4px_6px_rgba(0,0,0,0.02)] flex items-center gap-4 transition-transform duration-200 hover:scale-[1.02] opacity-75">
+<div class="w-12 h-12 rounded-full bg-surface-container-highest flex items-center justify-center text-on-surface-variant border border-outline-variant">
+<span class="font-headline-sm text-headline-sm">LV</span>
+</div>
+<div class="flex-1 min-w-0">
+<h3 class="font-headline-sm text-headline-sm text-on-surface truncate">Laura Vega</h3>
+<p class="font-body-md text-body-md text-on-surface-variant truncate">Recepcionista</p>
+</div>
+<div class="flex flex-col items-end gap-2 shrink-0">
+<span class="bg-surface-container-high text-on-surface-variant font-label-md text-label-md px-3 py-1 rounded-full border border-outline-variant">Inactivo</span>
+<button class="text-outline hover:text-primary transition-colors flex items-center justify-center p-1 rounded-full hover:bg-surface-container">
+<span class="material-symbols-outlined text-[20px]" data-icon="edit">edit</span>
+</button>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (From Shared Components JSON - Mobile Only) -->
+<nav class="fixed bottom-0 w-full z-50 rounded-t-xl bg-surface-container-lowest border-t border-outline-variant shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)] flex justify-around items-center h-16 px-4 pb-safe md:hidden">
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary scale-105 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="event">event</span>
+<span class="font-label-md text-label-md">Agenda</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary scale-105 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="person_search">person_search</span>
+<span class="font-label-md text-label-md">Team</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:text-primary scale-105 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="analytics">analytics</span>
+<span class="font-label-md text-label-md">Sales</span>
+</button>
+<!-- Active Tab: Settings -->
+<button class="flex flex-col items-center justify-center bg-primary-container text-on-primary-container rounded-full px-4 py-1 scale-105 transition-transform duration-200">
+<span class="material-symbols-outlined" data-icon="settings" data-weight="fill" style="font-variation-settings: 'FILL' 1;">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</button>
+</nav>
+</body></html>
