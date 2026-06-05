@@ -67,9 +67,21 @@ export default function ClientProfilePage() {
 
   const [client, setClient] = useState<ClientProfile | null>(null);
   const [loading, setLoading] = useState(true);
+
+  // Edición de datos de contacto
+  const [editingContact, setEditingContact] = useState(false);
+  const [editName, setEditName] = useState("");
+  const [editLastName, setEditLastName] = useState("");
+  const [editPhone, setEditPhone] = useState("");
+  const [editEmail, setEditEmail] = useState("");
+  const [savingContact, setSavingContact] = useState(false);
+  const [contactError, setContactError] = useState("");
+
+  // Notas
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState("");
   const [savingNotes, setSavingNotes] = useState(false);
+
   const [deleting, setDeleting] = useState(false);
   const [deleteError, setDeleteError] = useState("");
 
@@ -84,6 +96,10 @@ export default function ClientProfilePage() {
       .then((data: ClientProfile) => {
         setClient(data);
         setNotesValue(data.notes ?? "");
+        setEditName(data.name);
+        setEditLastName(data.lastName ?? "");
+        setEditPhone(data.phone ?? "");
+        setEditEmail(data.email ?? "");
       })
       .catch(() => router.push("/clientes"))
       .finally(() => setLoading(false));
@@ -105,6 +121,35 @@ export default function ClientProfilePage() {
       router.push("/clientes");
     } finally {
       setDeleting(false);
+    }
+  }
+
+  async function saveContact() {
+    setContactError("");
+    if (!editName.trim()) { setContactError("El nombre es obligatorio."); return; }
+    if (editEmail.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editEmail.trim())) {
+      setContactError("El email no tiene un formato válido."); return;
+    }
+    const token = localStorage.getItem("gm_token");
+    if (!token) return;
+    setSavingContact(true);
+    try {
+      const res = await fetch(`${API_URL}/clients/${id}`, {
+        method: "PATCH",
+        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        body: JSON.stringify({
+          name: editName.trim(),
+          lastName: editLastName.trim() || undefined,
+          phone: editPhone.trim() || undefined,
+          email: editEmail.trim() || undefined,
+        }),
+      });
+      if (!res.ok) { setContactError("Error al guardar. Intenta de nuevo."); return; }
+      const updated = await res.json();
+      setClient((prev) => prev ? { ...prev, ...updated } : prev);
+      setEditingContact(false);
+    } finally {
+      setSavingContact(false);
     }
   }
 
@@ -194,7 +239,6 @@ export default function ClientProfilePage() {
 
             {/* Hero */}
             <section className="bg-[var(--color-surface)] rounded-xl shadow-sm border border-[var(--color-outline-variant)] p-6 flex flex-col md:flex-row items-center md:items-start gap-6 relative overflow-hidden">
-              {/* Orb decorativo */}
               <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--color-primary-fixed-dim)] rounded-full mix-blend-multiply filter blur-3xl opacity-30 translate-x-1/2 -translate-y-1/2 pointer-events-none" />
 
               {/* Avatar */}
@@ -203,47 +247,95 @@ export default function ClientProfilePage() {
                 {getInitials([client.name, client.lastName].filter(Boolean).join(" "))}
               </div>
 
-              {/* Info */}
-              <div className="flex-1 text-center md:text-left z-10">
-                <h2 className="text-display-lg font-bold text-[var(--color-on-surface)] mb-1">
-                  {[client.name, client.lastName].filter(Boolean).join(" ")}
-                </h2>
-                {client.phone && (
-                  <div className="flex items-center justify-center md:justify-start gap-2 text-[var(--color-on-surface-variant)] text-body-lg mb-4">
-                    <Phone size={18} strokeWidth={1.5} />
-                    {client.phone}
+              <div className="flex-1 text-center md:text-left z-10 w-full">
+                {editingContact ? (
+                  /* ── Formulario de edición de contacto ── */
+                  <div className="space-y-3">
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Nombre *</label>
+                        <input value={editName} onChange={(e) => setEditName(e.target.value)}
+                          className="w-full mt-1 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Apellidos</label>
+                        <input value={editLastName} onChange={(e) => setEditLastName(e.target.value)}
+                          className="w-full mt-1 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Teléfono</label>
+                        <input value={editPhone} onChange={(e) => setEditPhone(e.target.value)}
+                          className="w-full mt-1 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                      </div>
+                      <div>
+                        <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Email</label>
+                        <input value={editEmail} onChange={(e) => setEditEmail(e.target.value)} type="email"
+                          className="w-full mt-1 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                      </div>
+                    </div>
+                    {contactError && (
+                      <p className="text-body-md text-[var(--color-error)]">{contactError}</p>
+                    )}
+                    <div className="flex gap-2">
+                      <button onClick={saveContact} disabled={savingContact}
+                        className="flex items-center gap-1.5 bg-[var(--color-primary)] text-[var(--color-on-primary)] text-label-md font-semibold px-4 py-2 rounded-lg hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors disabled:opacity-60">
+                        <Check size={14} strokeWidth={2} />
+                        {savingContact ? "Guardando..." : "Guardar"}
+                      </button>
+                      <button onClick={() => { setEditingContact(false); setContactError(""); setEditName(client.name); setEditLastName(client.lastName ?? ""); setEditPhone(client.phone ?? ""); setEditEmail(client.email ?? ""); }}
+                        className="flex items-center gap-1.5 border border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] text-label-md font-semibold px-4 py-2 rounded-lg hover:bg-[var(--color-surface-container-low)] transition-colors">
+                        <X size={14} strokeWidth={2} />
+                        Cancelar
+                      </button>
+                    </div>
                   </div>
-                )}
+                ) : (
+                  /* ── Vista normal ── */
+                  <>
+                    <div className="flex items-start justify-center md:justify-between gap-2 mb-1">
+                      <h2 className="text-display-lg font-bold text-[var(--color-on-surface)]">
+                        {[client.name, client.lastName].filter(Boolean).join(" ")}
+                      </h2>
+                      <button onClick={() => setEditingContact(true)} title="Editar datos"
+                        className="shrink-0 p-1.5 text-[var(--color-primary)] hover:bg-[var(--color-surface-container-high)] rounded-lg transition-colors">
+                        <Pencil size={16} strokeWidth={1.5} />
+                      </button>
+                    </div>
+                    {client.phone && (
+                      <div className="flex items-center justify-center md:justify-start gap-2 text-[var(--color-on-surface-variant)] text-body-lg mb-1">
+                        <Phone size={18} strokeWidth={1.5} />
+                        {client.phone}
+                      </div>
+                    )}
+                    {client.email && (
+                      <p className="text-body-md text-[var(--color-on-surface-variant)] mb-4">{client.email}</p>
+                    )}
+                    {!client.phone && !client.email && <div className="mb-4" />}
 
-                {/* Acciones */}
-                <div className="flex flex-wrap justify-center md:justify-start gap-2">
-                  <Link
-                    href={`/nueva-cita?clientId=${client.id}`}
-                    className="flex items-center gap-2 bg-[var(--color-primary)] text-[var(--color-on-primary)] text-label-md font-semibold uppercase tracking-wider px-5 py-3 rounded-lg hover:bg-[var(--color-on-primary-fixed-variant)] transition-all shadow-sm active:scale-95"
-                  >
-                    <CalendarPlus size={16} strokeWidth={1.5} />
-                    Agendar Nueva Cita
-                  </Link>
-                  <button className="flex items-center gap-2 bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] text-label-md font-semibold uppercase tracking-wider px-4 py-3 rounded-lg hover:bg-[var(--color-surface-container-high)] transition-all active:scale-95">
-                    <MessageSquare size={16} strokeWidth={1.5} className="text-emerald-500" />
-                    WhatsApp
-                  </button>
-                  <button className="flex items-center gap-2 bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] text-label-md font-semibold uppercase tracking-wider px-4 py-3 rounded-lg hover:bg-[var(--color-surface-container-high)] transition-all active:scale-95">
-                    <Phone size={16} strokeWidth={1.5} />
-                    Llamar
-                  </button>
-                  <button
-                    onClick={handleDelete}
-                    disabled={deleting}
-                    className="flex items-center gap-2 bg-[var(--color-error-container)]/20 border border-[var(--color-error-container)] text-[var(--color-error)] text-label-md font-semibold uppercase tracking-wider px-4 py-3 rounded-lg hover:bg-[var(--color-error-container)]/40 transition-all active:scale-95 disabled:opacity-60"
-                  >
-                    <Trash2 size={16} strokeWidth={1.5} />
-                    {deleting ? "Eliminando..." : "Eliminar"}
-                  </button>
-                  {deleteError && (
-                    <p className="w-full text-body-md text-[var(--color-error)] mt-1">{deleteError}</p>
-                  )}
-                </div>
+                    {/* Acciones */}
+                    <div className="flex flex-wrap justify-center md:justify-start gap-2">
+                      <Link href={`/nueva-cita?clientId=${client.id}`}
+                        className="flex items-center gap-2 bg-[var(--color-primary)] text-[var(--color-on-primary)] text-label-md font-semibold uppercase tracking-wider px-5 py-3 rounded-lg hover:bg-[var(--color-on-primary-fixed-variant)] transition-all shadow-sm active:scale-95">
+                        <CalendarPlus size={16} strokeWidth={1.5} />
+                        Agendar Nueva Cita
+                      </Link>
+                      <button className="flex items-center gap-2 bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] text-label-md font-semibold uppercase tracking-wider px-4 py-3 rounded-lg hover:bg-[var(--color-surface-container-high)] transition-all active:scale-95">
+                        <MessageSquare size={16} strokeWidth={1.5} className="text-emerald-500" />
+                        WhatsApp
+                      </button>
+                      <button className="flex items-center gap-2 bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] text-label-md font-semibold uppercase tracking-wider px-4 py-3 rounded-lg hover:bg-[var(--color-surface-container-high)] transition-all active:scale-95">
+                        <Phone size={16} strokeWidth={1.5} />
+                        Llamar
+                      </button>
+                      <button onClick={handleDelete} disabled={deleting}
+                        className="flex items-center gap-2 bg-[var(--color-error-container)]/20 border border-[var(--color-error-container)] text-[var(--color-error)] text-label-md font-semibold uppercase tracking-wider px-4 py-3 rounded-lg hover:bg-[var(--color-error-container)]/40 transition-all active:scale-95 disabled:opacity-60">
+                        <Trash2 size={16} strokeWidth={1.5} />
+                        {deleting ? "Eliminando..." : "Eliminar"}
+                      </button>
+                      {deleteError && <p className="w-full text-body-md text-[var(--color-error)] mt-1">{deleteError}</p>}
+                    </div>
+                  </>
+                )}
               </div>
             </section>
 
