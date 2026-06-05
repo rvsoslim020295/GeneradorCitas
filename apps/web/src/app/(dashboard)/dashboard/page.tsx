@@ -393,11 +393,17 @@ export default function DashboardPage() {
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <p className="text-[11px] text-[var(--color-primary)]">{formatTime(apt.startTime)}</p>
                           <span className={`text-[10px] font-semibold px-1.5 py-0.5 rounded-full ${
-                            apt.status === "CONFIRMED" ? "bg-[var(--color-secondary-fixed)]/40 text-[var(--color-secondary)]" :
-                            apt.status === "COMPLETED" ? "bg-[var(--color-primary-container)]/30 text-[var(--color-primary)]" :
-                            "bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)]"
+                            apt.status === "CONFIRMED"  ? "bg-[var(--color-secondary-fixed)]/40 text-[var(--color-secondary)]" :
+                            apt.status === "COMPLETED"  ? "bg-emerald-100 text-emerald-700" :
+                            apt.status === "CANCELLED"  ? "bg-[var(--color-error-container)]/40 text-[var(--color-error)]" :
+                            apt.status === "NO_SHOW"    ? "bg-[var(--color-surface-container-high)] text-[var(--color-outline)]" :
+                            "bg-[var(--color-tertiary-fixed)]/30 text-[var(--color-tertiary)]"
                           }`}>
-                            {apt.status === "CONFIRMED" ? "Confirmada" : apt.status === "COMPLETED" ? "Completada" : "Pendiente"}
+                            {apt.status === "CONFIRMED" ? "Confirmada"  :
+                             apt.status === "COMPLETED" ? "Completada"  :
+                             apt.status === "CANCELLED" ? "Cancelada"   :
+                             apt.status === "NO_SHOW"   ? "No se presentó" :
+                             "Pendiente"}
                           </span>
                         </div>
                       </div>
