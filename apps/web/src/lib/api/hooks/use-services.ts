@@ -42,6 +42,27 @@ export function useService(id: string) {
   });
 }
 
+export function useCreateService() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Partial<Service>) =>
+      apiFetch<Service>("/services", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: serviceKeys.all }),
+  });
+}
+
+export function useUpdateService(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Partial<Service>) =>
+      apiFetch<Service>(`/services/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: serviceKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: serviceKeys.all });
+    },
+  });
+}
+
 export function useDeleteService() {
   const qc = useQueryClient();
   return useMutation({

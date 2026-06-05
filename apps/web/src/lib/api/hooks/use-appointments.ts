@@ -41,6 +41,23 @@ export function useAppointment(id: string) {
   });
 }
 
+export function useCreateAppointment() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: {
+      clientId: string;
+      collaboratorId: string;
+      serviceId: string;
+      startTime: string;
+      endTime: string;
+      price: number;
+      notes?: string;
+    }) =>
+      apiFetch<Appointment>("/appointments", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: appointmentKeys.all }),
+  });
+}
+
 export function useUpdateAppointmentStatus() {
   const qc = useQueryClient();
   return useMutation({

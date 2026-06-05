@@ -6,12 +6,10 @@ import Link from "next/link";
 import { ArrowLeft, Save, User, Phone, Mail, FileText, AlertCircle, CreditCard, ExternalLink } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { useCreateClient } from "@/lib/api/hooks";
 
 export default function NuevoClientePage() {
   const router = useRouter();
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
   const [duplicateId, setDuplicateId] = useState<string | null>(null);
 
@@ -22,13 +20,10 @@ export default function NuevoClientePage() {
   const [email, setEmail] = useState("");
   const [notes, setNotes] = useState("");
 
+  const createClient = useCreateClient();
+
   function handlePhoneChange(value: string) {
-    // El prefijo "+51 " siempre debe estar presente
-    if (!value.startsWith("+51 ")) {
-      setPhone("+51 ");
-      return;
-    }
-    // Solo permitir dígitos después del prefijo
+    if (!value.startsWith("+51 ")) { setPhone("+51 "); return; }
     const suffix = value.slice(4).replace(/\D/g, "").slice(0, 9);
     setPhone("+51 " + suffix);
   }
@@ -48,36 +43,25 @@ export default function NuevoClientePage() {
       return;
     }
 
-    const token = localStorage.getItem("gm_token");
-    if (!token) { router.push("/login"); return; }
-
-    setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/clients`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          name: firstName.trim(),
-          lastName: lastName.trim() || undefined,
-          dni: dni.trim() || undefined,
-          phone: phone.trim() || undefined,
-          email: email.trim() || undefined,
-          notes: notes.trim() || undefined,
-        }),
-      });
-
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setError(d.error ?? "Error al guardar el cliente.");
-        if (d.duplicateId) setDuplicateId(d.duplicateId);
-        return;
-      }
-
+      await createClient.mutateAsync({
+        name: firstName.trim(),
+        lastName: lastName.trim() || undefined,
+        dni: dni.trim() || undefined,
+        phone: phone.trim() || undefined,
+        email: email.trim() || undefined,
+        notes: notes.trim() || undefined,
+      } as never);
       router.push("/clientes");
-    } catch {
-      setError("No se pudo conectar con el servidor.");
-    } finally {
-      setSaving(false);
+    } catch (err: unknown) {
+      const msg = err instanceof Error ? err.message : "Error al guardar el cliente.";
+      try {
+        const parsed = JSON.parse(msg);
+        setError(parsed.error ?? msg);
+        if (parsed.duplicateId) setDuplicateId(parsed.duplicateId);
+      } catch {
+        setError(msg);
+      }
     }
   }
 
@@ -92,10 +76,8 @@ export default function NuevoClientePage() {
         <TopBar />
         <div className="flex-1 overflow-y-auto pt-16" style={{ scrollbarWidth: "thin" }}>
           <div className="max-w-xl mx-auto px-6 py-6 space-y-6">
-            {/* autoComplete="off" en el form evita sugerencias del browser */}
             <form autoComplete="off" onSubmit={e => { e.preventDefault(); handleSave(); }} className="contents">
 
-            {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Link href="/clientes" className="p-2 text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)] rounded-full transition-colors">
@@ -103,10 +85,10 @@ export default function NuevoClientePage() {
                 </Link>
                 <h1 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Nuevo Cliente</h1>
               </div>
-              <button onClick={handleSave} disabled={saving}
+              <button onClick={handleSave} disabled={createClient.isPending}
                 className="flex items-center gap-2 bg-[var(--color-primary)] text-[var(--color-on-primary)] text-label-md font-semibold uppercase tracking-wider px-4 py-2.5 rounded-lg hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors disabled:opacity-60">
                 <Save size={14} strokeWidth={2} />
-                {saving ? "Guardando..." : "Guardar"}
+                {createClient.isPending ? "Guardando..." : "Guardar"}
               </button>
             </div>
 
@@ -126,11 +108,9 @@ export default function NuevoClientePage() {
               </div>
             )}
 
-            {/* Datos personales */}
             <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-4">
               <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Datos Personales</h2>
 
-              {/* Nombre + Apellidos en fila */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelClass}>Nombres *</label>
@@ -152,7 +132,6 @@ export default function NuevoClientePage() {
                 </div>
               </div>
 
-              {/* DNI */}
               <div>
                 <label className={labelClass}>DNI</label>
                 <div className="relative">
@@ -163,7 +142,6 @@ export default function NuevoClientePage() {
                 </div>
               </div>
 
-              {/* Teléfono */}
               <div>
                 <label className={labelClass}>Teléfono *</label>
                 <div className="relative">
@@ -172,7 +150,6 @@ export default function NuevoClientePage() {
                     value={phone}
                     onChange={(e) => handlePhoneChange(e.target.value)}
                     onFocus={(e) => {
-                      // Posicionar cursor al final del prefijo si está vacío
                       if (e.target.value === "+51 ") {
                         setTimeout(() => e.target.setSelectionRange(4, 4), 0);
                       }
@@ -183,7 +160,6 @@ export default function NuevoClientePage() {
                 </div>
               </div>
 
-              {/* Email */}
               <div>
                 <label className={labelClass}>Email</label>
                 <div className="relative">
@@ -194,7 +170,6 @@ export default function NuevoClientePage() {
                 </div>
               </div>
 
-              {/* Notas */}
               <div>
                 <label className={labelClass}>Notas internas</label>
                 <div className="relative">
@@ -206,9 +181,9 @@ export default function NuevoClientePage() {
               </div>
             </section>
 
-            <button type="submit" disabled={saving}
+            <button type="submit" disabled={createClient.isPending}
               className="w-full bg-[var(--color-primary)] text-[var(--color-on-primary)] text-headline-sm font-semibold py-4 rounded-xl hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors shadow-md disabled:opacity-60 active:scale-[0.98] mb-4">
-              {saving ? "Guardando..." : "Guardar Cliente"}
+              {createClient.isPending ? "Guardando..." : "Guardar Cliente"}
             </button>
             </form>
           </div>

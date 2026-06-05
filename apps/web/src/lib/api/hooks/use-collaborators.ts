@@ -55,6 +55,27 @@ export function useCollaboratorAbsences(id: string) {
   });
 }
 
+export function useCreateCollaborator() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Partial<Collaborator>) =>
+      apiFetch<Collaborator>("/collaborators", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: collaboratorKeys.all }),
+  });
+}
+
+export function useUpdateCollaborator(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Partial<Collaborator>) =>
+      apiFetch<Collaborator>(`/collaborators/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: collaboratorKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: collaboratorKeys.all });
+    },
+  });
+}
+
 export function useDeleteCollaborator() {
   const qc = useQueryClient();
   return useMutation({

@@ -10,8 +10,7 @@ import {
 import { RoleSelector } from "../_components/role-selector";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { useCreateCollaborator } from "@/lib/api/hooks";
 
 const ALL_SPECIALTIES = [
   "Corte Hombre", "Corte Mujer", "Barba", "Coloración", "Balayage",
@@ -22,7 +21,6 @@ const ALL_SPECIALTIES = [
 
 export default function NuevoColaboradorPage() {
   const router = useRouter();
-  const [saving, setSaving] = useState(false);
   const [error, setError] = useState("");
 
   const [firstName, setFirstName] = useState("");
@@ -34,160 +32,104 @@ export default function NuevoColaboradorPage() {
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
 
-  // Panel de especialidades
   const [panelOpen, setPanelOpen] = useState(false);
   const [specialtySearch, setSpecialtySearch] = useState("");
   const [customInput, setCustomInput] = useState("");
   const searchRef = useRef<HTMLInputElement>(null);
+
+  const createCollaborator = useCreateCollaborator();
 
   useEffect(() => {
     if (panelOpen) setTimeout(() => searchRef.current?.focus(), 50);
   }, [panelOpen]);
 
   function toggleSpecialty(s: string) {
-    setSpecialties(prev =>
-      prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]
-    );
+    setSpecialties(prev => prev.includes(s) ? prev.filter(x => x !== s) : [...prev, s]);
   }
 
   function addCustom() {
     const v = customInput.trim();
-    if (v && !specialties.includes(v)) {
-      setSpecialties(prev => [...prev, v]);
-    }
+    if (v && !specialties.includes(v)) setSpecialties(prev => [...prev, v]);
     setCustomInput("");
   }
 
-  const filtered = ALL_SPECIALTIES.filter(s =>
-    s.toLowerCase().includes(specialtySearch.toLowerCase())
-  );
+  const filtered = ALL_SPECIALTIES.filter(s => s.toLowerCase().includes(specialtySearch.toLowerCase()));
 
   async function handleSave() {
     setError("");
-    if (!firstName.trim() || firstName.trim().length < 2) {
-      setError("El nombre debe tener al menos 2 caracteres.");
-      return;
-    }
-    if (!lastName.trim() || lastName.trim().length < 2) {
-      setError("El apellido debe tener al menos 2 caracteres.");
-      return;
-    }
-    if (!role.trim() || role.trim().length < 2) {
-      setError("El rol/cargo es obligatorio.");
-      return;
-    }
+    if (!firstName.trim() || firstName.trim().length < 2) { setError("El nombre debe tener al menos 2 caracteres."); return; }
+    if (!lastName.trim() || lastName.trim().length < 2) { setError("El apellido debe tener al menos 2 caracteres."); return; }
+    if (!role.trim() || role.trim().length < 2) { setError("El rol/cargo es obligatorio."); return; }
 
-    const token = localStorage.getItem("gm_token");
-    if (!token) { router.push("/login"); return; }
-
-    const fullName = `${firstName.trim()} ${lastName.trim()}`;
-
-    setSaving(true);
     try {
-      const res = await fetch(`${API_URL}/collaborators`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({
-          name: fullName,
-          lastName: lastName.trim(),
-          role: role.trim(),
-          specialties,
-          isActive,
-          ...(documentNumber.trim() && { documentType, documentNumber: documentNumber.trim() }),
-          ...(phone.trim() && { phone: phone.trim() }),
-        }),
-      });
-
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        setError(d.error ?? "No se pudo guardar el colaborador.");
-        return;
-      }
+      await createCollaborator.mutateAsync({
+        name: `${firstName.trim()} ${lastName.trim()}`,
+        lastName: lastName.trim(),
+        role: role.trim(),
+        specialties,
+        isActive,
+        ...(documentNumber.trim() && { documentType, documentNumber: documentNumber.trim() }),
+        ...(phone.trim() && { phone: phone.trim() }),
+      } as never);
       router.push("/colaboradores");
     } catch {
-      setError("No se pudo conectar con el servidor.");
-    } finally {
-      setSaving(false);
+      setError("No se pudo guardar el colaborador.");
     }
   }
 
   const inputClass = "w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all";
   const labelClass = "block text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-1";
-
   const docMaxLength = documentType === "DNI" ? 8 : 12;
 
   return (
     <>
       <Sidebar activePath="/colaboradores" />
 
-      {/* Panel lateral de especialidades */}
       {panelOpen && (
         <>
           <div className="fixed inset-0 bg-black/20 z-40" onClick={() => setPanelOpen(false)} />
           <aside className="fixed right-0 top-0 h-full w-[360px] bg-[var(--color-surface-container-lowest)] z-50 shadow-2xl border-l border-[var(--color-outline-variant)] flex flex-col">
             <div className="h-16 px-5 flex items-center justify-between border-b border-[var(--color-outline-variant)] shrink-0">
               <h3 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Especialidades</h3>
-              <button onClick={() => setPanelOpen(false)}
-                className="p-2 rounded-full hover:bg-[var(--color-surface-container-low)] text-[var(--color-on-surface-variant)] transition-colors">
+              <button onClick={() => setPanelOpen(false)} className="p-2 rounded-full hover:bg-[var(--color-surface-container-low)] text-[var(--color-on-surface-variant)] transition-colors">
                 <X size={20} strokeWidth={1.5} />
               </button>
             </div>
-
             <div className="p-4 border-b border-[var(--color-outline-variant)]/50">
               <div className="relative">
                 <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)]" strokeWidth={1.5} />
-                <input
-                  ref={searchRef}
-                  value={specialtySearch}
-                  onChange={e => setSpecialtySearch(e.target.value)}
+                <input ref={searchRef} value={specialtySearch} onChange={e => setSpecialtySearch(e.target.value)}
                   autoComplete="off" spellCheck={false}
-                  className="w-full pl-9 pr-4 py-2 bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)] rounded-lg text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all"
-                />
+                  className="w-full pl-9 pr-4 py-2 bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)] rounded-lg text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
               </div>
             </div>
-
             <div className="flex-1 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
               {filtered.length === 0 ? (
                 <p className="px-5 py-4 text-body-md text-[var(--color-on-surface-variant)]">Sin resultados</p>
-              ) : (
-                filtered.map(s => {
-                  const selected = specialties.includes(s);
-                  return (
-                    <button key={s} type="button" onClick={() => toggleSpecialty(s)}
-                      className={`w-full flex items-center justify-between px-5 py-3 transition-colors border-b border-[var(--color-outline-variant)]/30 last:border-0 ${
-                        selected
-                          ? "bg-[var(--color-primary-container)]/20 text-[var(--color-primary)]"
-                          : "text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-low)]"
-                      }`}
-                    >
-                      <span className="text-body-md font-medium">{s}</span>
-                      {selected && <Check size={16} strokeWidth={2} className="text-[var(--color-primary)] shrink-0" />}
-                    </button>
-                  );
-                })
-              )}
+              ) : filtered.map(s => {
+                const selected = specialties.includes(s);
+                return (
+                  <button key={s} type="button" onClick={() => toggleSpecialty(s)}
+                    className={`w-full flex items-center justify-between px-5 py-3 transition-colors border-b border-[var(--color-outline-variant)]/30 last:border-0 ${selected ? "bg-[var(--color-primary-container)]/20 text-[var(--color-primary)]" : "text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-low)]"}`}>
+                    <span className="text-body-md font-medium">{s}</span>
+                    {selected && <Check size={16} strokeWidth={2} className="text-[var(--color-primary)] shrink-0" />}
+                  </button>
+                );
+              })}
             </div>
-
             <div className="p-4 border-t border-[var(--color-outline-variant)] bg-[var(--color-surface)]/60 shrink-0">
-              <p className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-2">
-                Agregar personalizada
-              </p>
+              <p className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-2">Agregar personalizada</p>
               <div className="flex gap-2">
-                <input
-                  value={customInput}
-                  onChange={e => setCustomInput(e.target.value)}
+                <input value={customInput} onChange={e => setCustomInput(e.target.value)}
                   onKeyDown={e => { if (e.key === "Enter") { e.preventDefault(); addCustom(); } }}
                   autoComplete="off" spellCheck={false}
-                  className="flex-1 px-3 py-2 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all"
-                />
-                <button type="button" onClick={addCustom}
-                  disabled={!customInput.trim()}
+                  className="flex-1 px-3 py-2 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                <button type="button" onClick={addCustom} disabled={!customInput.trim()}
                   className="px-4 py-2 bg-[var(--color-primary)] text-[var(--color-on-primary)] rounded-lg text-label-md font-semibold hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors disabled:opacity-40">
                   Agregar
                 </button>
               </div>
             </div>
-
             <div className="px-5 py-4 border-t border-[var(--color-outline-variant)] bg-[var(--color-surface)] shrink-0">
               <button type="button" onClick={() => setPanelOpen(false)}
                 className="w-full bg-[var(--color-primary)] text-[var(--color-on-primary)] text-label-md font-semibold py-2.5 rounded-lg hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors">
@@ -202,8 +144,6 @@ export default function NuevoColaboradorPage() {
         <TopBar />
         <div className="flex-1 overflow-y-auto pt-16" style={{ scrollbarWidth: "thin" }}>
           <div className="max-w-xl mx-auto px-6 py-6 space-y-6">
-
-            {/* Header */}
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <Link href="/colaboradores" className="p-2 text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)] rounded-full transition-colors">
@@ -211,10 +151,10 @@ export default function NuevoColaboradorPage() {
                 </Link>
                 <h1 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Nuevo Colaborador</h1>
               </div>
-              <button onClick={handleSave} disabled={saving}
+              <button onClick={handleSave} disabled={createCollaborator.isPending}
                 className="flex items-center gap-2 bg-[var(--color-primary)] text-[var(--color-on-primary)] text-label-md font-semibold uppercase tracking-wider px-4 py-2.5 rounded-lg hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors disabled:opacity-60">
                 <Save size={14} strokeWidth={2} />
-                {saving ? "Guardando..." : "Guardar"}
+                {createCollaborator.isPending ? "Guardando..." : "Guardar"}
               </button>
             </div>
 
@@ -225,116 +165,73 @@ export default function NuevoColaboradorPage() {
               </div>
             )}
 
-            {/* Datos básicos */}
             <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-4">
               <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Datos del Colaborador</h2>
 
-              {/* Nombre y Apellido en fila */}
               <div className="grid grid-cols-2 gap-3">
                 <div>
                   <label className={labelClass}>Nombre *</label>
                   <div className="relative">
                     <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)]" strokeWidth={1.5} />
-                    <input
-                      value={firstName}
-                      onChange={e => setFirstName(e.target.value)}
+                    <input value={firstName} onChange={e => setFirstName(e.target.value)}
                       autoComplete="off" autoCorrect="off" spellCheck={false}
-                      className={`${inputClass} pl-9`}
-                    />
+                      className={`${inputClass} pl-9`} />
                   </div>
                 </div>
                 <div>
                   <label className={labelClass}>Apellido *</label>
-                  <input
-                    value={lastName}
-                    onChange={e => setLastName(e.target.value)}
+                  <input value={lastName} onChange={e => setLastName(e.target.value)}
                     autoComplete="off" autoCorrect="off" spellCheck={false}
-                    className={inputClass}
-                  />
+                    className={inputClass} />
                 </div>
               </div>
 
-              {/* Documento de identidad */}
               <div>
                 <label className={labelClass}>Documento de identidad</label>
                 <div className="flex gap-2">
-                  {/* Selector DNI / CE */}
                   <div className="flex rounded-lg border border-[var(--color-outline-variant)] overflow-hidden shrink-0">
-                    <button
-                      type="button"
-                      onClick={() => { setDocumentType("DNI"); setDocumentNumber(""); }}
-                      className={`px-3 py-2.5 text-label-md font-semibold transition-colors ${
-                        documentType === "DNI"
-                          ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
-                          : "bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)]"
-                      }`}
-                    >
-                      DNI
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => { setDocumentType("CE"); setDocumentNumber(""); }}
-                      className={`px-3 py-2.5 text-label-md font-semibold transition-colors border-l border-[var(--color-outline-variant)] ${
-                        documentType === "CE"
-                          ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]"
-                          : "bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)]"
-                      }`}
-                    >
-                      CE
-                    </button>
+                    {(["DNI", "CE"] as const).map((type) => (
+                      <button key={type} type="button" onClick={() => { setDocumentType(type); setDocumentNumber(""); }}
+                        className={`px-3 py-2.5 text-label-md font-semibold transition-colors ${type !== "DNI" ? "border-l border-[var(--color-outline-variant)]" : ""} ${documentType === type ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]" : "bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)]"}`}>
+                        {type}
+                      </button>
+                    ))}
                   </div>
-                  {/* Número */}
-                  <input
-                    value={documentNumber}
+                  <input value={documentNumber}
                     onChange={e => setDocumentNumber(e.target.value.replace(/\D/g, "").slice(0, docMaxLength))}
-                    autoComplete="off" spellCheck={false}
-                    inputMode="numeric"
-                    className={inputClass}
-                  />
+                    autoComplete="off" spellCheck={false} inputMode="numeric"
+                    className={inputClass} />
                 </div>
-                <p className="text-[11px] text-[var(--color-on-surface-variant)] mt-1 ml-0.5">
+                <p className="text-[11px] text-[var(--color-on-surface-variant)] mt-1">
                   {documentType === "DNI" ? "8 dígitos" : "Carné de extranjería — hasta 12 dígitos"}
                 </p>
               </div>
 
-              {/* Teléfono */}
               <div>
                 <label className={labelClass}>Teléfono</label>
                 <div className="relative">
                   <Phone size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)]" strokeWidth={1.5} />
-                  <input
-                    value={phone}
-                    onChange={e => setPhone(e.target.value)}
+                  <input value={phone} onChange={e => setPhone(e.target.value)}
                     inputMode="tel" autoComplete="off" spellCheck={false}
-                    className={`${inputClass} pl-9`}
-                  />
+                    className={`${inputClass} pl-9`} />
                 </div>
               </div>
 
-              {/* Rol */}
               <div>
                 <label className={labelClass}>Rol / Cargo *</label>
                 <RoleSelector value={role} onChange={setRole} />
               </div>
 
-              {/* Estado */}
               <div>
                 <label className={labelClass}>Estado</label>
                 <button type="button" onClick={() => setIsActive(v => !v)}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border transition-all ${
-                    isActive
-                      ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                      : "bg-[var(--color-surface-container-high)] border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)]"
-                  }`}>
-                  {isActive
-                    ? <ToggleRight size={20} strokeWidth={1.5} className="text-emerald-500" />
-                    : <ToggleLeft size={20} strokeWidth={1.5} />}
+                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border transition-all ${isActive ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-[var(--color-surface-container-high)] border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)]"}`}>
+                  {isActive ? <ToggleRight size={20} strokeWidth={1.5} className="text-emerald-500" /> : <ToggleLeft size={20} strokeWidth={1.5} />}
                   <span className="text-label-md font-semibold">{isActive ? "Activo" : "Inactivo"}</span>
                 </button>
               </div>
             </section>
 
-            {/* Especialidades */}
             <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-3">
               <div className="flex items-center justify-between">
                 <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Especialidades</h2>
@@ -355,11 +252,9 @@ export default function NuevoColaboradorPage() {
               ) : (
                 <div className="flex flex-wrap gap-2">
                   {specialties.map(s => (
-                    <span key={s}
-                      className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[var(--color-primary-container)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
+                    <span key={s} className="flex items-center gap-1 text-[11px] font-semibold px-2.5 py-1 rounded-full bg-[var(--color-primary-container)]/20 text-[var(--color-primary)] border border-[var(--color-primary)]/20">
                       {s}
-                      <button type="button" onClick={() => toggleSpecialty(s)}
-                        className="ml-0.5 hover:text-[var(--color-error)] transition-colors">
+                      <button type="button" onClick={() => toggleSpecialty(s)} className="ml-0.5 hover:text-[var(--color-error)] transition-colors">
                         <X size={11} strokeWidth={2.5} />
                       </button>
                     </span>
@@ -372,9 +267,9 @@ export default function NuevoColaboradorPage() {
               )}
             </section>
 
-            <button onClick={handleSave} disabled={saving}
+            <button onClick={handleSave} disabled={createCollaborator.isPending}
               className="w-full bg-[var(--color-primary)] text-[var(--color-on-primary)] text-headline-sm font-semibold py-4 rounded-xl hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors shadow-md disabled:opacity-60 active:scale-[0.98] mb-4">
-              {saving ? "Guardando..." : "Guardar Colaborador"}
+              {createCollaborator.isPending ? "Guardando..." : "Guardar Colaborador"}
             </button>
           </div>
         </div>

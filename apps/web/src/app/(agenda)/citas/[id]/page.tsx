@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import {
@@ -10,23 +10,13 @@ import {
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import {
+  useAppointment,
+  useUpdateAppointmentStatus,
+  useRegisterDeposit,
+} from "@/lib/api/hooks";
 
 type AppointmentStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
-
-type Appointment = {
-  id: string;
-  startTime: string;
-  endTime: string;
-  status: AppointmentStatus;
-  price: number;
-  depositAmount: number | null;
-  notes: string | null;
-  client: { id: string; name: string; phone: string | null };
-  collaborator: { id: string; name: string; role: string };
-  service: { id: string; name: string; durationMin: number; category: string };
-};
 
 const statusConfig: Record<AppointmentStatus, { label: string; bg: string; dot: string; text: string }> = {
   PENDING:   { label: "Pendiente",  bg: "bg-[var(--color-tertiary-fixed)]/30 border-[var(--color-tertiary-fixed)]",   dot: "bg-[var(--color-tertiary)]",   text: "text-[var(--color-tertiary)]" },
@@ -62,105 +52,55 @@ export default function CitaDetailPage() {
   const params = useParams();
   const id = params.id as string;
 
-  const [appointment, setAppointment] = useState<Appointment | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [updating, setUpdating] = useState(false);
   const [actionError, setActionError] = useState("");
-
-  // Estado del modal de anticipo
   const [showDeposit, setShowDeposit] = useState(false);
   const [depositMode, setDepositMode] = useState<"percent" | "amount">("percent");
   const [depositPercent, setDepositPercent] = useState(30);
   const [depositCustom, setDepositCustom] = useState("");
-  const [savingDeposit, setSavingDeposit] = useState(false);
 
-  useEffect(() => {
-    const token = localStorage.getItem("gm_token");
-    if (!token) { router.push("/login"); return; }
+  const { data: appointment, isLoading } = useAppointment(id);
+  const updateStatus = useUpdateAppointmentStatus();
+  const registerDeposit = useRegisterDeposit();
 
-    fetch(`${API_URL}/appointments/${id}`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
-      .then((r) => r.ok ? r.json() : Promise.reject())
-      .then(setAppointment)
-      .catch(() => router.push("/agenda"))
-      .finally(() => setLoading(false));
-  }, [id, router]);
-
-  async function updateStatus(status: AppointmentStatus, confirmMsg?: string) {
+  async function handleUpdateStatus(status: AppointmentStatus, confirmMsg?: string) {
     if (confirmMsg && !confirm(confirmMsg)) return;
-    const token = localStorage.getItem("gm_token");
-    if (!token || updating) return;
-
-    setUpdating(true);
     setActionError("");
     try {
-      const res = await fetch(`${API_URL}/appointments/${id}/status`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ status }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setAppointment(data);
-        if (status === "CANCELLED" || status === "NO_SHOW") {
-          setTimeout(() => router.push("/agenda"), 800);
-        }
-      } else {
-        setActionError(data.error ?? "No se pudo actualizar la cita.");
+      await updateStatus.mutateAsync({ id, status });
+      if (status === "CANCELLED" || status === "NO_SHOW") {
+        setTimeout(() => router.push("/agenda"), 800);
       }
-    } catch {
-      setActionError("No se pudo conectar con el servidor.");
-    } finally {
-      setUpdating(false);
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : "No se pudo actualizar la cita.");
     }
   }
 
   async function handleSaveDeposit() {
     if (!appointment) return;
-    const token = localStorage.getItem("gm_token");
-    if (!token || savingDeposit) return;
-
-    const depositAmount =
+    const amount =
       depositMode === "percent"
         ? appointment.price * (depositPercent / 100)
         : parseFloat(depositCustom);
+    if (!amount || amount <= 0) return;
 
-    if (!depositAmount || depositAmount <= 0) return;
-
-    setSavingDeposit(true);
+    setActionError("");
     try {
-      const res = await fetch(`${API_URL}/appointments/${id}/deposit`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ depositAmount }),
-      });
-      const data = await res.json().catch(() => ({}));
-      if (res.ok) {
-        setAppointment(data);
-        setShowDeposit(false);
-      } else {
-        setActionError(data.error ?? "No se pudo registrar el anticipo.");
-      }
-    } catch {
-      setActionError("No se pudo conectar con el servidor.");
-    } finally {
-      setSavingDeposit(false);
+      await registerDeposit.mutateAsync({ id, body: { amount } });
+      setShowDeposit(false);
+    } catch (err: unknown) {
+      setActionError(err instanceof Error ? err.message : "No se pudo registrar el anticipo.");
     }
-  }
-
-  function handleReprogramar() {
-    if (!appointment) return;
-    router.push(`/nueva-cita?clientId=${appointment.client.id}`);
   }
 
   const status = appointment ? statusConfig[appointment.status] : null;
   const whatsappUrl = appointment ? buildWhatsAppUrl(appointment.client.phone) : null;
-
   const depositAmount =
     appointment && depositMode === "percent"
       ? appointment.price * (depositPercent / 100)
       : parseFloat(depositCustom || "0");
+
+  const updating = updateStatus.isPending;
+  const savingDeposit = registerDeposit.isPending;
 
   return (
     <>
@@ -169,7 +109,6 @@ export default function CitaDetailPage() {
       <main className="flex-1 ml-64 flex flex-col h-full bg-[var(--color-surface-bright)] relative overflow-hidden">
         <TopBar searchPlaceholder="Buscar citas, clientes..." />
 
-        {/* Fondo agenda difuminado */}
         <div className="flex flex-col flex-1 overflow-hidden pt-16 opacity-40 blur-sm pointer-events-none select-none">
           <div className="px-6 py-4 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface)]">
             <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Agenda Semanal</h2>
@@ -179,17 +118,14 @@ export default function CitaDetailPage() {
           </div>
         </div>
 
-        {/* Overlay */}
         <div
           className="absolute inset-0 bg-[var(--color-on-background)]/20 backdrop-blur-[3px] z-30 flex items-center justify-center"
           onClick={(e) => { if (e.target === e.currentTarget) router.push("/agenda"); }}
         >
-          {/* Modal centrado */}
           <div
             className="relative w-full max-w-[480px] max-h-[90vh] bg-[var(--color-surface-container-lowest)] rounded-2xl shadow-2xl border border-[var(--color-outline-variant)] flex flex-col overflow-hidden mx-4"
             onClick={(e) => e.stopPropagation()}
           >
-            {/* Header */}
             <div className="h-16 px-6 flex items-center justify-between border-b border-[var(--color-outline-variant)] bg-[var(--color-surface)]/60 backdrop-blur-md shrink-0">
               <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">
                 Detalle de Cita
@@ -202,15 +138,13 @@ export default function CitaDetailPage() {
               </Link>
             </div>
 
-            {/* Contenido scrolleable */}
-            {loading ? (
+            {isLoading ? (
               <div className="flex-1 flex items-center justify-center py-16">
                 <div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
               </div>
             ) : appointment && status ? (
               <div className="flex-1 overflow-y-auto p-6 space-y-6" style={{ scrollbarWidth: "thin" }}>
 
-                {/* Estado + Ref */}
                 <div className="flex items-center justify-between">
                   <div className={`${status.bg} border rounded-full px-4 py-1.5 flex items-center gap-2`}>
                     <div className={`w-2 h-2 rounded-full ${status.dot}`} />
@@ -223,7 +157,6 @@ export default function CitaDetailPage() {
                   </span>
                 </div>
 
-                {/* Tarjeta de cliente */}
                 <div className="bg-[var(--color-surface)] rounded-xl p-3 border border-[var(--color-outline-variant)] shadow-sm flex items-center justify-between">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-full bg-[var(--color-primary-container)]/20 flex items-center justify-center text-[var(--color-primary)] font-semibold text-headline-sm shrink-0">
@@ -253,7 +186,6 @@ export default function CitaDetailPage() {
                       <button
                         disabled
                         className="w-10 h-10 rounded-full bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)] flex items-center justify-center text-[var(--color-outline)] opacity-40 cursor-not-allowed"
-                        title="Sin teléfono registrado"
                       >
                         <MessageSquare size={18} strokeWidth={1.5} />
                       </button>
@@ -261,7 +193,6 @@ export default function CitaDetailPage() {
                   </div>
                 </div>
 
-                {/* Detalles del servicio */}
                 <div className="space-y-2">
                   <h4 className="text-label-md font-semibold text-[var(--color-outline)] uppercase tracking-widest">
                     Información del Servicio
@@ -271,9 +202,6 @@ export default function CitaDetailPage() {
                       <div>
                         <p className="text-headline-sm font-semibold text-[var(--color-on-surface)]">
                           {appointment.service.name}
-                        </p>
-                        <p className="text-body-md text-[var(--color-on-surface-variant)] mt-0.5">
-                          {appointment.service.category}
                         </p>
                       </div>
                       <div className="text-right">
@@ -315,7 +243,6 @@ export default function CitaDetailPage() {
                   </div>
                 </div>
 
-                {/* Acciones */}
                 {!["COMPLETED", "CANCELLED", "NO_SHOW"].includes(appointment.status) && (
                   <div className="space-y-3 pt-1">
                     {actionError && (
@@ -324,7 +251,6 @@ export default function CitaDetailPage() {
                       </div>
                     )}
 
-                    {/* Cobrar y Completar — separados */}
                     <div className="grid grid-cols-2 gap-3">
                       <Link
                         href={`/citas/${appointment.id}/cobrar`}
@@ -334,7 +260,7 @@ export default function CitaDetailPage() {
                         Cobrar
                       </Link>
                       <button
-                        onClick={() => updateStatus("COMPLETED", "¿Marcar cita como completada sin registrar pago?")}
+                        onClick={() => handleUpdateStatus("COMPLETED", "¿Marcar cita como completada sin registrar pago?")}
                         disabled={updating}
                         className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-label-lg font-semibold py-3 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-60"
                       >
@@ -343,7 +269,6 @@ export default function CitaDetailPage() {
                       </button>
                     </div>
 
-                    {/* Registrar Anticipo */}
                     {!showDeposit ? (
                       <button
                         onClick={() => setShowDeposit(true)}
@@ -358,36 +283,25 @@ export default function CitaDetailPage() {
                       <div className="bg-[var(--color-surface-container-low)] rounded-xl border border-[var(--color-outline-variant)] p-4 space-y-3">
                         <div className="flex items-center justify-between">
                           <h4 className="text-label-md font-semibold text-[var(--color-on-surface)]">Anticipo</h4>
-                          <button
-                            onClick={() => setShowDeposit(false)}
-                            className="text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] transition-colors"
-                          >
+                          <button onClick={() => setShowDeposit(false)} className="text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] transition-colors">
                             <X size={16} strokeWidth={1.5} />
                           </button>
                         </div>
 
-                        {/* Toggle modo */}
                         <div className="grid grid-cols-2 gap-2">
-                          <button
-                            onClick={() => setDepositMode("percent")}
-                            className={`py-2 rounded-lg text-label-md font-medium border transition-all ${
-                              depositMode === "percent"
-                                ? "bg-[var(--color-primary-container)]/20 border-[var(--color-primary)] text-[var(--color-primary)]"
-                                : "border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)]"
-                            }`}
-                          >
-                            Por porcentaje
-                          </button>
-                          <button
-                            onClick={() => setDepositMode("amount")}
-                            className={`py-2 rounded-lg text-label-md font-medium border transition-all ${
-                              depositMode === "amount"
-                                ? "bg-[var(--color-primary-container)]/20 border-[var(--color-primary)] text-[var(--color-primary)]"
-                                : "border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)]"
-                            }`}
-                          >
-                            Monto fijo
-                          </button>
+                          {["percent", "amount"].map((mode) => (
+                            <button
+                              key={mode}
+                              onClick={() => setDepositMode(mode as "percent" | "amount")}
+                              className={`py-2 rounded-lg text-label-md font-medium border transition-all ${
+                                depositMode === mode
+                                  ? "bg-[var(--color-primary-container)]/20 border-[var(--color-primary)] text-[var(--color-primary)]"
+                                  : "border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)]"
+                              }`}
+                            >
+                              {mode === "percent" ? "Por porcentaje" : "Monto fijo"}
+                            </button>
+                          ))}
                         </div>
 
                         {depositMode === "percent" ? (
@@ -415,12 +329,9 @@ export default function CitaDetailPage() {
                           <div className="relative">
                             <span className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)] text-body-md font-medium">S/</span>
                             <input
-                              type="number"
-                              min="0"
-                              step="0.50"
+                              type="number" min="0" step="0.50"
                               value={depositCustom}
                               onChange={(e) => setDepositCustom(e.target.value)}
-                              placeholder="0.00"
                               className="w-full pl-9 pr-4 py-2.5 rounded-lg border border-[var(--color-outline-variant)] bg-[var(--color-surface)] text-[var(--color-on-surface)] text-body-md focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] focus:border-transparent"
                             />
                           </div>
@@ -437,10 +348,9 @@ export default function CitaDetailPage() {
                       </div>
                     )}
 
-                    {/* Reprogramar + Cancelar */}
                     <div className="grid grid-cols-2 gap-3">
                       <button
-                        onClick={handleReprogramar}
+                        onClick={() => appointment && router.push(`/nueva-cita?clientId=${appointment.client.id}`)}
                         disabled={updating}
                         className="w-full bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] text-[var(--color-on-surface)] border border-[var(--color-outline-variant)] text-label-md font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                       >
@@ -448,7 +358,7 @@ export default function CitaDetailPage() {
                         Reprogramar
                       </button>
                       <button
-                        onClick={() => updateStatus("CANCELLED", "¿Cancelar esta cita? El cliente será notificado.")}
+                        onClick={() => handleUpdateStatus("CANCELLED", "¿Cancelar esta cita? El cliente será notificado.")}
                         disabled={updating}
                         className="w-full bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] text-[var(--color-error)] border border-[var(--color-outline-variant)] text-label-md font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                       >
@@ -457,9 +367,8 @@ export default function CitaDetailPage() {
                       </button>
                     </div>
 
-                    {/* No se presentó */}
                     <button
-                      onClick={() => updateStatus("NO_SHOW", "¿Marcar al cliente como no presentado?")}
+                      onClick={() => handleUpdateStatus("NO_SHOW", "¿Marcar al cliente como no presentado?")}
                       disabled={updating}
                       className="w-full bg-transparent hover:bg-[var(--color-surface-variant)] text-[var(--color-on-surface-variant)] text-label-md font-semibold py-2 rounded-lg transition-colors border border-transparent hover:border-[var(--color-outline-variant)] flex items-center justify-center gap-2 disabled:opacity-60"
                     >
@@ -469,7 +378,6 @@ export default function CitaDetailPage() {
                   </div>
                 )}
 
-                {/* Timeline */}
                 <div className="pt-4 border-t border-[var(--color-outline-variant)]">
                   <h4 className="text-label-md font-semibold text-[var(--color-outline)] uppercase tracking-widest mb-4 flex items-center gap-2">
                     <History size={14} strokeWidth={1.5} />

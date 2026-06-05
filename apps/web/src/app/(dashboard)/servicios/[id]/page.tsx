@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter, useParams } from "next/navigation";
+import { useState, useEffect } from "react";
+import { useParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, Save, PenLine, SlidersHorizontal,
@@ -9,8 +9,8 @@ import {
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { useService, useUpdateService, useDeleteService, useCollaborators } from "@/lib/api/hooks";
+import { useRouter } from "next/navigation";
 
 const CATEGORIES = ["Peluquería", "Estética", "Barbería", "Nail Bar", "Spa", "Otro"];
 const DURATIONS = [15, 20, 30, 45, 60, 90, 120, 150, 180];
@@ -20,17 +20,11 @@ const PALETTE = [
   "#9333ea", "#0891b2", "#d97706", "#be185d", "#475569",
 ];
 
-type Collaborator = { id: string; name: string; role: string };
-
 export default function EditarServicioPage() {
   const router = useRouter();
   const { id } = useParams<{ id: string }>();
 
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
-  const [deleting, setDeleting] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
-
   const [name, setName] = useState("");
   const [description, setDescription] = useState("");
   const [category, setCategory] = useState("");
@@ -39,79 +33,57 @@ export default function EditarServicioPage() {
   const [color, setColor] = useState("#4441c4");
   const [price, setPrice] = useState("");
   const [selectedCollabs, setSelectedCollabs] = useState<string[]>([]);
-  const [collaborators, setCollaborators] = useState<Collaborator[]>([]);
+  const [initialized, setInitialized] = useState(false);
+
+  const { data: service, isLoading } = useService(id);
+  const { data: collabsData } = useCollaborators();
+  const collaborators = collabsData ?? [];
+  const updateService = useUpdateService(id);
+  const deleteService = useDeleteService();
 
   useEffect(() => {
-    const token = localStorage.getItem("gm_token");
-    if (!token) { router.push("/login"); return; }
-
-    Promise.all([
-      fetch(`${API_URL}/services/${id}`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.ok ? r.json() : Promise.reject()),
-      fetch(`${API_URL}/collaborators`, { headers: { Authorization: `Bearer ${token}` } }).then((r) => r.json()).catch(() => []),
-    ]).then(([service, collabs]) => {
+    if (service && !initialized) {
       setName(service.name ?? "");
       setDescription(service.description ?? "");
       setCategory(service.category ?? "");
       setDurationMin(service.durationMin ?? 30);
-      setBufferMin(service.bufferMin ?? 0);
+      setBufferMin(service.bufferMinutes ?? 0);
       setColor(service.color ?? "#4441c4");
       setPrice(service.price?.toString() ?? "");
-      setCollaborators(collabs);
-      setSelectedCollabs(service.collaboratorIds ?? []);
-    }).catch(() => router.push("/servicios"))
-      .finally(() => setLoading(false));
-  }, [id, router]);
+      setInitialized(true);
+    }
+  }, [service, initialized]);
 
   function toggleCollab(collabId: string) {
-    setSelectedCollabs((prev) =>
-      prev.includes(collabId) ? prev.filter((c) => c !== collabId) : [...prev, collabId]
-    );
+    setSelectedCollabs((prev) => prev.includes(collabId) ? prev.filter((c) => c !== collabId) : [...prev, collabId]);
   }
 
   async function handleSave() {
-    const token = localStorage.getItem("gm_token");
-    if (!token) return;
     if (!name || !category || !price) {
       setFeedback({ type: "error", msg: "Nombre, categoría y precio son obligatorios." });
       return;
     }
-    setSaving(true);
     setFeedback(null);
     try {
-      const res = await fetch(`${API_URL}/services/${id}`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, description: description || undefined, category, durationMin, bufferMin, color, price: parseFloat(price) }),
-      });
-      if (!res.ok) throw new Error();
+      await updateService.mutateAsync({ name, description: description || undefined, category, durationMin, bufferMinutes: bufferMin, color, price: parseFloat(price) } as never);
       setFeedback({ type: "success", msg: "Servicio actualizado correctamente" });
       setTimeout(() => setFeedback(null), 3000);
     } catch {
       setFeedback({ type: "error", msg: "Error al guardar. Intenta de nuevo." });
-    } finally {
-      setSaving(false);
     }
   }
 
   async function handleDelete() {
     if (!confirm("¿Eliminar este servicio? Esta acción no se puede deshacer.")) return;
-    const token = localStorage.getItem("gm_token");
-    if (!token) return;
-    setDeleting(true);
     try {
-      const res = await fetch(`${API_URL}/services/${id}`, {
-        method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
-      });
-      if (!res.ok) throw new Error();
+      await deleteService.mutateAsync(id);
       router.push("/servicios");
     } catch {
       setFeedback({ type: "error", msg: "No se pudo eliminar el servicio." });
-      setDeleting(false);
     }
   }
 
-  if (loading) return (
+  if (isLoading) return (
     <>
       <Sidebar activePath="/servicios" />
       <main className="flex-1 ml-64 flex items-center justify-center bg-[var(--color-background)]">
@@ -126,7 +98,6 @@ export default function EditarServicioPage() {
       <main className="flex-1 ml-64 flex flex-col h-full bg-[var(--color-background)] overflow-hidden">
         <TopBar />
         <div className="flex flex-col flex-1 overflow-y-auto pt-16" style={{ scrollbarWidth: "thin" }}>
-          {/* Header */}
           <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface)] sticky top-0 z-10">
             <div className="flex items-center gap-3">
               <Link href="/servicios" className="text-[var(--color-on-surface-variant)] hover:text-[var(--color-primary)] transition-colors">
@@ -135,24 +106,22 @@ export default function EditarServicioPage() {
               <h1 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Editar Servicio</h1>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={handleDelete} disabled={deleting}
+              <button onClick={handleDelete} disabled={deleteService.isPending}
                 className="flex items-center gap-2 border border-[var(--color-error)] text-[var(--color-error)] text-label-md font-semibold uppercase tracking-wider px-4 py-2.5 rounded-lg hover:bg-[var(--color-error-container)]/20 transition-colors disabled:opacity-60">
                 <Trash2 size={14} strokeWidth={2} />
-                {deleting ? "Eliminando..." : "Eliminar"}
+                {deleteService.isPending ? "Eliminando..." : "Eliminar"}
               </button>
-              <button onClick={handleSave} disabled={saving}
+              <button onClick={handleSave} disabled={updateService.isPending}
                 className="flex items-center gap-2 bg-[var(--color-primary)] text-[var(--color-on-primary)] text-label-md font-semibold uppercase tracking-wider px-4 py-2.5 rounded-lg hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors disabled:opacity-60">
                 <Save size={14} strokeWidth={2} />
-                {saving ? "Guardando..." : "Guardar"}
+                {updateService.isPending ? "Guardando..." : "Guardar"}
               </button>
             </div>
           </div>
 
           {feedback && (
             <div className={`mx-6 mt-4 flex items-center gap-2 rounded-lg px-4 py-3 text-body-md border ${
-              feedback.type === "success"
-                ? "bg-emerald-50 border-emerald-200 text-emerald-700"
-                : "bg-[var(--color-error-container)]/30 border-[var(--color-error-container)] text-[var(--color-error)]"
+              feedback.type === "success" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-[var(--color-error-container)]/30 border-[var(--color-error-container)] text-[var(--color-error)]"
             }`}>
               {feedback.type === "success" ? <CheckCircle size={16} strokeWidth={1.5} /> : <AlertCircle size={16} strokeWidth={1.5} />}
               {feedback.msg}
@@ -160,7 +129,6 @@ export default function EditarServicioPage() {
           )}
 
           <div className="px-6 py-6 max-w-2xl space-y-6">
-            {/* Información General */}
             <section className="bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] p-5 space-y-4">
               <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)] flex items-center gap-2">
                 <PenLine size={18} className="text-[var(--color-primary)]" strokeWidth={1.5} />
@@ -169,52 +137,41 @@ export default function EditarServicioPage() {
               <div className="space-y-1">
                 <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Nombre del servicio</label>
                 <input value={name} onChange={(e) => setName(e.target.value)}
-                  className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all placeholder:text-[var(--color-outline-variant)]" />
+                  className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
               </div>
               <div className="space-y-1">
                 <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Descripción</label>
                 <textarea value={description} onChange={(e) => setDescription(e.target.value)} rows={3}
-                  className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all resize-none placeholder:text-[var(--color-outline-variant)]" />
+                  className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all resize-none" />
               </div>
             </section>
 
-            {/* Logística */}
             <section className="bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] p-5 space-y-4">
               <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)] flex items-center gap-2">
                 <SlidersHorizontal size={18} className="text-[var(--color-primary)]" strokeWidth={1.5} />
                 Logística
               </h2>
 
-              {/* Categoría */}
-              <div className="space-y-1">
-                <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Categoría</label>
-                <div className="relative">
-                  <select value={category} onChange={(e) => setCategory(e.target.value)}
-                    className="w-full appearance-none bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all cursor-pointer">
-                    <option value="">Selecciona una categoría</option>
-                    {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <ChevronDown size={16} strokeWidth={1.5} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)] pointer-events-none" />
+              {[
+                { label: "Categoría", value: category, onChange: setCategory, options: CATEGORIES.map(c => ({ v: c, l: c })) },
+                { label: "Duración", value: durationMin, onChange: (v: string) => setDurationMin(Number(v)), options: DURATIONS.map(d => ({ v: d, l: `${d} min` })) },
+              ].map(({ label, value, onChange, options }) => (
+                <div key={label} className="space-y-1">
+                  <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">{label}</label>
+                  <div className="relative">
+                    <select value={value} onChange={(e) => onChange(e.target.value)}
+                      className="w-full appearance-none bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all cursor-pointer">
+                      {label === "Categoría" && <option value="">Selecciona una categoría</option>}
+                      {options.map((o) => <option key={o.v} value={o.v}>{o.l}</option>)}
+                    </select>
+                    <ChevronDown size={16} strokeWidth={1.5} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)] pointer-events-none" />
+                  </div>
                 </div>
-              </div>
+              ))}
 
-              {/* Duración */}
-              <div className="space-y-1">
-                <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Duración</label>
-                <div className="relative">
-                  <select value={durationMin} onChange={(e) => setDurationMin(Number(e.target.value))}
-                    className="w-full appearance-none bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all cursor-pointer">
-                    {DURATIONS.map((d) => <option key={d} value={d}>{d} min</option>)}
-                  </select>
-                  <ChevronDown size={16} strokeWidth={1.5} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)] pointer-events-none" />
-                </div>
-              </div>
-
-              {/* Buffer */}
               <div className="space-y-1">
                 <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider flex items-center gap-1.5">
-                  <Timer size={13} strokeWidth={2} />
-                  Buffer post-servicio
+                  <Timer size={13} strokeWidth={2} /> Buffer post-servicio
                 </label>
                 <p className="text-[11px] text-[var(--color-outline)]">Tiempo de limpieza o preparación entre citas.</p>
                 <div className="relative">
@@ -226,7 +183,6 @@ export default function EditarServicioPage() {
                 </div>
               </div>
 
-              {/* Color en el calendario */}
               <div className="space-y-2">
                 <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Color en el calendario</label>
                 <div className="flex items-center gap-2 flex-wrap">
@@ -236,8 +192,7 @@ export default function EditarServicioPage() {
                       style={{ backgroundColor: c }} />
                   ))}
                   <input type="color" value={color} onChange={(e) => setColor(e.target.value)}
-                    className="w-7 h-7 rounded-full cursor-pointer border border-[var(--color-outline-variant)] p-0.5 bg-transparent"
-                    title="Color personalizado" />
+                    className="w-7 h-7 rounded-full cursor-pointer border border-[var(--color-outline-variant)] p-0.5 bg-transparent" />
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="w-4 h-4 rounded-sm" style={{ backgroundColor: color }} />
@@ -245,19 +200,16 @@ export default function EditarServicioPage() {
                 </div>
               </div>
 
-              {/* Precio */}
               <div className="space-y-1">
                 <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Precio Base</label>
                 <div className="relative">
                   <span className="absolute left-3 top-1/2 -translate-y-1/2 text-body-md text-[var(--color-outline)]">S/</span>
                   <input type="number" min="0" step="0.01" value={price} onChange={(e) => setPrice(e.target.value)}
-                    placeholder="0.00"
-                    className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg pl-7 pr-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all placeholder:text-[var(--color-outline-variant)]" />
+                    className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg pl-7 pr-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
                 </div>
               </div>
             </section>
 
-            {/* Colaboradores */}
             <section className="bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] p-5 space-y-4">
               <div>
                 <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)] flex items-center gap-2">
@@ -271,8 +223,7 @@ export default function EditarServicioPage() {
               ) : (
                 <div className="space-y-2">
                   {collaborators.map((collab) => (
-                    <label key={collab.id}
-                      className="flex items-center gap-3 p-3 rounded-lg border border-[var(--color-outline-variant)] cursor-pointer hover:bg-[var(--color-surface-container-low)] transition-colors">
+                    <label key={collab.id} className="flex items-center gap-3 p-3 rounded-lg border border-[var(--color-outline-variant)] cursor-pointer hover:bg-[var(--color-surface-container-low)] transition-colors">
                       <input type="checkbox" checked={selectedCollabs.includes(collab.id)} onChange={() => toggleCollab(collab.id)}
                         className="w-4 h-4 rounded border-[var(--color-outline-variant)] text-[var(--color-primary)] focus:ring-[var(--color-primary)]/20" />
                       <div className="w-9 h-9 rounded-full bg-[var(--color-primary-container)]/20 flex items-center justify-center text-[var(--color-primary)] text-[11px] font-bold shrink-0">
@@ -288,10 +239,10 @@ export default function EditarServicioPage() {
               )}
             </section>
 
-            <button onClick={handleSave} disabled={saving}
+            <button onClick={handleSave} disabled={updateService.isPending}
               className="w-full flex items-center justify-center gap-2 bg-[var(--color-primary)] text-[var(--color-on-primary)] text-label-md font-semibold uppercase tracking-wider py-3.5 rounded-lg hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors shadow-md disabled:opacity-60 active:scale-[0.98] mb-8">
               <Save size={16} strokeWidth={2} />
-              {saving ? "Guardando..." : "Guardar Cambios"}
+              {updateService.isPending ? "Guardando..." : "Guardar Cambios"}
             </button>
           </div>
         </div>

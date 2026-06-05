@@ -1,13 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useState } from "react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { AgendaToolbar, ViewOption } from "./_components/agenda-toolbar";
 import { CalendarGrid } from "./_components/calendar-grid";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { useAppointments, useCollaborators } from "@/lib/api/hooks";
 
 export type AppointmentData = {
   id: string;
@@ -23,36 +21,18 @@ export type AppointmentData = {
 export type CollaboratorData = { id: string; name: string; role: string };
 
 export default function AgendaPage() {
-  const router = useRouter();
-  const [appointments, setAppointments] = useState<AppointmentData[]>([]);
-  const [collaborators, setCollaborators] = useState<CollaboratorData[]>([]);
-  const [loading, setLoading] = useState(true);
   const [activeView, setActiveView] = useState<ViewOption>("Día");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filteredCollabId, setFilteredCollabId] = useState<string | null>(null);
 
-  useEffect(() => {
-    const token = localStorage.getItem("gm_token");
-    if (!token) { router.push("/login"); return; }
-    const h = { Authorization: `Bearer ${token}` };
+  const { data: appointments = [], isLoading: loadingApts } = useAppointments();
+  const { data: allCollabs = [], isLoading: loadingCollabs } = useCollaborators();
 
-    Promise.all([
-      fetch(`${API_URL}/appointments`, { headers: h }).then(r => r.ok ? r.json() : []),
-      fetch(`${API_URL}/collaborators`, { headers: h }).then(r => r.ok ? r.json() : []),
-    ])
-      .then(([apts, cols]) => {
-        setAppointments(Array.isArray(apts) ? apts : []);
-        // Solo colaboradores activos
-        const active: CollaboratorData[] = (Array.isArray(cols) ? cols : [])
-          .filter((c: CollaboratorData & { isActive?: boolean }) => c.isActive !== false);
-        setCollaborators(active);
-      })
-      .catch(() => {})
-      .finally(() => setLoading(false));
-  }, [router]);
+  const collaborators = allCollabs.filter((c) => c.isActive !== false) as CollaboratorData[];
+  const loading = loadingApts || loadingCollabs;
 
   const visibleAppointments = filteredCollabId
-    ? appointments.filter(a => a.collaborator.id === filteredCollabId)
+    ? appointments.filter((a) => a.collaborator.id === filteredCollabId)
     : appointments;
 
   return (
@@ -78,8 +58,8 @@ export default function AgendaPage() {
             </div>
           ) : (
             <CalendarGrid
-              appointments={visibleAppointments}
-              allAppointments={appointments}
+              appointments={visibleAppointments as unknown as AppointmentData[]}
+              allAppointments={appointments as unknown as AppointmentData[]}
               view={activeView}
               currentDate={currentDate}
             />
