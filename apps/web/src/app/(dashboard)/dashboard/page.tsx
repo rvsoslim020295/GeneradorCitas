@@ -57,16 +57,29 @@ export default function DashboardPage() {
     const token = localStorage.getItem("gm_token");
     if (!token) { router.push("/login"); return; }
     try {
+      const h = { Authorization: `Bearer ${token}` };
+      const [aptsRes, analRes, userRes] = await Promise.all([
+        fetch(`${API_URL}/appointments`, { headers: h }),
+        fetch(`${API_URL}/analytics`, { headers: h }),
+        fetch(`${API_URL}/auth/me`, { headers: h }),
+      ]);
+      // Solo redirigir al login si el token expiró (401)
+      if (aptsRes.status === 401 || userRes.status === 401) {
+        localStorage.removeItem("gm_token");
+        localStorage.removeItem("gm_user");
+        router.push("/login");
+        return;
+      }
       const [apts, anal, user] = await Promise.all([
-        fetch(`${API_URL}/appointments`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-        fetch(`${API_URL}/analytics`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
-        fetch(`${API_URL}/auth/me`, { headers: { Authorization: `Bearer ${token}` } }).then(r => r.json()),
+        aptsRes.ok ? aptsRes.json() : [],
+        analRes.ok ? analRes.json() : null,
+        userRes.ok ? userRes.json() : null,
       ]);
       setAppointments(Array.isArray(apts) ? apts : []);
-      setAnalytics(anal);
-      setUserData(user);
+      if (anal) setAnalytics(anal);
+      if (user) setUserData(user);
     } catch {
-      router.push("/login");
+      // Error de red — no redirigir, la app sigue funcionando con datos vacíos
     } finally {
       setLoading(false);
     }
