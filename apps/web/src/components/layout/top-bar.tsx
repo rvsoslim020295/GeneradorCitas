@@ -2,7 +2,8 @@
 
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Search, Bell, HelpCircle, LogOut, Settings, User, X } from "lucide-react";
+import { Search, Bell, HelpCircle, LogOut, Settings, User, X, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/components/theme-provider";
 
 type TopBarProps = {
   searchPlaceholder?: string;
@@ -10,6 +11,7 @@ type TopBarProps = {
 
 export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita..." }: TopBarProps) {
   const router = useRouter();
+  const { theme, toggle: toggleTheme } = useTheme();
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -110,6 +112,18 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
             </div>
           )}
         </div>
+
+        {/* Toggle tema */}
+        <button
+          onClick={toggleTheme}
+          title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+          className="w-10 h-10 rounded-full text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)] transition-all flex items-center justify-center"
+        >
+          {theme === "dark"
+            ? <Sun size={20} strokeWidth={1.5} />
+            : <Moon size={20} strokeWidth={1.5} />
+          }
+        </button>
 
         {/* Perfil */}
         <div className="relative" ref={profileRef}>
