@@ -278,6 +278,7 @@ export default function NegocioConfigPage() {
 
   const [name, setName] = useState("");
   const [type, setType] = useState("");
+  const [customType, setCustomType] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [department, setDepartment] = useState("Lima");
@@ -292,7 +293,13 @@ export default function NegocioConfigPage() {
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then(({ business }: { business: Business }) => {
         setName(business.name);
-        setType(business.type);
+        const isKnown = CATEGORIES.slice(0, -1).includes(business.type);
+        if (isKnown) {
+          setType(business.type);
+        } else {
+          setType("Otro");
+          setCustomType(business.type ?? "");
+        }
         setPhone(business.phone ?? "");
         setAddress(business.address ?? "");
         const parts = (business.timezone ?? "Lima|Lima|Miraflores").split("|");
@@ -322,7 +329,7 @@ export default function NegocioConfigPage() {
       const res = await fetch(`${API_URL}/settings/business`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, type, phone: phone || undefined, address: address || undefined, timezone: `${department}|${province}|${district}` }),
+        body: JSON.stringify({ name, type: type === "Otro" ? (customType.trim() || "Otro") : type, phone: phone || undefined, address: address || undefined, timezone: `${department}|${province}|${district}` }),
       });
       if (!res.ok) throw new Error();
       setFeedback({ type: "success", msg: "Cambios guardados correctamente" });
@@ -412,12 +419,21 @@ export default function NegocioConfigPage() {
                 <div>
                   <label className={labelClass}>Categoría</label>
                   <div className="relative">
-                    <select value={type} onChange={(e) => setType(e.target.value)}
+                    <select value={type} onChange={(e) => { setType(e.target.value); if (e.target.value !== "Otro") setCustomType(""); }}
                       className={`${inputClass} appearance-none pr-8 cursor-pointer`}>
                       {CATEGORIES.map((c) => <option key={c} value={c}>{c}</option>)}
                     </select>
                     <ChevronDown size={16} strokeWidth={1.5} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)] pointer-events-none" />
                   </div>
+                  {type === "Otro" && (
+                    <input
+                      value={customType}
+                      onChange={(e) => setCustomType(e.target.value)}
+                      className={`${inputClass} mt-2`}
+                      placeholder="Escribe el tipo de negocio..."
+                      autoFocus
+                    />
+                  )}
                 </div>
               </div>
             </section>
