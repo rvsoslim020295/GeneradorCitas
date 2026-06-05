@@ -99,6 +99,7 @@ model Collaborator {
   role         String
   specialties  String[]
   isActive     Boolean  @default(true)
+  avatarUrl    String?
   businessId   String
   business     Business      @relation(fields: [businessId], references: [id])
   appointments Appointment[]
