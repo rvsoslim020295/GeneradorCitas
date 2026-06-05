@@ -215,19 +215,10 @@ export default function ReportesPage() {
                   </div>
                   <div className="flex justify-between mt-2 px-1">
                     {data.dailyRevenue.map((d, i) => (
-                      <div key={i} className="flex-1 flex flex-col items-center gap-0.5 min-w-0">
-                        {d.day.includes(" - ") ? (
-                          // Rango semanal → dos líneas
-                          d.day.split(" - ").map((part, j) => (
-                            <span key={j} className="text-[9px] text-[var(--color-on-surface-variant)] text-center leading-tight whitespace-nowrap">
-                              {part}
-                            </span>
-                          ))
-                        ) : (
-                          <span className="text-[10px] text-[var(--color-on-surface-variant)] text-center whitespace-nowrap">
-                            {d.day}
-                          </span>
-                        )}
+                      <div key={i} className="flex-1 flex items-start justify-center min-w-0 px-0.5">
+                        <span className="text-[9px] text-[var(--color-on-surface-variant)] text-center leading-tight whitespace-nowrap">
+                          {d.day}
+                        </span>
                       </div>
                     ))}
                   </div>

@@ -19,15 +19,13 @@ function getDateRange(period: Period): { start: Date; end: Date } {
       start.setDate(1);
       start.setHours(0, 0, 0, 0);
       break;
-    case "last_week": {
-      // Lunes al domingo de la semana pasada
-      const day = now.getDay() || 7; // dom=0 → 7
-      start.setDate(now.getDate() - day - 6);
-      start.setHours(0, 0, 0, 0);
-      end.setDate(now.getDate() - day);
+    case "last_week":
+      // Ayer y los 6 días anteriores (7 días corridos)
+      end.setDate(now.getDate() - 1);
       end.setHours(23, 59, 59, 999);
+      start.setDate(now.getDate() - 7);
+      start.setHours(0, 0, 0, 0);
       break;
-    }
     case "last_30_days":
       start.setDate(now.getDate() - 29);
       start.setHours(0, 0, 0, 0);
@@ -41,9 +39,8 @@ function getDateRange(period: Period): { start: Date; end: Date } {
   return { start, end };
 }
 
-function fmt(d: Date) {
-  return `${d.getDate()}/${d.getMonth() + 1}`;
-}
+const DAYS_ES  = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+const MONTHS_ES = ["Ene", "Feb", "Mar", "Abr", "May", "Jun", "Jul", "Ago", "Sep", "Oct", "Nov", "Dic"];
 
 // Genera el array de barras del gráfico según el período
 function buildDailyRevenue(
@@ -68,8 +65,7 @@ function buildDailyRevenue(
     }
 
   } else if (period === "last_30_days") {
-    // Agrupa por semana → 4-5 barras con rango explícito "Lun 7 - Dom 13"
-    const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
+    // Agrupa por semana → 4-5 barras, etiqueta en una línea: "7-13 Jun"
     const msPerDay = 86_400_000;
     const totalDays = Math.round((end.getTime() - start.getTime()) / msPerDay) + 1;
     const weeks = Math.ceil(totalDays / 7);
@@ -84,15 +80,19 @@ function buildDailyRevenue(
         .filter((a) => a.startTime >= wStart && a.startTime <= wEnd)
         .reduce((s, a) => s + a.price, 0);
 
-      const label = `${DAYS_ES[wStart.getDay()]} ${wStart.getDate()} - ${DAYS_ES[wEnd.getDay()]} ${wEnd.getDate()}`;
+      // Si el rango cruza de mes, mostrar ambos meses: "28 May-3 Jun"
+      const sameMon = wStart.getMonth() === wEnd.getMonth();
+      const label = sameMon
+        ? `${wStart.getDate()}-${wEnd.getDate()} ${MONTHS_ES[wEnd.getMonth()]}`
+        : `${wStart.getDate()} ${MONTHS_ES[wStart.getMonth()]}-${wEnd.getDate()} ${MONTHS_ES[wEnd.getMonth()]}`;
+
       result.push({ day: label, amount });
     }
 
   } else {
-    // Una barra por día → "Lun 2", "Mar 3", etc.
+    // Una barra por día → "Lun 2 Jun", "Mar 3 Jun", etc.
     const msPerDay = 86_400_000;
     const days = Math.round((end.getTime() - start.getTime()) / msPerDay) + 1;
-    const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 
     for (let i = 0; i < days; i++) {
       const date = new Date(start);
@@ -106,7 +106,10 @@ function buildDailyRevenue(
         .filter((a) => a.startTime >= dayStart && a.startTime <= dayEnd)
         .reduce((s, a) => s + a.price, 0);
 
-      result.push({ day: `${DAYS_ES[date.getDay()]} ${date.getDate()}`, amount });
+      result.push({
+        day: `${DAYS_ES[date.getDay()]} ${date.getDate()} ${MONTHS_ES[date.getMonth()]}`,
+        amount,
+      });
     }
   }
 
