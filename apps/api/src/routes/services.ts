@@ -12,7 +12,10 @@ const serviceSchema = z.object({
   description: z.string().optional(),
   category: z.string().min(2),
   durationMin: z.number().int().positive(),
+  bufferMinutes: z.number().int().min(0).optional().default(0),
   price: z.number().nonnegative(),
+  color: z.string().optional().default("#3B82F6"),
+  isActive: z.boolean().optional().default(true),
 });
 
 // ─── GET /services ────────────────────────────────────────────────────────────
