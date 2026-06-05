@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { Building2, CalendarClock, MessageCircle, ChevronRight } from "lucide-react";
+import { Building2, CalendarClock, MessageCircle, ChevronRight, Users } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 
@@ -14,7 +14,13 @@ const sections = [
     href: "/configuracion/agenda",
     icon: CalendarClock,
     title: "Agenda y Políticas",
-    description: "Duración de slots, política de cancelación y días de operación",
+    description: "Política de cancelación y días de operación",
+  },
+  {
+    href: "/configuracion/usuarios",
+    icon: Users,
+    title: "Usuarios del Sistema",
+    description: "Gestiona quién tiene acceso al panel y con qué rol",
   },
   {
     href: "/configuracion/whatsapp",
