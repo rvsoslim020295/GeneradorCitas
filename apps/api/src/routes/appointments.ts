@@ -83,7 +83,24 @@ appointments.post("/", async (c) => {
 
   const { startTime, endTime, collaboratorId } = parsed.data;
   const start = new Date(startTime);
-  const end = new Date(endTime);
+  const end   = new Date(endTime);
+
+  // ── Validar que la cita esté dentro del horario del negocio ──
+  const business = await prisma.business.findUnique({ where: { id: businessId } });
+  if (business?.openTime && business?.closeTime) {
+    const [oh, om] = (business.openTime).split(":").map(Number);
+    const [ch, cm] = (business.closeTime).split(":").map(Number);
+    const openMins  = oh * 60 + om;
+    const closeMins = ch * 60 + cm;
+    const startMins = start.getHours() * 60 + start.getMinutes();
+    const endMins   = end.getHours()   * 60 + end.getMinutes();
+
+    if (startMins < openMins || endMins > closeMins) {
+      return c.json({
+        error: `La cita debe estar dentro del horario de atención: ${business.openTime} – ${business.closeTime}.`,
+      }, 422);
+    }
+  }
 
   // Verificar cruce de horario del colaborador (excluye canceladas y no-shows)
   const conflict = await prisma.appointment.findFirst({

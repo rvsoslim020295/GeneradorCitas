@@ -41,6 +41,32 @@ function getDateRange(period: Period): { start: Date; end: Date } {
   return { start, end };
 }
 
+function getPrevDateRange(period: Period, current: { start: Date; end: Date }): { start: Date; end: Date } {
+  const { start, end } = current;
+  const spanMs = end.getTime() - start.getTime();
+
+  if (period === "this_month") {
+    // Mes calendario anterior completo
+    const prevEnd = new Date(start.getFullYear(), start.getMonth(), 0, 23, 59, 59, 999);
+    const prevStart = new Date(prevEnd.getFullYear(), prevEnd.getMonth(), 1, 0, 0, 0, 0);
+    return { start: prevStart, end: prevEnd };
+  }
+
+  if (period === "this_year") {
+    // Mismo período del año anterior (ene hasta hoy - 1 año)
+    const prevStart = new Date(start);
+    prevStart.setFullYear(prevStart.getFullYear() - 1);
+    const prevEnd = new Date(end);
+    prevEnd.setFullYear(prevEnd.getFullYear() - 1);
+    return { start: prevStart, end: prevEnd };
+  }
+
+  // last_week / last_30_days: retroceder exactamente el mismo span
+  const prevEnd = new Date(start.getTime() - 1);
+  const prevStart = new Date(prevEnd.getTime() - spanMs);
+  return { start: prevStart, end: prevEnd };
+}
+
 // Genera el array de barras del gráfico según el período
 function buildDailyRevenue(
   completed: { startTime: Date; price: number }[],
@@ -100,16 +126,18 @@ analytics.get("/", async (c) => {
     .includes(rawPeriod as Period) ? rawPeriod as Period : "this_month";
 
   const { start, end } = getDateRange(period);
+  const prev = getPrevDateRange(period, { start, end });
 
-  const appointments = await prisma.appointment.findMany({
-    where: {
-      businessId,
-      startTime: { gte: start, lte: end },
-    },
-    include: {
-      collaborator: { select: { id: true, name: true } },
-    },
-  });
+  const [appointments, prevAppointments] = await Promise.all([
+    prisma.appointment.findMany({
+      where: { businessId, startTime: { gte: start, lte: end } },
+      include: { collaborator: { select: { id: true, name: true } } },
+    }),
+    prisma.appointment.findMany({
+      where: { businessId, startTime: { gte: prev.start, lte: prev.end } },
+      select: { status: true, price: true },
+    }),
+  ]);
 
   const total     = appointments.length;
   const completed = appointments.filter((a) => a.status === "COMPLETED");
@@ -119,6 +147,12 @@ analytics.get("/", async (c) => {
 
   const totalRevenue = completed.reduce((sum, a) => sum + a.price, 0);
   const noShowRate   = total > 0 ? (noShow.length / total) * 100 : 0;
+
+  const prevTotal     = prevAppointments.length;
+  const prevCompleted = prevAppointments.filter((a) => a.status === "COMPLETED");
+  const prevNoShow    = prevAppointments.filter((a) => a.status === "NO_SHOW");
+  const prevRevenue   = prevCompleted.reduce((sum, a) => sum + a.price, 0);
+  const prevNoShowRate = prevTotal > 0 ? (prevNoShow.length / prevTotal) * 100 : null;
 
   const dailyRevenue = buildDailyRevenue(
     completed.map((a) => ({ startTime: a.startTime, price: a.price })),
@@ -152,9 +186,13 @@ analytics.get("/", async (c) => {
   return c.json({
     kpis: {
       totalAppointments: total,
+      totalAppointmentsPrev: prevTotal,
       completedAppointments: completed.length,
+      completedAppointmentsPrev: prevCompleted.length,
       totalRevenue,
+      totalRevenuePrev: prevRevenue,
       noShowRate: Math.round(noShowRate * 10) / 10,
+      noShowRatePrev: prevNoShowRate !== null ? Math.round(prevNoShowRate * 10) / 10 : null,
     },
     dailyRevenue,
     statusDistribution,

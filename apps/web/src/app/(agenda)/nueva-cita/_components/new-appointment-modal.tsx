@@ -51,7 +51,7 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
   const collaborators = (collabsData ?? []).filter((c) => c.isActive !== false);
   const allClients: Client[] = clientsData ?? [];
   const filteredClients = debouncedSearch.trim() ? allClients.slice(0, 6) : [];
-  const availableSlots = (slotsData ?? []).filter((s) => s.available).map((s) => s.time);
+  const availableSlots = slotsData?.slots ?? [];
   const slotsReady = !!collaboratorId && !!serviceId && !!date && !slotsLoading;
 
   const selectedService = services.find((s) => s.id === serviceId) ?? null;

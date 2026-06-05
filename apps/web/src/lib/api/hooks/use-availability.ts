@@ -1,7 +1,7 @@
 import { useQuery } from "@tanstack/react-query";
 import { apiFetch } from "../client";
 
-export type Slot = { time: string; available: boolean };
+export type SlotsResponse = { slots: string[]; slotDuration: number; totalDuration?: number };
 
 export const availabilityKeys = {
   slots: (collaboratorId: string, serviceId: string, date: string) =>
@@ -16,7 +16,7 @@ export function useAvailabilitySlots(
   return useQuery({
     queryKey: availabilityKeys.slots(collaboratorId, serviceId, date),
     queryFn: () =>
-      apiFetch<Slot[]>(
+      apiFetch<SlotsResponse>(
         `/availability/slots?collaboratorId=${collaboratorId}&serviceId=${serviceId}&date=${date}`
       ),
     enabled: !!collaboratorId && !!serviceId && !!date,

@@ -58,6 +58,16 @@ collaborators.get("/:id", async (c) => {
   return c.json(collaborator);
 });
 
+const DEFAULT_SCHEDULE = {
+  Mon: { enabled: true,  start: "09:00", end: "18:00" },
+  Tue: { enabled: true,  start: "09:00", end: "18:00" },
+  Wed: { enabled: true,  start: "09:00", end: "18:00" },
+  Thu: { enabled: true,  start: "09:00", end: "18:00" },
+  Fri: { enabled: true,  start: "09:00", end: "18:00" },
+  Sat: { enabled: false, start: "09:00", end: "18:00" },
+  Sun: { enabled: false, start: "09:00", end: "18:00" },
+};
+
 // ─── POST /collaborators ──────────────────────────────────────────────────────
 collaborators.post("/", async (c) => {
   const { businessId } = c.get("user");
@@ -69,7 +79,11 @@ collaborators.post("/", async (c) => {
   }
 
   const collaborator = await prisma.collaborator.create({
-    data: { ...parsed.data, businessId },
+    data: {
+      ...parsed.data,
+      schedule: parsed.data.schedule ?? DEFAULT_SCHEDULE,
+      businessId,
+    },
   });
 
   return c.json(collaborator, 201);

@@ -4,8 +4,11 @@ import { apiFetch } from "../client";
 export type AnalyticsData = {
   kpis: {
     totalAppointments: number;
+    totalAppointmentsPrev: number;
     completedAppointments: number;
+    completedAppointmentsPrev: number;
     totalRevenue: number;
+    totalRevenuePrev: number;
     noShowRate: number;
     noShowRatePrev: number | null;
   };

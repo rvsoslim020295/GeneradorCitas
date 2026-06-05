@@ -44,9 +44,12 @@ export function AppointmentCard({
         top: `${topPx}px`,
         height: `${heightPx}px`,
         backgroundColor: color.bg,
-        borderLeft: `3px solid ${color.border}`,
-        border: `1px solid ${color.border}33`,
+        borderTopWidth: "1px",
+        borderRightWidth: "1px",
+        borderBottomWidth: "1px",
         borderLeftWidth: "3px",
+        borderStyle: "solid",
+        borderColor: `${color.border}33`,
         borderLeftColor: color.border,
       }}
     >
