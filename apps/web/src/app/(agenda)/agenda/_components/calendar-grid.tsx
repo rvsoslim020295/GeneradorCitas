@@ -61,6 +61,24 @@ function buildCollabColorMap(appointments: AppointmentData[]): Map<string, numbe
   return map;
 }
 
+// ─── Buffer Block ─────────────────────────────────────────────────────────────
+
+function BufferBlock({ topPx, heightPx }: { topPx: number; heightPx: number }) {
+  if (heightPx < 4) return null;
+  return (
+    <div
+      className="absolute left-0 right-0 pointer-events-none z-10"
+      style={{
+        top: topPx,
+        height: heightPx,
+        background: "repeating-linear-gradient(45deg, transparent, transparent 4px, rgba(0,0,0,0.06) 4px, rgba(0,0,0,0.06) 8px)",
+        borderTop: "1px dashed var(--color-outline-variant)",
+        opacity: 0.7,
+      }}
+    />
+  );
+}
+
 // ─── Component ───────────────────────────────────────────────────────────────
 
 type Props = { appointments: AppointmentData[]; allAppointments?: AppointmentData[]; view: ViewOption; currentDate: Date };
@@ -195,19 +213,25 @@ function DayView({ appointments, currentDate, collabColors, gridHeight }: {
                 const colorIdx = collabColors.get(cid) ?? 0;
                 return (
                   <div key={cid} className={`flex-1 relative z-10 ${i < collabs.length - 1 ? "border-r border-[var(--color-outline-variant)]/50" : ""}`} style={{ height: gridHeight }}>
-                    {collab.appointments.map(apt => (
-                      <Link key={apt.id} href={`/citas/${apt.id}`}>
-                        <AppointmentCard
-                          service={apt.service.name}
-                          client={apt.client.name}
-                          status={toStatus(apt.status)}
-                          topPx={toTop(apt.startTime)}
-                          heightPx={toHeight(apt.startTime, apt.endTime)}
-                          collabColorIndex={colorIdx}
-                          badge={apt.status === "COMPLETED" ? "Pagado" : undefined}
-                        />
-                      </Link>
-                    ))}
+                    {collab.appointments.map(apt => {
+                      const bufferPx = ((apt.service.bufferMinutes ?? 0) / 60) * PX_PER_HOUR;
+                      return (
+                        <div key={apt.id}>
+                          <Link href={`/citas/${apt.id}`}>
+                            <AppointmentCard
+                              service={apt.service.name}
+                              client={apt.client.name}
+                              status={toStatus(apt.status)}
+                              topPx={toTop(apt.startTime)}
+                              heightPx={toHeight(apt.startTime, apt.endTime)}
+                              collabColorIndex={colorIdx}
+                              badge={apt.status === "COMPLETED" ? "Pagado" : undefined}
+                            />
+                          </Link>
+                          <BufferBlock topPx={toTop(apt.startTime) + toHeight(apt.startTime, apt.endTime)} heightPx={bufferPx} />
+                        </div>
+                      );
+                    })}
                   </div>
                 );
               })
@@ -278,19 +302,25 @@ function WeekView({ appointments, currentDate, collabColors, gridHeight }: {
               const isToday = isSameDay(day, today);
               return (
                 <div key={i} className={`flex-1 relative z-10 border-r border-[var(--color-outline-variant)]/50 last:border-0 ${isToday ? "bg-[var(--color-primary)]/3" : ""}`} style={{ height: gridHeight }}>
-                  {dayApts.map(apt => (
-                    <Link key={apt.id} href={`/citas/${apt.id}`}>
-                      <AppointmentCard
-                        service={apt.service.name}
-                        client={apt.client.name}
-                        status={toStatus(apt.status)}
-                        topPx={toTop(apt.startTime)}
-                        heightPx={toHeight(apt.startTime, apt.endTime)}
-                        collabColorIndex={collabColors.get(apt.collaborator.id) ?? 0}
-                        badge={apt.status === "COMPLETED" ? "Pagado" : undefined}
-                      />
-                    </Link>
-                  ))}
+                  {dayApts.map(apt => {
+                    const bufferPx = ((apt.service.bufferMinutes ?? 0) / 60) * PX_PER_HOUR;
+                    return (
+                      <div key={apt.id}>
+                        <Link href={`/citas/${apt.id}`}>
+                          <AppointmentCard
+                            service={apt.service.name}
+                            client={apt.client.name}
+                            status={toStatus(apt.status)}
+                            topPx={toTop(apt.startTime)}
+                            heightPx={toHeight(apt.startTime, apt.endTime)}
+                            collabColorIndex={collabColors.get(apt.collaborator.id) ?? 0}
+                            badge={apt.status === "COMPLETED" ? "Pagado" : undefined}
+                          />
+                        </Link>
+                        <BufferBlock topPx={toTop(apt.startTime) + toHeight(apt.startTime, apt.endTime)} heightPx={bufferPx} />
+                      </div>
+                    );
+                  })}
                 </div>
               );
             })}
