@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import {
-  X, MessageSquare, Phone, Clock, User,
+  X, MessageSquare, Clock, User,
   CreditCard, CalendarClock, XCircle, UserX, History,
   CheckCircle, DollarSign,
 } from "lucide-react";
@@ -156,7 +156,6 @@ export default function CitaDetailPage() {
 
   const status = appointment ? statusConfig[appointment.status] : null;
   const whatsappUrl = appointment ? buildWhatsAppUrl(appointment.client.phone) : null;
-  const telUrl = appointment?.client.phone ? `tel:${appointment.client.phone.replace(/\s/g, "")}` : null;
 
   const depositAmount =
     appointment && depositMode === "percent"
@@ -257,23 +256,6 @@ export default function CitaDetailPage() {
                         title="Sin teléfono registrado"
                       >
                         <MessageSquare size={18} strokeWidth={1.5} />
-                      </button>
-                    )}
-                    {telUrl ? (
-                      <a
-                        href={telUrl}
-                        className="w-10 h-10 rounded-full bg-[var(--color-surface-container-low)] hover:bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] flex items-center justify-center text-[var(--color-primary)] transition-colors shadow-sm"
-                        title="Llamar"
-                      >
-                        <Phone size={18} strokeWidth={1.5} />
-                      </a>
-                    ) : (
-                      <button
-                        disabled
-                        className="w-10 h-10 rounded-full bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)] flex items-center justify-center text-[var(--color-outline)] opacity-40 cursor-not-allowed"
-                        title="Sin teléfono registrado"
-                      >
-                        <Phone size={18} strokeWidth={1.5} />
                       </button>
                     )}
                   </div>

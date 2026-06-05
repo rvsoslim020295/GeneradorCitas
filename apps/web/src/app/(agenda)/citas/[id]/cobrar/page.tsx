@@ -16,6 +16,7 @@ type Appointment = {
   startTime: string;
   endTime: string;
   price: number;
+  depositAmount: number | null;
   client: { name: string; phone: string | null };
   collaborator: { name: string };
   service: { name: string };
@@ -96,9 +97,11 @@ export default function CobrarPage() {
     );
   }
 
-  const subtotal = appointment.price;
-  const tipAmount = subtotal * tipPercent;
-  const total = subtotal + tipAmount;
+  const servicePrice = appointment.price;
+  const deposit = appointment.depositAmount ?? 0;
+  const balance = servicePrice - deposit;
+  const tipAmount = balance * tipPercent;
+  const total = balance + tipAmount;
 
   return (
     <div className="bg-[var(--color-surface)] text-[var(--color-on-surface)] h-screen flex flex-col overflow-hidden">
@@ -154,13 +157,23 @@ export default function CobrarPage() {
                     </p>
                   </div>
                   <p className="text-body-lg text-[var(--color-on-surface)]">
-                    S/{subtotal.toLocaleString("es-PE")}
+                    S/{servicePrice.toLocaleString("es-PE")}
                   </p>
                 </div>
+                {deposit > 0 && (
+                  <div className="flex justify-between items-center text-emerald-600">
+                    <p className="text-body-md flex items-center gap-1">
+                      <span className="text-lg leading-none">−</span> Anticipo pagado
+                    </p>
+                    <p className="text-body-md font-medium">−S/{deposit.toLocaleString("es-PE")}</p>
+                  </div>
+                )}
                 <div className="border-t border-[var(--color-outline-variant)]/40 pt-3 flex justify-between items-center">
-                  <p className="text-body-md text-[var(--color-on-surface-variant)]">Subtotal</p>
+                  <p className="text-body-md text-[var(--color-on-surface-variant)]">
+                    {deposit > 0 ? "Saldo pendiente" : "Subtotal"}
+                  </p>
                   <p className="text-headline-sm font-semibold text-[var(--color-on-surface)]">
-                    S/{subtotal.toLocaleString("es-PE")}
+                    S/{balance.toLocaleString("es-PE")}
                   </p>
                 </div>
               </div>
@@ -235,7 +248,9 @@ export default function CobrarPage() {
         {/* Footer fijo */}
         <div className="absolute bottom-0 w-full bg-[var(--color-surface-bright)]/90 backdrop-blur-xl border-t border-[var(--color-outline-variant)]/30 px-4 py-5 shadow-[0_-4px_20px_rgba(0,0,0,0.05)] z-20 rounded-t-2xl">
           <div className="flex justify-between items-end mb-4">
-            <span className="text-body-lg text-[var(--color-on-surface-variant)]">Total a Pagar</span>
+            <span className="text-body-lg text-[var(--color-on-surface-variant)]">
+              {deposit > 0 ? "Saldo a Cobrar" : "Total a Pagar"}
+            </span>
             <span className="text-display-lg font-bold text-[var(--color-primary)] tracking-tight leading-none">
               S/{total.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: 0 })}
             </span>
