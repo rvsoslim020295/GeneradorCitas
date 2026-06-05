@@ -9,6 +9,23 @@ import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { useAnalytics } from "@/lib/api/hooks";
 
+function KpiDelta({ current, prev, isCount = false }: { current: number; prev: number; isCount?: boolean }) {
+  if (prev === 0 && current === 0) {
+    return <span className="mt-2 inline-block text-[10px] text-[var(--color-on-surface-variant)] bg-[var(--color-surface-container)] px-2 py-0.5 rounded-full">Sin datos anteriores</span>;
+  }
+  const pct = prev === 0 ? 100 : ((current - prev) / prev) * 100;
+  const up = pct >= 0;
+  const label = isCount
+    ? `${up ? "+" : ""}${Math.round(pct)}%`
+    : `${up ? "+" : ""}${pct.toFixed(1)}%`;
+  return (
+    <div className={`mt-2 flex items-center gap-1 ${up ? "text-[var(--color-secondary-container)]" : "text-[var(--color-error)]"}`}>
+      {up ? <TrendingUp size={12} strokeWidth={2} /> : <TrendingDown size={12} strokeWidth={2} />}
+      <span className="text-[10px] font-semibold">{label} vs período ant.</span>
+    </div>
+  );
+}
+
 function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
@@ -79,10 +96,7 @@ export default function ReportesPage() {
                   <span className="text-display-lg font-bold text-[var(--color-on-surface)]">
                     {data.kpis.totalAppointments}
                   </span>
-                  <div className="mt-2 flex items-center gap-1 text-[var(--color-secondary-container)]">
-                    <TrendingUp size={12} strokeWidth={2} />
-                    <span className="text-[10px] font-semibold">+12% vs mes ant.</span>
-                  </div>
+                  <KpiDelta current={data.kpis.totalAppointments} prev={data.kpis.totalAppointmentsPrev} isCount />
                 </div>
 
                 <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
@@ -95,10 +109,7 @@ export default function ReportesPage() {
                   <span className="text-display-lg font-bold text-[var(--color-on-surface)]">
                     {data.kpis.completedAppointments}
                   </span>
-                  <div className="mt-2 flex items-center gap-1 text-[var(--color-secondary-container)]">
-                    <TrendingUp size={12} strokeWidth={2} />
-                    <span className="text-[10px] font-semibold">+5% vs mes ant.</span>
-                  </div>
+                  <KpiDelta current={data.kpis.completedAppointments} prev={data.kpis.completedAppointmentsPrev} isCount />
                 </div>
 
                 <div className="col-span-2 bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow relative overflow-hidden">
@@ -112,9 +123,8 @@ export default function ReportesPage() {
                   <span className="text-display-lg font-bold text-[var(--color-primary)] relative z-10">
                     S/{data.kpis.totalRevenue.toLocaleString("es-PE")}
                   </span>
-                  <div className="mt-2 flex items-center gap-1 text-[var(--color-secondary-container)] relative z-10">
-                    <TrendingUp size={12} strokeWidth={2} />
-                    <span className="text-[10px] font-semibold">+18.2% vs mes ant.</span>
+                  <div className="relative z-10">
+                    <KpiDelta current={data.kpis.totalRevenue} prev={data.kpis.totalRevenuePrev} />
                   </div>
                 </div>
 

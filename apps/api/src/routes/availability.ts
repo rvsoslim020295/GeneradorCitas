@@ -68,8 +68,12 @@ availability.get("/slots", async (c) => {
   const totalMinutes = service.durationMin + (service.bufferMinutes ?? 0);
   const slotStep     = business.slotMinutes; // granularidad del calendario
 
-  const workStart = timeToMinutes(daySchedule.start); // ej: 540 (09:00)
-  const workEnd   = timeToMinutes(daySchedule.end);   // ej: 1080 (18:00)
+  // Intersección entre horario del colaborador y horario del negocio
+  const businessOpen  = timeToMinutes(business.openTime  ?? "00:00");
+  const businessClose = timeToMinutes(business.closeTime ?? "23:59");
+
+  const workStart = Math.max(timeToMinutes(daySchedule.start), businessOpen);
+  const workEnd   = Math.min(timeToMinutes(daySchedule.end),   businessClose);
 
   // ── 3. Obtener citas existentes ese día ──
   const dayStart = new Date(`${date}T00:00:00.000Z`);
@@ -87,17 +91,25 @@ availability.get("/slots", async (c) => {
 
   // Convertir citas a rangos en minutos desde medianoche
   const busyRanges = existingApts.map(apt => ({
-    start: apt.startTime.getUTCHours() * 60 + apt.startTime.getUTCMinutes(),
-    end:   apt.endTime.getUTCHours()   * 60 + apt.endTime.getUTCMinutes(),
+    start: apt.startTime.getHours() * 60 + apt.startTime.getMinutes(),
+    end:   apt.endTime.getHours()   * 60 + apt.endTime.getMinutes(),
   }));
 
-  // ── 4. Generar slots candidatos y filtrar los ocupados ──
+  // ── 4. Calcular el mínimo en minutos desde medianoche permitido para hoy ──
+  const now = new Date();
+  const isToday = date === now.toISOString().split("T")[0];
+  const nowMinutes = isToday
+    ? now.getHours() * 60 + now.getMinutes()
+    : 0;
+
+  // ── 5. Generar slots candidatos y filtrar los ocupados y pasados ──
   const availableSlots: string[] = [];
 
   for (let slotStart = workStart; slotStart + totalMinutes <= workEnd; slotStart += slotStep) {
+    if (slotStart < nowMinutes) continue;
+
     const slotEnd = slotStart + totalMinutes;
 
-    // Verificar que no solapa con ninguna cita existente
     const hasConflict = busyRanges.some(range =>
       slotStart < range.end && slotEnd > range.start
     );
