@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, Clock, ShieldAlert, CalendarCheck, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, ShieldAlert, CalendarCheck, CheckCircle, AlertCircle } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 
@@ -19,15 +19,12 @@ const DAYS = [
   { id: "Sun", label: "Dom" },
 ];
 
-const SLOT_OPTIONS = [15, 30, 60];
-
 export default function AgendaConfigPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
-  const [slotMinutes, setSlotMinutes] = useState(30);
   const [cancellationHours, setCancellationHours] = useState(24);
   const [operatingDays, setOperatingDays] = useState<string[]>(["Mon", "Tue", "Wed", "Thu", "Fri"]);
 
@@ -37,8 +34,7 @@ export default function AgendaConfigPage() {
 
     fetch(`${API_URL}/settings`, { headers: { Authorization: `Bearer ${token}` } })
       .then((r) => r.ok ? r.json() : Promise.reject())
-      .then(({ business }: { business: { slotMinutes: number; cancellationHours: number; operatingDays: string[] } }) => {
-        setSlotMinutes(business.slotMinutes);
+      .then(({ business }: { business: { cancellationHours: number; operatingDays: string[] } }) => {
         setCancellationHours(business.cancellationHours);
         setOperatingDays(business.operatingDays);
       })
@@ -62,7 +58,7 @@ export default function AgendaConfigPage() {
       const res = await fetch(`${API_URL}/settings/agenda`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ slotMinutes, cancellationHours, operatingDays }),
+        body: JSON.stringify({ cancellationHours, operatingDays }),
       });
       if (!res.ok) throw new Error();
       setFeedback({ type: "success", msg: "Configuración guardada correctamente" });
@@ -108,29 +104,6 @@ export default function AgendaConfigPage() {
                 {feedback.msg}
               </div>
             )}
-
-            {/* Time Slot Granularity */}
-            <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <Clock size={20} className="text-[var(--color-primary)]" strokeWidth={1.5} />
-                <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Duración de Slots</h2>
-              </div>
-              <p className="text-body-md text-[var(--color-on-surface-variant)]">
-                Selecciona la duración de los bloques de tiempo en tu calendario.
-              </p>
-              <div className="flex gap-2">
-                {SLOT_OPTIONS.map((opt) => (
-                  <button key={opt} onClick={() => setSlotMinutes(opt)}
-                    className={`flex-1 py-2.5 rounded-lg border text-body-md font-semibold transition-all ${
-                      slotMinutes === opt
-                        ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] border-[var(--color-primary)] shadow-sm"
-                        : "bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] border-[var(--color-outline-variant)] hover:border-[var(--color-primary)]/50"
-                    }`}>
-                    {opt} min
-                  </button>
-                ))}
-              </div>
-            </section>
 
             {/* Cancellation Policy */}
             <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-4">

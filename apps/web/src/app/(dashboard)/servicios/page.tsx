@@ -85,7 +85,7 @@ export default function ServiciosPage() {
             <div>
               <h1 className="text-headline-md font-semibold text-[var(--color-on-surface)]">Servicios</h1>
               <p className="text-body-md text-[var(--color-on-surface-variant)]">
-                Gestiona el catálogo de tu salón
+                Gestiona el catálogo de tu negocio
               </p>
             </div>
             <div className="relative w-full md:w-80 group">

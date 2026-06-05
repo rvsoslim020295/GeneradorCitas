@@ -138,7 +138,7 @@ export default function NuevoClientePage() {
                     <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)]" strokeWidth={1.5} />
                     <input value={firstName} onChange={(e) => setFirstName(e.target.value)}
                       autoComplete="new-password" autoCorrect="off" spellCheck={false}
-                      className={`${inputClass} ${iconInput}`} placeholder="Ana" />
+                      className={`${inputClass} ${iconInput}`} />
                   </div>
                 </div>
                 <div>
@@ -147,7 +147,7 @@ export default function NuevoClientePage() {
                     <User size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)]" strokeWidth={1.5} />
                     <input value={lastName} onChange={(e) => setLastName(e.target.value)}
                       autoComplete="new-password" autoCorrect="off" spellCheck={false}
-                      className={`${inputClass} ${iconInput}`} placeholder="Martínez" />
+                      className={`${inputClass} ${iconInput}`} />
                   </div>
                 </div>
               </div>
@@ -159,7 +159,7 @@ export default function NuevoClientePage() {
                   <CreditCard size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)]" strokeWidth={1.5} />
                   <input value={dni} onChange={(e) => setDni(e.target.value.replace(/\D/g, "").slice(0, 8))}
                     autoComplete="new-password" inputMode="numeric"
-                    className={`${inputClass} ${iconInput}`} placeholder="12345678" maxLength={8} />
+                    className={`${inputClass} ${iconInput}`} maxLength={8} />
                 </div>
               </div>
 
@@ -179,7 +179,6 @@ export default function NuevoClientePage() {
                     }}
                     autoComplete="new-password" inputMode="tel"
                     className={`${inputClass} ${iconInput}`}
-                    placeholder="+51 987654321"
                   />
                 </div>
               </div>
@@ -191,7 +190,7 @@ export default function NuevoClientePage() {
                   <Mail size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)]" strokeWidth={1.5} />
                   <input value={email} onChange={(e) => setEmail(e.target.value)}
                     autoComplete="new-password" autoCorrect="off" spellCheck={false}
-                    className={`${inputClass} ${iconInput}`} placeholder="ana@email.com" />
+                    className={`${inputClass} ${iconInput}`} />
                 </div>
               </div>
 
