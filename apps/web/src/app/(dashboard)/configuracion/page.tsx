@@ -1,3 +1,7 @@
+"use client";
+
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { Building2, CalendarClock, MessageCircle, ChevronRight, Users } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -31,6 +35,15 @@ const sections = [
 ];
 
 export default function ConfiguracionPage() {
+  const router = useRouter();
+
+  useEffect(() => {
+    try {
+      const u = JSON.parse(localStorage.getItem("gm_user") ?? "{}");
+      if (u.role && u.role !== "OWNER") router.replace("/dashboard");
+    } catch { /* ignore */ }
+  }, [router]);
+
   return (
     <>
       <Sidebar activePath="/configuracion" />
