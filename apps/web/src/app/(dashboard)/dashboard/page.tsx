@@ -50,6 +50,7 @@ export default function DashboardPage() {
   const [userData, setUserData] = useState<UserData | null>(null);
   const [loading, setLoading] = useState(true);
   const [confirmingId, setConfirmingId] = useState<string | null>(null);
+  const [confirmingAll, setConfirmingAll] = useState(false);
   const [statusDrawer, setStatusDrawer] = useState<{ status: string; label: string } | null>(null);
 
   const loadData = useCallback(async () => {
@@ -72,6 +73,26 @@ export default function DashboardPage() {
   }, [router]);
 
   useEffect(() => { loadData(); }, [loadData]);
+
+  async function confirmAll() {
+    const token = localStorage.getItem("gm_token");
+    if (!token || pendingUpcoming.length === 0) return;
+    setConfirmingAll(true);
+    try {
+      await Promise.all(
+        pendingUpcoming.map((apt) =>
+          fetch(`${API_URL}/appointments/${apt.id}/status`, {
+            method: "PATCH",
+            headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+            body: JSON.stringify({ status: "CONFIRMED" }),
+          })
+        )
+      );
+      await loadData();
+    } finally {
+      setConfirmingAll(false);
+    }
+  }
 
   async function confirmAppointment(id: string) {
     const token = localStorage.getItem("gm_token");
@@ -257,8 +278,20 @@ export default function DashboardPage() {
 
             {/* Alertas */}
             <div className="col-span-4 bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] shadow-sm p-6 flex flex-col">
-              <div className="flex items-center gap-2 text-[var(--color-error)] text-label-md font-semibold uppercase tracking-wider mb-3">
-                <AlertTriangle size={16} strokeWidth={1.5} /> Acción Requerida
+              <div className="flex items-center justify-between mb-3">
+                <div className="flex items-center gap-2 text-[var(--color-error)] text-label-md font-semibold uppercase tracking-wider">
+                  <AlertTriangle size={16} strokeWidth={1.5} /> Acción Requerida
+                </div>
+                {pendingUpcoming.length > 1 && (
+                  <button
+                    onClick={confirmAll}
+                    disabled={confirmingAll}
+                    className="flex items-center gap-1 text-[11px] font-semibold text-[var(--color-primary)] border border-[var(--color-primary)]/30 bg-[var(--color-primary-container)]/10 px-2.5 py-1 rounded-lg hover:bg-[var(--color-primary-container)]/20 transition-colors disabled:opacity-60"
+                  >
+                    <CheckCheck size={13} strokeWidth={2} />
+                    {confirmingAll ? "Confirmando..." : "Confirmar todas"}
+                  </button>
+                )}
               </div>
               {pendingUpcoming.length > 0 ? (
                 <div className="space-y-2 overflow-y-auto max-h-40" style={{ scrollbarWidth: "thin" }}>
