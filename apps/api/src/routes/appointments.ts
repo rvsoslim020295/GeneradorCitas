@@ -34,13 +34,23 @@ const appointmentInclude = {
 } as const;
 
 // ─── GET /appointments ────────────────────────────────────────────────────────
+// Acepta ?search= para filtrar por nombre de cliente o servicio
 appointments.get("/", async (c) => {
   const { businessId } = c.get("user");
+  const search = c.req.query("search")?.trim() ?? "";
 
   const data = await prisma.appointment.findMany({
-    where: { businessId },
+    where: {
+      businessId,
+      ...(search && {
+        OR: [
+          { client:  { name: { contains: search, mode: "insensitive" } } },
+          { service: { name: { contains: search, mode: "insensitive" } } },
+        ],
+      }),
+    },
     include: appointmentInclude,
-    orderBy: { startTime: "asc" },
+    orderBy: { startTime: "desc" },
   });
 
   return c.json(data);
