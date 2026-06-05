@@ -37,6 +37,27 @@ export function useClient(id: string) {
   });
 }
 
+export function useCreateClient() {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Partial<Client>) =>
+      apiFetch<Client>("/clients", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => qc.invalidateQueries({ queryKey: clientKeys.all }),
+  });
+}
+
+export function useUpdateClient(id: string) {
+  const qc = useQueryClient();
+  return useMutation({
+    mutationFn: (body: Partial<Client>) =>
+      apiFetch<Client>(`/clients/${id}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: clientKeys.detail(id) });
+      qc.invalidateQueries({ queryKey: clientKeys.all });
+    },
+  });
+}
+
 export function useDeleteClient() {
   const qc = useQueryClient();
   return useMutation({

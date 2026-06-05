@@ -1,13 +1,12 @@
 "use client";
 
 import { useEffect, useRef, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, Save, CheckCircle, AlertCircle, ChevronDown, Camera } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api/client";
 
 const CATEGORIES = ["Peluquería / Salón de Belleza", "Barbería", "Spa / Centro de Estética", "Nail Bar", "Otro"];
 
@@ -269,10 +268,8 @@ type Business = {
 };
 
 export default function NegocioConfigPage() {
-  const router = useRouter();
+  const qc = useQueryClient();
   const logoInputRef = useRef<HTMLInputElement>(null);
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
 
@@ -284,32 +281,44 @@ export default function NegocioConfigPage() {
   const [department, setDepartment] = useState("Lima");
   const [province, setProvince] = useState("Lima");
   const [district, setDistrict] = useState("Miraflores");
+  const [initialized, setInitialized] = useState(false);
+
+  const { data: settings, isLoading: loading } = useQuery<{ business: Business }>({
+    queryKey: ["settings"],
+    queryFn: () => apiFetch<{ business: Business }>("/settings"),
+  });
 
   useEffect(() => {
-    const token = localStorage.getItem("gm_token");
-    if (!token) { router.push("/login"); return; }
+    if (settings?.business && !initialized) {
+      const business = settings.business;
+      setName(business.name);
+      const isKnown = CATEGORIES.slice(0, -1).includes(business.type);
+      if (isKnown) {
+        setType(business.type);
+      } else {
+        setType("Otro");
+        setCustomType(business.type ?? "");
+      }
+      setPhone(business.phone ?? "");
+      setAddress(business.address ?? "");
+      const parts = (business.timezone ?? "Lima|Lima|Miraflores").split("|");
+      setDepartment(parts[0] ?? "Lima");
+      setProvince(parts[1] ?? "Lima");
+      setDistrict(parts[2] ?? "Miraflores");
+      setInitialized(true);
+    }
+  }, [settings, initialized]);
 
-    fetch(`${API_URL}/settings`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.ok ? r.json() : Promise.reject())
-      .then(({ business }: { business: Business }) => {
-        setName(business.name);
-        const isKnown = CATEGORIES.slice(0, -1).includes(business.type);
-        if (isKnown) {
-          setType(business.type);
-        } else {
-          setType("Otro");
-          setCustomType(business.type ?? "");
-        }
-        setPhone(business.phone ?? "");
-        setAddress(business.address ?? "");
-        const parts = (business.timezone ?? "Lima|Lima|Miraflores").split("|");
-        setDepartment(parts[0] ?? "Lima");
-        setProvince(parts[1] ?? "Lima");
-        setDistrict(parts[2] ?? "Miraflores");
-      })
-      .catch(() => router.push("/configuracion"))
-      .finally(() => setLoading(false));
-  }, [router]);
+  const saveMutation = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      apiFetch("/settings/business", { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["settings"] });
+      setFeedback({ type: "success", msg: "Cambios guardados correctamente" });
+      setTimeout(() => setFeedback(null), 3000);
+    },
+    onError: () => setFeedback({ type: "error", msg: "Error al guardar. Intenta de nuevo." }),
+  });
 
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
@@ -319,27 +328,17 @@ export default function NegocioConfigPage() {
     reader.readAsDataURL(file);
   }
 
-  async function handleSave() {
-    const token = localStorage.getItem("gm_token");
-    if (!token) return;
-    setSaving(true);
-    setFeedback(null);
-
-    try {
-      const res = await fetch(`${API_URL}/settings/business`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, type: type === "Otro" ? (customType.trim() || "Otro") : type, phone: phone || undefined, address: address || undefined, timezone: `${department}|${province}|${district}` }),
-      });
-      if (!res.ok) throw new Error();
-      setFeedback({ type: "success", msg: "Cambios guardados correctamente" });
-      setTimeout(() => setFeedback(null), 3000);
-    } catch {
-      setFeedback({ type: "error", msg: "Error al guardar. Intenta de nuevo." });
-    } finally {
-      setSaving(false);
-    }
+  function handleSave() {
+    saveMutation.mutate({
+      name,
+      type: type === "Otro" ? (customType.trim() || "Otro") : type,
+      phone: phone || undefined,
+      address: address || undefined,
+      timezone: `${department}|${province}|${district}`,
+    });
   }
+
+  const saving = saveMutation.isPending;
 
   const inputClass = "w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all placeholder:text-[var(--color-outline-variant)]";
   const labelClass = "block text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-1";
