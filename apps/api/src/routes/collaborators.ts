@@ -12,6 +12,7 @@ const collaboratorSchema = z.object({
   role: z.string().min(2),
   specialties: z.array(z.string()).optional().default([]),
   isActive: z.boolean().optional().default(true),
+  avatarUrl: z.string().optional(),
 });
 
 // ─── GET /collaborators ───────────────────────────────────────────────────────
