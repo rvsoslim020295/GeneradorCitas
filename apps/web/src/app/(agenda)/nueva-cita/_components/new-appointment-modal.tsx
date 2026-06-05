@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   CalendarCheck, X, Search, UserPlus, ChevronDown,
-  Clock, Banknote, CalendarDays, CheckCircle, AlertCircle,
+  Clock, Banknote, CalendarDays, CheckCircle, AlertCircle, Loader2,
 } from "lucide-react";
 import { OriginSelector } from "./origin-selector";
 
@@ -16,24 +16,11 @@ type Client = { id: string; name: string; lastName: string | null; phone: string
 function clientFullName(c: Client) {
   return [c.name, c.lastName].filter(Boolean).join(" ");
 }
-type Service = { id: string; name: string; durationMin: number; price: number };
+type Service = { id: string; name: string; durationMin: number; bufferMinutes: number; price: number };
 type Collaborator = { id: string; name: string };
 
 function todayISO() {
   return new Date().toISOString().split("T")[0];
-}
-
-function buildSlots(date: string): string[] {
-  const slots: string[] = [];
-  const start = new Date(`${date}T08:00:00`);
-  for (let i = 0; i < 24; i++) {
-    const h = String(start.getHours()).padStart(2, "0");
-    const m = String(start.getMinutes()).padStart(2, "0");
-    slots.push(`${h}:${m}`);
-    start.setMinutes(start.getMinutes() + 30);
-    if (start.getHours() >= 20) break;
-  }
-  return slots;
 }
 
 export function NewAppointmentModal({ preselectedClientId }: { preselectedClientId?: string }) {
@@ -60,10 +47,13 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
   const [error, setError] = useState("");
   const [conflictId, setConflictId] = useState<string | null>(null);
 
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+  const [slotsLoading, setSlotsLoading] = useState(false);
+  const [slotsReady, setSlotsReady] = useState(false);
+
   const searchRef = useRef<HTMLDivElement>(null);
 
   const selectedService = services.find(s => s.id === serviceId) ?? null;
-  const slots = buildSlots(date);
 
   useEffect(() => {
     const token = localStorage.getItem("gm_token");
@@ -86,6 +76,41 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
       }
     });
   }, [preselectedClientId]);
+
+  // Consultar disponibilidad cuando colaborador + servicio + fecha están listos
+  const fetchSlots = useCallback(async (collabId: string, svcId: string, d: string) => {
+    const token = localStorage.getItem("gm_token");
+    if (!token || !collabId || !svcId || !d) { setAvailableSlots([]); setSlotsReady(false); return; }
+    setSlotsLoading(true);
+    setSlotsReady(false);
+    setTime("");
+    try {
+      const res = await fetch(
+        `${API_URL}/availability/slots?collaboratorId=${collabId}&serviceId=${svcId}&date=${d}`,
+        { headers: { Authorization: `Bearer ${token}` } }
+      );
+      if (res.ok) {
+        const data = await res.json();
+        setAvailableSlots(data.slots ?? []);
+        setSlotsReady(true);
+      } else {
+        setAvailableSlots([]);
+      }
+    } catch {
+      setAvailableSlots([]);
+    } finally {
+      setSlotsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (collaboratorId && serviceId && date) {
+      fetchSlots(collaboratorId, serviceId, date);
+    } else {
+      setAvailableSlots([]);
+      setSlotsReady(false);
+    }
+  }, [collaboratorId, serviceId, date, fetchSlots]);
 
   // Filtrar clientes al escribir
   useEffect(() => {
@@ -298,31 +323,41 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
             <div className="space-y-2">
               <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider flex items-center justify-between">
                 Hora
-                <span className="text-[10px] font-normal text-[var(--color-outline)] normal-case tracking-normal">Próximos huecos</span>
+                {slotsReady && (
+                  <span className="text-[10px] font-normal text-[var(--color-outline)] normal-case tracking-normal">
+                    {availableSlots.length} slots disponibles
+                  </span>
+                )}
               </label>
-              <div className="flex flex-wrap gap-2">
-                {slots.slice(0, 3).map((slot) => (
-                  <button key={slot} type="button" onClick={() => setTime(slot)}
-                    className={`px-3 py-1.5 rounded-md border text-label-md font-semibold transition-colors shadow-sm ${
-                      time === slot
-                        ? "border-[var(--color-primary)] bg-[var(--color-primary-container)]/10 text-[var(--color-primary)]"
-                        : "border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
-                    }`}>
-                    {slot}
-                  </button>
-                ))}
-                <div className="relative group">
-                  <select value={time} onChange={(e) => setTime(e.target.value)}
-                    className="opacity-0 absolute inset-0 w-full cursor-pointer">
-                    <option value="">Más...</option>
-                    {slots.map(s => <option key={s} value={s}>{s}</option>)}
-                  </select>
-                  <button type="button"
-                    className="px-2 py-1.5 rounded-md border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)] transition-colors shadow-sm flex items-center text-label-md font-semibold gap-1">
-                    {time && !slots.slice(0, 3).includes(time) ? time : "···"}
-                  </button>
+
+              {/* Estado: falta seleccionar colaborador o servicio */}
+              {!collaboratorId || !serviceId ? (
+                <p className="text-[11px] text-[var(--color-on-surface-variant)] py-1">
+                  Selecciona colaborador y servicio para ver disponibilidad
+                </p>
+              ) : slotsLoading ? (
+                <div className="flex items-center gap-2 py-1 text-[var(--color-on-surface-variant)]">
+                  <Loader2 size={14} className="animate-spin" />
+                  <span className="text-[11px]">Consultando disponibilidad...</span>
                 </div>
-              </div>
+              ) : slotsReady && availableSlots.length === 0 ? (
+                <p className="text-[11px] text-[var(--color-error)] py-1">
+                  Sin disponibilidad para esta fecha. Prueba otro día o colaborador.
+                </p>
+              ) : slotsReady ? (
+                <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
+                  {availableSlots.map((slot) => (
+                    <button key={slot} type="button" onClick={() => setTime(slot)}
+                      className={`px-3 py-1.5 rounded-md border text-label-md font-semibold transition-colors shadow-sm ${
+                        time === slot
+                          ? "border-[var(--color-primary)] bg-[var(--color-primary-container)]/10 text-[var(--color-primary)]"
+                          : "border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+                      }`}>
+                      {slot}
+                    </button>
+                  ))}
+                </div>
+              ) : null}
             </div>
           </div>
         </div>
