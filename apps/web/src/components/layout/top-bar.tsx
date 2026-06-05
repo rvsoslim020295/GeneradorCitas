@@ -36,6 +36,10 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
 
   const [notifs, setNotifs] = useState<NotifItem[]>([]);
   const [notifsLoaded, setNotifsLoaded] = useState(false);
+  const [readIds, setReadIds] = useState<Set<string>>(() => {
+    try { return new Set(JSON.parse(localStorage.getItem("gm_read_notifs") ?? "[]")); }
+    catch { return new Set(); }
+  });
 
   useEffect(() => {
     const raw = localStorage.getItem("gm_user");
@@ -61,7 +65,15 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
       const res = await fetch(`${API_URL}/notifications`, { headers: { Authorization: `Bearer ${token}` } });
       if (res.ok) {
         const data = await res.json();
-        setNotifs(Array.isArray(data.items) ? data.items : []);
+        const items: NotifItem[] = Array.isArray(data.items) ? data.items : [];
+        setNotifs(items);
+        // Limpiar IDs guardados que ya no existen en el servidor
+        setReadIds(prev => {
+          const currentIds = new Set(items.map(n => n.id));
+          const cleaned = new Set([...prev].filter(id => currentIds.has(id)));
+          localStorage.setItem("gm_read_notifs", JSON.stringify([...cleaned]));
+          return cleaned;
+        });
       }
     } catch { /* ignore */ }
     finally { setNotifsLoaded(true); }
@@ -87,11 +99,23 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
     router.push("/login");
   }
 
+  function markAllRead(items: NotifItem[]) {
+    const allIds = new Set(items.map(n => n.id));
+    setReadIds(allIds);
+    localStorage.setItem("gm_read_notifs", JSON.stringify([...allIds]));
+  }
+
   function handleOpenNotifs() {
-    setShowNotifications(!showNotifications);
+    const opening = !showNotifications;
+    setShowNotifications(opening);
     setShowProfile(false);
     setShowHelp(false);
-    if (!showNotifications) fetchNotifs();
+    if (opening) {
+      fetchNotifs().then(() => {
+        // Pequeño delay para que el usuario vea el panel antes de limpiar el badge
+        setTimeout(() => setNotifs(prev => { markAllRead(prev); return prev; }), 400);
+      });
+    }
   }
 
   return (
@@ -108,7 +132,7 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
             onClick={handleOpenNotifs}
             className="w-10 h-10 rounded-full text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)] transition-all flex items-center justify-center relative">
             <Bell size={20} strokeWidth={1.5} />
-            {notifsLoaded && notifs.length > 0 && (
+            {notifsLoaded && notifs.some(n => !readIds.has(n.id)) && (
               <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[var(--color-error)]" />
             )}
           </button>
@@ -117,8 +141,10 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
               <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--color-outline-variant)]">
                 <div className="flex items-center gap-2">
                   <h3 className="text-label-md font-semibold text-[var(--color-on-surface)] uppercase tracking-wider">Notificaciones</h3>
-                  {notifs.length > 0 && (
-                    <span className="bg-[var(--color-error)] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">{notifs.length}</span>
+                  {notifs.some(n => !readIds.has(n.id)) && (
+                    <span className="bg-[var(--color-error)] text-white text-[10px] font-bold px-1.5 py-0.5 rounded-full leading-none">
+                      {notifs.filter(n => !readIds.has(n.id)).length}
+                    </span>
                   )}
                 </div>
                 <button onClick={() => setShowNotifications(false)} className="text-[var(--color-outline)] hover:text-[var(--color-on-surface)] transition-colors">
@@ -134,12 +160,24 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
                   {notifs.map(n => (
                     <button
                       key={n.id}
-                      onClick={() => { router.push(`/citas/${n.appointmentId}`); setShowNotifications(false); }}
-                      className="flex items-start gap-3 w-full px-4 py-3 text-left hover:bg-[var(--color-surface-container-low)] transition-colors border-b border-[var(--color-outline-variant)]/40 last:border-0"
+                      onClick={() => {
+                        // Marcar esta notif como leída inmediatamente al hacer click
+                        setReadIds(prev => {
+                          const next = new Set([...prev, n.id]);
+                          localStorage.setItem("gm_read_notifs", JSON.stringify([...next]));
+                          return next;
+                        });
+                        router.push(`/citas/${n.appointmentId}`);
+                        setShowNotifications(false);
+                      }}
+                      className={`flex items-start gap-3 w-full px-4 py-3 text-left hover:bg-[var(--color-surface-container-low)] transition-colors border-b border-[var(--color-outline-variant)]/40 last:border-0 ${readIds.has(n.id) ? "opacity-50" : ""}`}
                     >
                       {NOTIF_ICON[n.type]}
-                      <div className="min-w-0">
-                        <p className="text-label-md font-semibold text-[var(--color-on-surface)]">{n.title}</p>
+                      <div className="min-w-0 flex-1">
+                        <div className="flex items-center justify-between gap-2">
+                          <p className="text-label-md font-semibold text-[var(--color-on-surface)]">{n.title}</p>
+                          {!readIds.has(n.id) && <span className="w-2 h-2 rounded-full bg-[var(--color-primary)] shrink-0" />}
+                        </div>
                         <p className="text-[11px] text-[var(--color-on-surface-variant)] truncate">{n.body}</p>
                       </div>
                     </button>
