@@ -8,6 +8,7 @@ import {
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
+import { useRole } from "@/hooks/use-role";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -35,6 +36,7 @@ const collabColors = [
 
 export default function ReportesPage() {
   const router = useRouter();
+  const role = useRole();
   const [data, setData] = useState<Analytics | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -42,6 +44,13 @@ export default function ReportesPage() {
   useEffect(() => {
     const token = localStorage.getItem("gm_token");
     if (!token) { router.push("/login"); return; }
+    const stored = localStorage.getItem("gm_user");
+    if (stored) {
+      try {
+        const u = JSON.parse(stored);
+        if (u.role && u.role !== "OWNER") { router.replace("/dashboard"); return; }
+      } catch { /* ignore */ }
+    }
 
     fetch(`${API_URL}/analytics`, {
       headers: { Authorization: `Bearer ${token}` },

@@ -6,17 +6,18 @@ import {
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
+import { useRole } from "@/hooks/use-role";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
-const navItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
-  { label: "Agenda", href: "/agenda", icon: Calendar },
-  { label: "Clientes", href: "/clientes", icon: Users },
-  { label: "Colaboradores", href: "/colaboradores", icon: BadgeCheck },
-  { label: "Servicios", href: "/servicios", icon: Scissors },
-  { label: "Reportes", href: "/reportes", icon: BarChart2 },
-  { label: "Configuración", href: "/configuracion", icon: Settings },
+const allNavItems = [
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, ownerOnly: false },
+  { label: "Agenda", href: "/agenda", icon: Calendar, ownerOnly: false },
+  { label: "Clientes", href: "/clientes", icon: Users, ownerOnly: false },
+  { label: "Colaboradores", href: "/colaboradores", icon: BadgeCheck, ownerOnly: false },
+  { label: "Servicios", href: "/servicios", icon: Scissors, ownerOnly: false },
+  { label: "Reportes", href: "/reportes", icon: BarChart2, ownerOnly: true },
+  { label: "Configuración", href: "/configuracion", icon: Settings, ownerOnly: true },
 ];
 
 type SidebarProps = {
@@ -27,6 +28,8 @@ type SidebarProps = {
 const TRIAL_DAYS = 7;
 
 export function Sidebar({ activePath }: SidebarProps) {
+  const role = useRole();
+  const navItems = allNavItems.filter((item) => !item.ownerOnly || role === "OWNER" || role === null);
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
 
   useEffect(() => {
