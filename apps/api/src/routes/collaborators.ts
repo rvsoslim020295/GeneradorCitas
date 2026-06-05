@@ -15,11 +15,14 @@ const dayScheduleSchema = z.object({
 
 const collaboratorSchema = z.object({
   name: z.string().min(2),
+  lastName: z.string().optional(),
   role: z.string().min(2),
   specialties: z.array(z.string()).optional().default([]),
   isActive: z.boolean().optional().default(true),
   avatarUrl: z.string().optional(),
   schedule: z.record(z.string(), dayScheduleSchema).optional(),
+  documentType: z.enum(["DNI", "CE"]).optional(),
+  documentNumber: z.string().optional(),
 });
 
 // ─── GET /collaborators ───────────────────────────────────────────────────────
