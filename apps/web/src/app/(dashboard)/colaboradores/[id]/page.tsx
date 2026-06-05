@@ -1,11 +1,11 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Link from "next/link";
 import {
   ArrowLeft, Save, Scissors, CalendarDays, CalendarX,
-  Plus, Trash2, AlertCircle, CheckCircle, X,
+  Plus, Trash2, AlertCircle, CheckCircle, X, Camera,
 } from "lucide-react";
 import { RoleSelector } from "../_components/role-selector";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -36,6 +36,7 @@ type Collaborator = {
   specialties: string[];
   isActive: boolean;
   schedule?: Schedule;
+  avatarUrl?: string;
 };
 
 const defaultSchedule = (): Schedule =>
@@ -53,6 +54,8 @@ export default function CollaboratorProfilePage() {
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
   const [name, setName] = useState("");
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [role, setRole] = useState("");
   const [isActive, setIsActive] = useState(true);
   const [specialties, setSpecialties] = useState<string[]>([]);
@@ -78,6 +81,7 @@ export default function CollaboratorProfilePage() {
       setName(data.name);
       setRole(data.role);
       setIsActive(data.isActive);
+      setAvatarUrl(data.avatarUrl ?? "");
       setSpecialties(data.specialties ?? []);
       // Merge server schedule over defaults so any missing day keeps defaults
       if (data.schedule) {
@@ -94,6 +98,14 @@ export default function CollaboratorProfilePage() {
       .finally(() => setLoading(false));
   }, [id, router]);
 
+  function handleAvatarChange(e: React.ChangeEvent<HTMLInputElement>) {
+    const file = e.target.files?.[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = () => setAvatarUrl(reader.result as string);
+    reader.readAsDataURL(file);
+  }
+
   function updateDay(day: string, field: keyof DaySchedule, value: string | boolean) {
     setSchedule((prev) => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
   }
@@ -107,7 +119,7 @@ export default function CollaboratorProfilePage() {
       const res = await fetch(`${API_URL}/collaborators/${id}`, {
         method: "PATCH",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, role, isActive, specialties, schedule }),
+        body: JSON.stringify({ name, role, isActive, specialties, schedule, avatarUrl: avatarUrl || undefined }),
       });
       if (!res.ok) throw new Error();
       setFeedback({ type: "success", msg: "Perfil guardado correctamente" });
@@ -213,10 +225,33 @@ export default function CollaboratorProfilePage() {
           <div className="px-6 py-6 max-w-2xl space-y-8">
 
             {/* Avatar */}
-            <div className="flex justify-center">
-              <div className="w-20 h-20 rounded-full bg-[var(--color-primary-container)]/20 flex items-center justify-center text-[var(--color-primary)] text-display-lg font-bold">
-                {name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
-              </div>
+            <div className="flex flex-col items-center gap-2">
+              <button
+                type="button"
+                onClick={() => fileInputRef.current?.click()}
+                className="relative w-24 h-24 rounded-full group focus:outline-none"
+                title="Cambiar foto"
+              >
+                {avatarUrl ? (
+                  // eslint-disable-next-line @next/next/no-img-element
+                  <img src={avatarUrl} alt={name} className="w-24 h-24 rounded-full object-cover" />
+                ) : (
+                  <div className="w-24 h-24 rounded-full bg-[var(--color-primary-container)]/20 flex items-center justify-center text-[var(--color-primary)] text-display-lg font-bold">
+                    {name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
+                  </div>
+                )}
+                <div className="absolute inset-0 rounded-full bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                  <Camera size={22} className="text-white" />
+                </div>
+              </button>
+              <span className="text-[11px] text-[var(--color-on-surface-variant)]">Click para cambiar foto</span>
+              <input
+                ref={fileInputRef}
+                type="file"
+                accept="image/*"
+                className="hidden"
+                onChange={handleAvatarChange}
+              />
             </div>
 
             {/* Datos básicos */}
