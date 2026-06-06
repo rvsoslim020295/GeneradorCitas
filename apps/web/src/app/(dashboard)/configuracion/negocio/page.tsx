@@ -274,6 +274,8 @@ export default function NegocioConfigPage() {
   const logoInputRef = useRef<HTMLInputElement>(null);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [logoPreview, setLogoPreview] = useState<string | null>(null);
+  const [logoFile, setLogoFile] = useState<File | null>(null);
+  const [uploadingLogo, setUploadingLogo] = useState(false);
 
   const [name, setName] = useState("");
   const [type, setType] = useState("");
@@ -329,12 +331,42 @@ export default function NegocioConfigPage() {
   function handleLogoChange(e: React.ChangeEvent<HTMLInputElement>) {
     const file = e.target.files?.[0];
     if (!file) return;
+    setLogoFile(file);
     const reader = new FileReader();
     reader.onload = () => setLogoPreview(reader.result as string);
     reader.readAsDataURL(file);
   }
 
-  function handleSave() {
+  async function handleSave() {
+    const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+
+    // Si hay un archivo nuevo, subirlo primero
+    if (logoFile) {
+      setUploadingLogo(true);
+      try {
+        const form = new FormData();
+        form.append("logo", logoFile);
+        const res = await fetch(`${API_URL}/settings/logo`, {
+          method: "POST",
+          credentials: "include",
+          body: form,
+        });
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}));
+          setFeedback({ type: "error", msg: d.error ?? "Error al subir el logo." });
+          return;
+        }
+        const { logoUrl } = await res.json();
+        setLogoPreview(logoUrl);
+        setLogoFile(null);
+      } catch {
+        setFeedback({ type: "error", msg: "No se pudo subir el logo." });
+        return;
+      } finally {
+        setUploadingLogo(false);
+      }
+    }
+
     saveMutation.mutate({
       name,
       type: type === "Otro" ? (customType.trim() || "Otro") : type,
@@ -342,11 +374,10 @@ export default function NegocioConfigPage() {
       phone: phone || undefined,
       address: address || undefined,
       timezone: `${department}|${province}|${district}`,
-      logoUrl: logoPreview || undefined,
     });
   }
 
-  const saving = saveMutation.isPending;
+  const saving = saveMutation.isPending || uploadingLogo;
 
   const inputClass = "w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all placeholder:text-[var(--color-outline-variant)]";
   const labelClass = "block text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-1";
