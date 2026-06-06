@@ -31,13 +31,12 @@ export function StepHorario({ onNext }: Props) {
   }
 
   async function handleNext() {
-    const token = localStorage.getItem("gm_token");
-    if (!token) return;
     setLoading(true);
     try {
       await fetch(`${API_URL}/settings/agenda`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ cancellationHours: 24, operatingDays }),
       });
     } catch {

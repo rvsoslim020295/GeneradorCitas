@@ -43,10 +43,7 @@ export default function UsuariosSistemaPage() {
   const [saving, setSaving] = useState(false);
 
   useEffect(() => {
-    const token = localStorage.getItem("gm_token");
-    if (!token) { router.push("/login"); return; }
-
-    fetch(`${API_URL}/users`, { headers: { Authorization: `Bearer ${token}` } })
+    fetch(`${API_URL}/users`, { credentials: "include" })
       .then((r) => r.ok ? r.json() : Promise.reject())
       .then(setUsers)
       .catch(() => router.push("/configuracion"))
@@ -71,13 +68,12 @@ export default function UsuariosSistemaPage() {
       showMsg("error", "La contraseña debe tener al menos 8 caracteres.");
       return;
     }
-    const token = localStorage.getItem("gm_token");
-    if (!token) return;
     setSaving(true);
     try {
       const res = await fetch(`${API_URL}/users`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name: newName.trim(), email: newEmail.trim(), password: newPassword, role: newRole }),
       });
       if (!res.ok) {
@@ -97,12 +93,11 @@ export default function UsuariosSistemaPage() {
   }
 
   async function toggleActive(user: SystemUser) {
-    const token = localStorage.getItem("gm_token");
-    if (!token) return;
     try {
       const res = await fetch(`${API_URL}/users/${user.id}`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ isActive: !user.isActive }),
       });
       if (!res.ok) throw new Error();
@@ -114,12 +109,10 @@ export default function UsuariosSistemaPage() {
 
   async function handleDelete(user: SystemUser) {
     if (!confirm(`¿Eliminar el acceso de ${user.name}? Esta acción no se puede deshacer.`)) return;
-    const token = localStorage.getItem("gm_token");
-    if (!token) return;
     try {
       const res = await fetch(`${API_URL}/users/${user.id}`, {
         method: "DELETE",
-        headers: { Authorization: `Bearer ${token}` },
+        credentials: "include",
       });
       if (!res.ok) throw new Error();
       setUsers((prev) => prev.filter((u) => u.id !== user.id));

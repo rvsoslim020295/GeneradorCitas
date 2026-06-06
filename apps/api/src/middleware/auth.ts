@@ -17,12 +17,20 @@ export const requireAuth = createMiddleware<{
   Variables: { user: AuthPayload };
 }>(async (c, next) => {
   const authHeader = c.req.header("Authorization");
+  const cookieHeader = c.req.header("Cookie") ?? "";
 
-  if (!authHeader?.startsWith("Bearer ")) {
-    return c.json({ error: "Token requerido" }, 401);
+  let token: string | null = null;
+
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
+  } else {
+    const match = cookieHeader.match(/(?:^|;\s*)gm_token=([^;]+)/);
+    if (match) token = match[1];
   }
 
-  const token = authHeader.slice(7); // quita "Bearer "
+  if (!token) {
+    return c.json({ error: "Token requerido" }, 401);
+  }
 
   try {
     const payload = jwt.verify(token, JWT_SECRET) as AuthPayload;
