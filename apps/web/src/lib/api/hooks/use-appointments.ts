@@ -5,7 +5,7 @@ export type Appointment = {
   id: string;
   startTime: string;
   endTime: string;
-  status: "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+  status: "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "NO_SHOW" | "RESCHEDULED";
   price: number;
   notes: string | null;
   tipPercent: number | null;
