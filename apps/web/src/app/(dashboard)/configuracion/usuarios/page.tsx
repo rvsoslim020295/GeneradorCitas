@@ -14,17 +14,16 @@ const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 const ROLES = [
   { value: "OWNER", label: "Dueño", description: "Acceso total al sistema" },
-  { value: "RECEPTIONIST", label: "Recepcionista", description: "Gestión de citas y clientes" },
-  { value: "STAFF", label: "Colaborador", description: "Solo su agenda del día" },
+  { value: "ADMIN", label: "Administrador", description: "Gestión de citas y clientes" },
+  { value: "COLLABORATOR", label: "Colaborador", description: "Solo su agenda del día" },
 ];
 
 type SystemUser = {
   id: string;
   name: string;
   email: string;
-  role: "OWNER" | "RECEPTIONIST" | "STAFF";
-  isActive: boolean;
-  lastLoginAt: string | null;
+  role: "OWNER" | "COLLABORATOR" | "ADMIN";
+  emailVerified: boolean;
 };
 
 export default function UsuariosSistemaPage() {
@@ -38,7 +37,7 @@ export default function UsuariosSistemaPage() {
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState<"OWNER" | "RECEPTIONIST" | "STAFF">("RECEPTIONIST");
+  const [newRole, setNewRole] = useState<"OWNER" | "COLLABORATOR" | "ADMIN">("ADMIN");
   const [showPassword, setShowPassword] = useState(false);
   const [saving, setSaving] = useState(false);
 
@@ -82,7 +81,7 @@ export default function UsuariosSistemaPage() {
       }
       const created: SystemUser = await res.json();
       setUsers((prev) => [...prev, created]);
-      setNewName(""); setNewEmail(""); setNewPassword(""); setNewRole("RECEPTIONIST");
+      setNewName(""); setNewEmail(""); setNewPassword(""); setNewRole("ADMIN");
       setShowForm(false);
       showMsg("success", "Usuario creado correctamente.");
     } catch (e: unknown) {
@@ -92,16 +91,17 @@ export default function UsuariosSistemaPage() {
     }
   }
 
-  async function toggleActive(user: SystemUser) {
+  async function toggleRole(user: SystemUser) {
+    const nextRole = user.role === "COLLABORATOR" ? "ADMIN" : "COLLABORATOR";
     try {
       const res = await fetch(`${API_URL}/users/${user.id}`, {
         method: "PATCH",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ isActive: !user.isActive }),
+        body: JSON.stringify({ role: nextRole }),
       });
       if (!res.ok) throw new Error();
-      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, isActive: !u.isActive } : u));
+      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, role: nextRole } : u));
     } catch {
       showMsg("error", "No se pudo actualizar el usuario.");
     }
@@ -125,10 +125,10 @@ export default function UsuariosSistemaPage() {
   const roleBadge = (role: string) => {
     const map: Record<string, string> = {
       OWNER: "bg-[var(--color-primary-container)]/30 text-[var(--color-primary)]",
-      RECEPTIONIST: "bg-[var(--color-secondary-container)]/30 text-[var(--color-secondary)]",
-      STAFF: "bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)]",
+      ADMIN: "bg-[var(--color-secondary-container)]/30 text-[var(--color-secondary)]",
+      COLLABORATOR: "bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)]",
     };
-    const labels: Record<string, string> = { OWNER: "Dueño", RECEPTIONIST: "Recepcionista", STAFF: "Colaborador" };
+    const labels: Record<string, string> = { OWNER: "Dueño", ADMIN: "Administrador", COLLABORATOR: "Colaborador" };
     return (
       <span className={`text-label-md font-semibold px-2.5 py-1 rounded-full ${map[role] ?? ""}`}>
         {labels[role] ?? role}
@@ -268,43 +268,32 @@ export default function UsuariosSistemaPage() {
                   {users.map((user) => (
                     <div key={user.id} className="flex items-center gap-4 px-5 py-4">
                       {/* Avatar */}
-                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-label-md font-bold shrink-0 ${
-                        user.isActive
-                          ? "bg-[var(--color-primary-container)]/20 text-[var(--color-primary)]"
-                          : "bg-[var(--color-surface-container-high)] text-[var(--color-outline)]"
-                      }`}>
+                      <div className="w-10 h-10 rounded-full flex items-center justify-center text-label-md font-bold shrink-0 bg-[var(--color-primary-container)]/20 text-[var(--color-primary)]">
                         {user.name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase()}
                       </div>
 
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className={`text-body-md font-semibold ${user.isActive ? "text-[var(--color-on-surface)]" : "text-[var(--color-outline)] line-through"}`}>
+                          <span className="text-body-md font-semibold text-[var(--color-on-surface)]">
                             {user.name}
                           </span>
                           {roleBadge(user.role)}
-                          {!user.isActive && (
-                            <span className="text-label-md text-[var(--color-outline)] bg-[var(--color-surface-container-high)] px-2 py-0.5 rounded-full">Desactivado</span>
+                          {!user.emailVerified && (
+                            <span className="text-label-md text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Sin verificar</span>
                           )}
                         </div>
                         <p className="text-[12px] text-[var(--color-on-surface-variant)] mt-0.5">{user.email}</p>
-                        {user.lastLoginAt && (
-                          <p className="text-[11px] text-[var(--color-outline)] mt-0.5">
-                            Último acceso: {new Date(user.lastLoginAt).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}
-                          </p>
-                        )}
                       </div>
 
                       {/* Acciones */}
                       <div className="flex items-center gap-1 shrink-0">
-                        <button onClick={() => toggleActive(user)} title={user.isActive ? "Desactivar acceso" : "Activar acceso"}
-                          className={`w-9 h-9 rounded-full flex items-center justify-center transition-colors ${
-                            user.isActive
-                              ? "text-[var(--color-primary)] hover:bg-[var(--color-primary-container)]/20"
-                              : "text-[var(--color-outline)] hover:bg-[var(--color-surface-container-high)]"
-                          }`}>
-                          <ShieldCheck size={18} strokeWidth={1.5} />
-                        </button>
+                        {user.role !== "OWNER" && (
+                          <button onClick={() => toggleRole(user)} title="Cambiar rol"
+                            className="w-9 h-9 rounded-full flex items-center justify-center transition-colors text-[var(--color-primary)] hover:bg-[var(--color-primary-container)]/20">
+                            <ShieldCheck size={18} strokeWidth={1.5} />
+                          </button>
+                        )}
                         {user.role !== "OWNER" && (
                           <button onClick={() => handleDelete(user)} title="Eliminar usuario"
                             className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--color-outline)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-container)]/20 transition-colors">
