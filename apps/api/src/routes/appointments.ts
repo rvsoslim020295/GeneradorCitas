@@ -18,7 +18,7 @@ const createSchema = z.object({
 });
 
 const statusSchema = z.object({
-  status: z.enum(["PENDING", "CONFIRMED", "COMPLETED", "CANCELLED", "NO_SHOW"]),
+  status: z.enum(["PENDING", "CONFIRMED", "IN_PROGRESS", "COMPLETED", "CANCELLED", "NO_SHOW", "RESCHEDULED"]),
 });
 
 const paymentSchema = z.object({

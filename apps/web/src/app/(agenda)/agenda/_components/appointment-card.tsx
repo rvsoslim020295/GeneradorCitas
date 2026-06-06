@@ -1,4 +1,4 @@
-import { Clock, CheckCircle, CheckCheck } from "lucide-react";
+import { Clock, CheckCircle, CheckCheck, Loader2, RefreshCw } from "lucide-react";
 
 // Paleta de 8 colores distintos para colaboradores
 export const COLLAB_PALETTE = [
@@ -12,12 +12,16 @@ export const COLLAB_PALETTE = [
   { bg: "#f0fdf4", border: "#22c55e", text: "#14532d" }, // green
 ];
 
-type AppointmentStatus = "pending" | "confirmed" | "completed";
+type AppointmentStatus = "pending" | "confirmed" | "in_progress" | "completed" | "cancelled" | "no_show" | "rescheduled";
 
 const statusIcon: Record<AppointmentStatus, React.FC<{ size: number; strokeWidth: number }>> = {
-  pending: Clock,
-  confirmed: CheckCircle,
-  completed: CheckCheck,
+  pending:     Clock,
+  confirmed:   CheckCircle,
+  in_progress: Loader2,
+  completed:   CheckCheck,
+  cancelled:   Clock,
+  no_show:     Clock,
+  rescheduled: RefreshCw,
 };
 
 type AppointmentCardProps = {

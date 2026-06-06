@@ -16,14 +16,16 @@ import {
   useRegisterDeposit,
 } from "@/lib/api/hooks";
 
-type AppointmentStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+type AppointmentStatus = "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "NO_SHOW" | "RESCHEDULED";
 
 const statusConfig: Record<AppointmentStatus, { label: string; bg: string; dot: string; text: string }> = {
-  PENDING:   { label: "Pendiente",  bg: "bg-[var(--color-tertiary-fixed)]/30 border-[var(--color-tertiary-fixed)]",   dot: "bg-[var(--color-tertiary)]",   text: "text-[var(--color-tertiary)]" },
-  CONFIRMED: { label: "Confirmada", bg: "bg-[var(--color-secondary-fixed)]/30 border-[var(--color-secondary-fixed)]", dot: "bg-[var(--color-secondary)]", text: "text-[var(--color-secondary)]" },
-  COMPLETED: { label: "Completada", bg: "bg-emerald-50 border-emerald-200",  dot: "bg-emerald-500", text: "text-emerald-700" },
-  CANCELLED: { label: "Cancelada",  bg: "bg-[var(--color-error-container)]/30 border-[var(--color-error-container)]", dot: "bg-[var(--color-error)]",  text: "text-[var(--color-error)]" },
-  NO_SHOW:   { label: "No se presentó", bg: "bg-[var(--color-surface-variant)] border-[var(--color-outline-variant)]", dot: "bg-[var(--color-outline)]", text: "text-[var(--color-on-surface-variant)]" },
+  PENDING:     { label: "Pendiente",      bg: "bg-[var(--color-tertiary-fixed)]/30 border-[var(--color-tertiary-fixed)]",   dot: "bg-[var(--color-tertiary)]",   text: "text-[var(--color-tertiary)]" },
+  CONFIRMED:   { label: "Confirmada",     bg: "bg-[var(--color-secondary-fixed)]/30 border-[var(--color-secondary-fixed)]", dot: "bg-[var(--color-secondary)]", text: "text-[var(--color-secondary)]" },
+  IN_PROGRESS: { label: "En progreso",    bg: "bg-blue-50 border-blue-200",         dot: "bg-blue-500",    text: "text-blue-700" },
+  COMPLETED:   { label: "Completada",     bg: "bg-emerald-50 border-emerald-200",   dot: "bg-emerald-500", text: "text-emerald-700" },
+  CANCELLED:   { label: "Cancelada",      bg: "bg-[var(--color-error-container)]/30 border-[var(--color-error-container)]", dot: "bg-[var(--color-error)]", text: "text-[var(--color-error)]" },
+  NO_SHOW:     { label: "No se presentó", bg: "bg-[var(--color-surface-variant)] border-[var(--color-outline-variant)]",   dot: "bg-[var(--color-outline)]", text: "text-[var(--color-on-surface-variant)]" },
+  RESCHEDULED: { label: "Reagendada",     bg: "bg-orange-50 border-orange-200",     dot: "bg-orange-500",  text: "text-orange-700" },
 };
 
 const MOCK_TIMELINE = [
@@ -247,12 +249,23 @@ export default function CitaDetailPage() {
                   </div>
                 </div>
 
-                {!["COMPLETED", "CANCELLED", "NO_SHOW"].includes(appointment.status) && (
+                {!["COMPLETED", "CANCELLED", "NO_SHOW", "RESCHEDULED"].includes(appointment.status) && (
                   <div className="space-y-3 pt-1">
                     {actionError && (
                       <div className="text-body-md text-[var(--color-error)] bg-[var(--color-error-container)]/30 border border-[var(--color-error-container)] rounded-lg px-3 py-2">
                         {actionError}
                       </div>
+                    )}
+
+                    {appointment.status === "CONFIRMED" && (
+                      <button
+                        onClick={() => handleUpdateStatus("IN_PROGRESS")}
+                        disabled={updating}
+                        className="w-full bg-blue-50 hover:bg-blue-100 text-blue-700 border border-blue-200 text-label-md font-semibold py-2.5 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-60"
+                      >
+                        <Clock size={16} strokeWidth={1.5} />
+                        {updating ? "..." : "Iniciar servicio"}
+                      </button>
                     )}
 
                     <div className="grid grid-cols-2 gap-3">
@@ -359,7 +372,11 @@ export default function CitaDetailPage() {
 
                     <div className="grid grid-cols-2 gap-3">
                       <button
-                        onClick={() => appointment && router.push(`/nueva-cita?clientId=${appointment.client.id}`)}
+                        onClick={async () => {
+                          if (!appointment) return;
+                          await handleUpdateStatus("RESCHEDULED", "¿Marcar esta cita como reagendada y crear una nueva?");
+                          router.push(`/nueva-cita?clientId=${appointment.client.id}`);
+                        }}
                         disabled={updating}
                         className="w-full bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] text-[var(--color-on-surface)] border border-[var(--color-outline-variant)] text-label-md font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
                       >

@@ -58,9 +58,11 @@ enum Role {
 enum AppointmentStatus {
   PENDING
   CONFIRMED
+  IN_PROGRESS
   COMPLETED
   CANCELLED
   NO_SHOW
+  RESCHEDULED
 }
 
 // Una cita conecta cliente, colaborador y servicio en un horario específico
