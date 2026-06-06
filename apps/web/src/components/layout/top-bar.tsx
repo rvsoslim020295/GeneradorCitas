@@ -19,9 +19,10 @@ const NOTIF_ICON: Record<NotifType, React.ReactNode> = {
 
 type TopBarProps = {
   searchPlaceholder?: string;
+  hideSearch?: boolean;
 };
 
-export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita..." }: TopBarProps) {
+export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...", hideSearch = false }: TopBarProps) {
   const router = useRouter();
   const { theme, toggle: toggleTheme } = useTheme();
   const [showProfile, setShowProfile] = useState(false);
@@ -97,7 +98,7 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
   return (
     <header className="bg-[var(--color-surface)]/80 backdrop-blur-md fixed top-0 right-0 w-[calc(100%-16rem)] h-16 border-b border-[var(--color-outline-variant)] flex justify-between items-center px-6 z-30">
       {/* Búsqueda global */}
-      <GlobalSearch placeholder={searchPlaceholder} />
+      {hideSearch ? <div /> : <GlobalSearch placeholder={searchPlaceholder} />}
 
       {/* Acciones */}
       <div className="flex items-center gap-3">
