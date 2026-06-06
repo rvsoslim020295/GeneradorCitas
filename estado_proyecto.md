@@ -1,8 +1,8 @@
 # Estado del Proyecto — GlowManager
-**Fecha:** 5 de Junio 2026  
-**Versión:** 3.0  
+**Fecha:** 6 de Junio 2026  
+**Versión:** 4.0  
 **Repositorio:** https://github.com/rvsoslim020295/GeneradorCitas  
-**Rama activa:** `feat/tanstack-query` (PR #26, pendiente de merge)
+**Rama activa:** `main` (todos los PRs mergeados)
 
 ---
 
@@ -10,7 +10,7 @@
 
 GlowManager es un panel administrativo B2B para negocios de belleza (salones, barberías, spas, nail bars). Permite gestionar citas, clientes, colaboradores, servicios, pagos y reportes desde una interfaz web orientada a dueños y recepcionistas en desktop.
 
-**Estado actual:** MVP 100% funcional. Esta sesión (v3.0) resolvió los bugs de alta y media prioridad: comparativos reales en KPIs, validación de anticipo, separación correcta de precio base vs monto cobrado, y una refactorización completa del módulo de reportes con desglose de ingresos por servicios y propinas.
+**Estado actual:** MVP 100% funcional y production-ready en seguridad. Esta sesión (v4.0) resolvió los bugs de seguridad BUG-04 y BUG-05 (JWT httpOnly + protección de rutas), BUG-03 (logo a Supabase Storage) y agregó los estados `IN_PROGRESS` y `RESCHEDULED` a las citas.
 
 ---
 
@@ -33,8 +33,9 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
 | Framework | Hono.js |
 | ORM | Prisma 7.8 |
 | Base de datos | PostgreSQL |
-| Autenticación | JWT — expira en 7 días |
+| Autenticación | JWT en httpOnly cookie — expira en 7 días |
 | Email | Nodemailer (SMTP Gmail) |
+| Storage | Supabase Storage (bucket `logos`) |
 | Runtime | Node.js (tsx watch) |
 
 ### Infraestructura
@@ -43,6 +44,7 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
 | Frontend | Vercel (planificado) |
 | Backend | Railway (planificado) |
 | Base de datos | Supabase PostgreSQL (planificado) |
+| Storage | Supabase Storage (activo) |
 | Monorepo | pnpm workspaces |
 
 ---
@@ -82,7 +84,7 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
   servicios/nuevo/
   reportes/                 RPT-01 — Analytics completo con desglose de ingresos
   configuracion/            CFG hub
-  configuracion/negocio/    CFG-01 — Datos del negocio
+  configuracion/negocio/    CFG-01 — Datos del negocio + upload de logo a Supabase
   configuracion/agenda/     CFG-02 — Días, horario apertura/cierre, cancelación
   configuracion/usuarios/   CFG-03
   configuracion/whatsapp/   CFG-04
@@ -90,6 +92,8 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
 
 ### Componentes globales
 ```
+src/middleware.ts            Protección de rutas — redirige según cookie gm_token
+
 src/components/layout/
   sidebar.tsx          Navegación lateral — filtro por rol
   top-bar.tsx          TopBar con prop hideSearch para páginas con buscador propio
@@ -97,14 +101,14 @@ src/components/layout/
   query-provider.tsx   QueryClientProvider + ReactQuery DevTools
 
 src/lib/api/
-  client.ts            apiFetch — centraliza auth header y redirección 401
+  client.ts            apiFetch — credentials: "include", sin header Authorization manual
 
 src/lib/api/hooks/
   index.ts             Barrel de exports
   use-clients.ts
   use-collaborators.ts
   use-services.ts
-  use-appointments.ts  → tipo Appointment incluye paidAmount
+  use-appointments.ts  → tipo Appointment incluye los 7 estados + paidAmount
   use-analytics.ts     → tipos CollaboratorStat, AnalyticsData con chartType
   use-notifications.ts
   use-settings.ts      → incluye openTime, closeTime en el tipo Settings
@@ -114,7 +118,7 @@ src/lib/hooks/
   use-debounce.ts
 
 src/hooks/
-  use-role.ts          Lee rol del usuario desde localStorage
+  use-role.ts          Lee rol del usuario desde localStorage (gm_user, no gm_token)
 ```
 
 ---
@@ -126,20 +130,22 @@ src/hooks/
 | Archivo | Rutas |
 |---|---|
 | `auth.ts` | `POST /auth/register` — crea negocio + usuario, genera token de verificación, envía email |
-| `auth.ts` | `GET /auth/verify-email?token=` — verifica cuenta, retorna JWT |
-| `auth.ts` | `POST /auth/login` — bloquea si `emailVerified = false` (403) |
-| `auth.ts` | `GET /auth/me` — incluye `logoUrl` del negocio |
+| `auth.ts` | `GET /auth/verify-email?token=` — verifica cuenta, setea cookie httpOnly, retorna user |
+| `auth.ts` | `POST /auth/login` — bloquea si `emailVerified = false` (403), setea cookie httpOnly |
+| `auth.ts` | `POST /auth/logout` — borra cookie `gm_token` (Max-Age=0) |
+| `auth.ts` | `GET /auth/me` — incluye `logoUrl` del negocio y datos de trial |
 | `clients.ts` | CRUD `/clients` |
 | `collaborators.ts` | CRUD `/collaborators` + ausencias. Al crear → guarda schedule default Lun–Vie 09:00–18:00 |
 | `services.ts` | CRUD `/services` |
 | `appointments.ts` | CRUD `/appointments` — valida horario negocio (422), valida conflicto de cliente (409) |
-| `appointments.ts` | `PATCH /appointments/:id/status` |
+| `appointments.ts` | `PATCH /appointments/:id/status` — acepta los 7 estados |
 | `appointments.ts` | `POST /appointments/:id/payment` — guarda `paidAmount`, no modifica `price` |
 | `appointments.ts` | `POST /appointments/:id/deposit` — valida que anticipo ≤ price (422) |
 | `availability.ts` | `GET /availability/slots` — intersecta horario colaborador ∩ negocio, filtra slots pasados si es hoy |
 | `notifications.ts` | `GET /notifications` |
 | `analytics.ts` | `GET /analytics?period=` — soporta: `this_week`, `last_week`, `this_month`, `this_year` |
 | `settings.ts` | `GET /settings`, `PATCH /settings/business`, `PATCH /settings/agenda` |
+| `settings.ts` | `POST /settings/logo` — sube imagen a Supabase Storage, guarda URL en business.logoUrl |
 
 ### Lógica de períodos en Analytics
 
@@ -158,19 +164,30 @@ src/lib/
 ```
 
 ### Middleware
-- `auth.ts` — `requireAuth`: verifica JWT, expone `c.get("user")` con `{ userId, email, businessId, role }`
+- `auth.ts` — `requireAuth`: verifica JWT desde cookie `gm_token` o header `Authorization`, expone `c.get("user")`
+- CORS: `credentials: true`, origin desde env `FRONTEND_URL`
 
 ---
 
 ## 5. Schema Prisma (estado actual)
 
 ```prisma
+enum AppointmentStatus {
+  PENDING
+  CONFIRMED
+  IN_PROGRESS
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+  RESCHEDULED
+}
+
 model Business {
   id                String   @id @default(cuid())
   name              String   @default("")
   type              String   @default("")
   ruc               String?
-  logoUrl           String?
+  logoUrl           String?  ← URL pública de Supabase Storage (no base64)
   phone             String?
   address           String?
   timezone          String   @default("America/Mexico_City")
@@ -202,6 +219,7 @@ model Appointment {
   paidAmount     Float?      ← precio base + propina (se llena al cobrar)
   depositAmount  Float?      ← anticipo registrado (≤ price)
   paymentMethod  String?
+  status         AppointmentStatus @default(PENDING)
   ...
 }
 ```
@@ -216,66 +234,54 @@ depositAmount ≤ price                    ← validado en backend (422) y front
 
 ---
 
-## 6. Lo implementado en esta sesión (v3.0)
+## 6. Variables de entorno
 
-### 6.1 Comparativos reales en KPIs (BUG-02 ✅)
-- Backend calcula un período previo equivalente por tipo: semana anterior, 4 semanas antes, mes calendario anterior, mismo YTD año anterior
-- Respuesta incluye `totalAppointmentsPrev`, `completedAppointmentsPrev`, `totalRevenuePrev`, `tipRevenuePrev`, `noShowRatePrev`
-- Componente `KpiDelta` en `/reportes`: muestra `+X% vs período ant.` en verde o rojo según tendencia. "Sin datos anteriores" si prev=0
+### Backend (`apps/api/.env`)
+```
+DATABASE_URL=postgresql://...
+JWT_SECRET=...
+FRONTEND_URL=http://localhost:3000
+SUPABASE_URL=https://smpsncdzdvoanqxieicc.supabase.co
+SUPABASE_SERVICE_KEY=sb_secret_...
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=587
+SMTP_USER=...
+SMTP_PASS=...
+APP_URL=http://localhost:3000
+TZ=America/Lima   ← OBLIGATORIO en producción
+```
 
-### 6.2 Fix de disponibilidad y slots
-- `use-availability` corregido: tipaba `Slot[]` pero el backend retorna `{ slots: string[], slotDuration: number }`
-- Slots de horas pasadas filtrados cuando la fecha es hoy (`nowMinutes` en el backend)
-- Bug de zona horaria corregido: `getUTCHours()` → `getHours()` en validación de horario de citas y rangos ocupados en availability
-
-### 6.3 Schedule default en colaboradores nuevos
-- `POST /collaborators`: si no viene `schedule` en el body, el backend persiste Lun–Vie 09:00–18:00 automáticamente
-- Evita el estado `schedule = null` que bloqueaba la disponibilidad de colaboradores recién creados
-
-### 6.4 Separación price / paidAmount (BUG en datos ✅)
-- Nuevo campo `paidAmount Float?` en Appointment (via `db push`)
-- `POST /appointments/:id/payment` ya no sobreescribe `price`; guarda `paidAmount: price * (1 + tipPercent)`
-- Datos existentes en BD normalizados: `price` revertido a precio base, `paidAmount` al total real
-- Analytics usa `price` para `serviceRevenue` y `paidAmount - price` para `tipRevenue`
-
-### 6.5 Validación de anticipo (BUG-01 ✅)
-- Backend: `POST /:id/deposit` retorna 422 si `depositAmount > price`
-- Frontend: validación en `handleSaveDeposit` antes de llamar al hook
-- UX: input en modo "monto fijo" muestra borde rojo y error inline en tiempo real; botón "Guardar Anticipo" deshabilitado si el monto es inválido
-
-### 6.6 Módulo de Reportes — refactorización completa
-**Ingresos desglosados en 3 cards:**
-- `POR SERVICIOS` — precio base de citas completadas
-- `PROPINAS` — monto de propinas con delta vs período anterior
-- `TOTAL` — suma con delta vs período anterior
-
-**Top 3 Colaboradores:**
-- Ordenado por `serviceRevenue` (precio base, sin propina)
-- Muestra precio base + propina en verde separados
-- % calculado sobre ingresos de servicios, no sobre total
-
-**Tabla "Todos los Colaboradores":**
-- Columnas: Nombre | Citas | Servicios | Propinas | Total
-- Fila de totales al pie que cuadra con los KPIs globales
-
-**Períodos:**
-- `Esta Semana` (default): Dom–Sáb actual, 7 barras diarias
-- `Semana Pasada`: Dom–Sáb anterior, 7 barras diarias
-- `Este Mes (4 semanas)`: 4 semanas dom–sáb que incluyen hoy, 4 barras semanales — título "Ingresos por Semana"
-- `Este Año`: barras mensuales (sin cambios)
-- Eliminado `Últimos 30 días` (redundante)
-- Título del gráfico dinámico según `chartType` devuelto por el backend
-
-### 6.7 UX — TopBar sin buscador duplicado
-- `TopBar` recibe prop `hideSearch` (boolean)
-- Páginas Clientes, Colaboradores y Servicios usan `<TopBar hideSearch />` para no mostrar el buscador global (ya tienen buscador propio en la página)
-
-### 6.8 Fix console error AppointmentCard
-- Conflicto entre propiedades CSS shorthand `border` + `borderLeft` + `borderLeftWidth` resuelto usando propiedades individuales (`borderTopWidth`, `borderRightWidth`, etc.)
+### Frontend (`apps/web/.env.local`)
+```
+NEXT_PUBLIC_API_URL=http://localhost:3001
+```
 
 ---
 
-## 7. Pantallas — Estado Final
+## 7. Convención de datos
+
+```ts
+// ✅ Siempre así
+import { useClients, useSettings, useAnalytics } from "@/lib/api/hooks";
+const { data: clients, isLoading } = useClients(search);
+const { data: settings } = useSettings();
+const { data: analytics } = useAnalytics("this_week");
+
+// Slots de disponibilidad — formato correcto del backend
+const { data: slotsData } = useAvailabilitySlots(collaboratorId, serviceId, date);
+const slots = slotsData?.slots ?? []; // string[], NO Slot[]
+
+// ❌ Nunca más así
+const token = localStorage.getItem("gm_token"); // ← token ya no existe en localStorage
+const res = await fetch(`${API_URL}/clients`, { headers: { Authorization: `Bearer ${token}` } });
+
+// ✅ Para fetch directo (fuera de hooks)
+const res = await fetch(`${API_URL}/ruta`, { credentials: "include" });
+```
+
+---
+
+## 8. Pantallas — Estado Final
 
 | ID | Pantalla | Estado |
 |---|---|---|
@@ -298,7 +304,7 @@ depositAmount ≤ price                    ← validado en backend (422) y front
 | SRV-01 | Catálogo de servicios | ✅ |
 | SRV-02 | Formulario nuevo/editar servicio | ✅ |
 | RPT-01 | Reportes con desglose servicios/propinas y tabla de colaboradores | ✅ |
-| CFG-01 | Datos del negocio | ✅ |
+| CFG-01 | Datos del negocio + logo en Supabase Storage | ✅ |
 | CFG-02 | Agenda y políticas | ✅ |
 | CFG-03 | Gestión de usuarios del sistema | ✅ |
 | CFG-04 | Notificaciones WhatsApp (UI) | ✅ |
@@ -310,56 +316,31 @@ depositAmount ≤ price                    ← validado en backend (422) y front
 
 ---
 
-## 8. Convención de datos
-
-```ts
-// ✅ Siempre así
-import { useClients, useSettings, useAnalytics } from "@/lib/api/hooks";
-const { data: clients, isLoading } = useClients(search);
-const { data: settings } = useSettings();
-const { data: analytics } = useAnalytics("this_week");
-
-// Slots de disponibilidad — formato correcto del backend
-const { data: slotsData } = useAvailabilitySlots(collaboratorId, serviceId, date);
-const slots = slotsData?.slots ?? []; // string[], NO Slot[]
-
-// ❌ Nunca más así
-const token = localStorage.getItem("gm_token");
-const res = await fetch(`${API_URL}/clients`, { headers: { Authorization: `Bearer ${token}` } });
-```
-
----
-
 ## 9. Bugs Pendientes
 
 | ID | Descripción | Severidad | Módulo | Estado |
 |---|---|---|---|---|
 | BUG-01 | Anticipo sin validación | Media | Citas | ✅ Resuelto |
 | BUG-02 | KPIs hardcodeados | Media | Reportes | ✅ Resuelto |
-| BUG-03 | Logo en base64 en BD — límite de payload | Baja | Configuración | Pendiente |
-| BUG-04 | Protección de rutas solo client-side | Media | Seguridad | Pendiente |
-| BUG-05 | JWT en localStorage (XSS) | Media | Seguridad | Pendiente |
+| BUG-03 | Logo en base64 en BD | Baja | Configuración | ✅ Resuelto — Supabase Storage |
+| BUG-04 | Protección de rutas solo client-side | Media | Seguridad | ✅ Resuelto — middleware.ts |
+| BUG-05 | JWT en localStorage (XSS) | Media | Seguridad | ✅ Resuelto — httpOnly cookie |
+
+**Sin bugs pendientes conocidos.**
 
 ---
 
 ## 10. Deuda Técnica Pendiente
 
-### Alta prioridad
-| Item | Descripción |
-|---|---|
-| Protección de rutas server-side | Middleware Next.js + validación de rol en endpoints del backend |
-| Migrar JWT a httpOnly cookie | Token en localStorage — menos seguro en producción |
-
 ### Media prioridad
 | Item | Descripción |
 |---|---|
-| Almacenamiento de logo | Migrar de base64 en BD a servicio de storage (S3, Cloudinary, Supabase Storage) |
-| `IN_PROGRESS` / `RESCHEDULED` | Estados adicionales no implementados en schema ni UI |
+| `IN_PROGRESS` / `RESCHEDULED` | Estados implementados en schema y UI ✅ |
+| WhatsApp real | CFG-04 tiene la UI pero sin integración Twilio/Meta ni cron job |
 
 ### Baja prioridad
 | Item | Descripción |
 |---|---|
-| WhatsApp real | CFG-04 tiene la UI pero sin integración Twilio/Meta ni cron job |
 | Drag & drop en calendario | Evaluar migrar a FullCalendar |
 | `payments` tabla separada | El pago está inline en `Appointment` |
 | `staff_services` N:M | Especialidades como `String[]` en lugar de tabla puente |
@@ -375,17 +356,21 @@ const res = await fetch(`${API_URL}/clients`, { headers: { Authorization: `Beare
 | #23 | feat(cita-detail): modal centrado, Cobrar/Completar, anticipo | ✅ Mergeado |
 | #24 | feat(data): integrar TanStack Query v5 | ✅ Mergeado |
 | #25 | feat(data): completar migración TanStack Query | ✅ Mergeado |
-| #26 | feat: comparativos reales, BUG-01, paidAmount, reportes completos | 🔄 Pendiente de merge |
+| #26 | feat: comparativos reales, BUG-01, paidAmount, reportes completos | ✅ Mergeado |
+| #27 | feat: verificación de email, reportes completos y correcciones BUG-01/02 | ✅ Mergeado |
+| #28 | feat(BUG-03): migrar logo a Supabase Storage | ✅ Mergeado |
+| #29 | feat: estados IN_PROGRESS y RESCHEDULED en citas | ✅ Mergeado |
+| #30 | feat(security): migrar JWT a httpOnly cookie + protección de rutas | ✅ Mergeado |
 
 ---
 
 ## 12. Próximos Pasos Sugeridos
 
-1. **Merge PR #26** — incluye todos los cambios de esta sesión
-2. **BUG-04 — Protección de rutas server-side** — middleware Next.js + validación de rol por endpoint en backend
-3. **BUG-05 — Migrar JWT a httpOnly cookie** — más invasivo, toca todo el flujo de auth
-4. **BUG-03 — Migrar logo a storage externo** — requiere cuenta en Cloudinary o Supabase Storage
-5. **Estados `IN_PROGRESS` / `RESCHEDULED`** — agregar al schema y a la UI de detalle de cita
+1. **Deploy a producción** — Frontend en Vercel, Backend en Railway, BD en Supabase PostgreSQL
+2. **WhatsApp real** — integración Twilio o Meta Cloud API + cron job de recordatorios
+3. **Drag & drop en calendario** — evaluar FullCalendar
+4. **`payments` tabla separada** — mejor trazabilidad financiera
+5. **Responsividad móvil** — actualmente solo desktop
 
 ---
 
@@ -396,3 +381,5 @@ Al desplegar en Railway, agregar la variable de entorno:
 TZ=America/Lima
 ```
 El backend usa `getHours()` (hora local del proceso) para validar horarios de citas y slots de disponibilidad. Sin esta variable, los cálculos serán incorrectos en servidores con TZ diferente.
+
+Además configurar `FRONTEND_URL` con la URL real de Vercel para que CORS y las cookies funcionen correctamente en producción.
