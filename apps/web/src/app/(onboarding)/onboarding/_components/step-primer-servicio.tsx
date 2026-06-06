@@ -18,13 +18,12 @@ export function StepPrimerServicio({ onNext }: Props) {
 
   async function handleNext() {
     if (!name || !price) return;
-    const token = localStorage.getItem("gm_token");
-    if (!token) { onNext(); return; }
     setLoading(true);
     try {
       await fetch(`${API_URL}/services`, {
         method: "POST",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, price: parseFloat(price), durationMin: parseInt(duration), category: "General" }),
       });
     } catch {

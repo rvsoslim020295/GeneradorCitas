@@ -56,10 +56,8 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
   }, []);
 
   const fetchNotifs = useCallback(async () => {
-    const token = localStorage.getItem("gm_token");
-    if (!token) return;
     try {
-      const res = await fetch(`${API_URL}/notifications`, { headers: { Authorization: `Bearer ${token}` } });
+      const res = await fetch(`${API_URL}/notifications`, { credentials: "include" });
       if (res.ok) {
         const data = await res.json();
         setNotifs(Array.isArray(data.items) ? data.items : []);
@@ -82,9 +80,9 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  function handleLogout() {
-    localStorage.removeItem("gm_token");
+  async function handleLogout() {
     localStorage.removeItem("gm_user");
+    await fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" }).catch(() => {});
     router.push("/login");
   }
 

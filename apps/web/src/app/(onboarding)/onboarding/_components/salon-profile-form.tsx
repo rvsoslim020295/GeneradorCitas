@@ -26,22 +26,18 @@ export function SalonProfileForm({ onNext }: Props) {
       return;
     }
 
-    const token = localStorage.getItem("gm_token");
-
-    // Si hay token, actualizamos el negocio con los datos del onboarding
-    if (token) {
-      setLoading(true);
-      try {
-        await fetch(`${API_URL}/settings/business`, {
-          method: "PATCH",
-          headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-          body: JSON.stringify({ name, type }),
-        });
-      } catch {
-        // Si falla silenciosamente, igualmente navegamos al dashboard
-      } finally {
-        setLoading(false);
-      }
+    setLoading(true);
+    try {
+      await fetch(`${API_URL}/settings/business`, {
+        method: "PATCH",
+        credentials: "include",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, type }),
+      });
+    } catch {
+      // Si falla silenciosamente, igualmente navegamos al dashboard
+    } finally {
+      setLoading(false);
     }
 
     onNext();

@@ -27,6 +27,7 @@ export default function LoginPage() {
     try {
       const res = await fetch(`${API_URL}/auth/login`, {
         method: "POST",
+        credentials: "include",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ email, password }),
       });
@@ -43,8 +44,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Guardamos el token y los datos del usuario en localStorage
-      localStorage.setItem("gm_token", data.token);
+      // Token viene como httpOnly cookie — solo guardamos datos de display
       localStorage.setItem("gm_user", JSON.stringify(data.user));
 
       router.push("/dashboard");

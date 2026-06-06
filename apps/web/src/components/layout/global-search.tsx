@@ -38,16 +38,14 @@ export function GlobalSearch({ placeholder = "Buscar cliente, servicio o cita...
   const debouncedQuery = useDebounce(query, 300);
 
   const search = useCallback(async (q: string) => {
-    const token = localStorage.getItem("gm_token");
-    if (!token || q.trim().length < 2) { setResults(EMPTY); setLoading(false); return; }
+    if (q.trim().length < 2) { setResults(EMPTY); setLoading(false); return; }
     setLoading(true);
-    const h = { Authorization: `Bearer ${token}` };
     try {
       const enc = encodeURIComponent(q);
       const [clients, servicesRes, appointments] = await Promise.all([
-        fetch(`${API_URL}/clients?search=${enc}`, { headers: h }).then(r => r.ok ? r.json() : []),
-        fetch(`${API_URL}/services?search=${enc}`, { headers: h }).then(r => r.ok ? r.json() : []),
-        fetch(`${API_URL}/appointments?search=${enc}`, { headers: h }).then(r => r.ok ? r.json() : []),
+        fetch(`${API_URL}/clients?search=${enc}`, { credentials: "include" }).then(r => r.ok ? r.json() : []),
+        fetch(`${API_URL}/services?search=${enc}`, { credentials: "include" }).then(r => r.ok ? r.json() : []),
+        fetch(`${API_URL}/appointments?search=${enc}`, { credentials: "include" }).then(r => r.ok ? r.json() : []),
       ]);
       // /services devuelve { services, grouped } — extraemos el array plano
       const serviceList = Array.isArray(servicesRes) ? servicesRes : (servicesRes?.services ?? []);

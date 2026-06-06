@@ -33,12 +33,7 @@ export function Sidebar({ activePath }: SidebarProps) {
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
 
   useEffect(() => {
-    const token = localStorage.getItem("gm_token");
-    if (!token) return;
-
-    fetch(`${API_URL}/auth/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-    })
+    fetch(`${API_URL}/auth/me`, { credentials: "include" })
       .then((r) => r.ok ? r.json() : null)
       .then((data) => {
         if (data?.business?.trialDaysLeft !== undefined) {

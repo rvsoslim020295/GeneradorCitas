@@ -56,8 +56,13 @@ auth.post("/login", async (c) => {
     { expiresIn: "7d" }
   );
 
+  const isProduction = process.env.NODE_ENV === "production";
+  c.header(
+    "Set-Cookie",
+    `gm_token=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800${isProduction ? "; Secure" : ""}`
+  );
+
   return c.json({
-    token,
     user: {
       id: user.id,
       name: user.name,
@@ -136,14 +141,25 @@ auth.get("/verify-email", async (c) => {
     data: { emailVerified: true, emailVerificationToken: null },
   });
 
-  // Devolvemos un JWT para que el frontend pueda continuar al onboarding
   const jwt_token = jwt.sign(
     { userId: user.id, email: user.email, businessId: user.businessId, role: user.role },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
 
-  return c.json({ token: jwt_token, user: { id: user.id, name: user.name, email: user.email } });
+  const isProduction = process.env.NODE_ENV === "production";
+  c.header(
+    "Set-Cookie",
+    `gm_token=${jwt_token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800${isProduction ? "; Secure" : ""}`
+  );
+
+  return c.json({ user: { id: user.id, name: user.name, email: user.email } });
+});
+
+// ─── POST /auth/logout ───────────────────────────────────────────────────────
+auth.post("/logout", (c) => {
+  c.header("Set-Cookie", "gm_token=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0");
+  return c.json({ ok: true });
 });
 
 // ─── GET /auth/me ─────────────────────────────────────────────────────────────

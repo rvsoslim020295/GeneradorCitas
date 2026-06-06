@@ -20,7 +20,7 @@ function VerificarEmailContent() {
       return;
     }
 
-    fetch(`${API_URL}/auth/verify-email?token=${token}`)
+    fetch(`${API_URL}/auth/verify-email?token=${token}`, { credentials: "include" })
       .then(async (res) => {
         const data = await res.json();
         if (!res.ok) {
@@ -28,8 +28,7 @@ function VerificarEmailContent() {
           setMessage(data.error ?? "El enlace es inválido o ya fue utilizado.");
           return;
         }
-        // Guardar token y redirigir al onboarding
-        localStorage.setItem("gm_token", data.token);
+        // Token viene como httpOnly cookie — solo guardamos datos de display
         localStorage.setItem("gm_user", JSON.stringify(data.user));
         setStatus("success");
         setTimeout(() => router.push("/onboarding"), 2000);
