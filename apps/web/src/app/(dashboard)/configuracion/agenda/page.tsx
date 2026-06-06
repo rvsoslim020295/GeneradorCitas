@@ -3,11 +3,11 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ShieldAlert, CalendarCheck, CheckCircle, AlertCircle } from "lucide-react";
+import { ArrowLeft, ShieldAlert, CalendarCheck, Clock, CheckCircle, AlertCircle, Save } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api/client";
 
 const DAYS = [
   { id: "Mon", label: "Lun" },
@@ -19,28 +19,70 @@ const DAYS = [
   { id: "Sun", label: "Dom" },
 ];
 
+// Genera opciones de tiempo de 00:00 a 23:30 en pasos de 30 min
+function timeOptions() {
+  const opts: string[] = [];
+  for (let h = 0; h < 24; h++) {
+    for (const m of [0, 30]) {
+      opts.push(`${String(h).padStart(2, "0")}:${String(m).padStart(2, "0")}`);
+    }
+  }
+  return opts;
+}
+
+const TIME_OPTIONS = timeOptions();
+
+function fmt12(time: string) {
+  const [h, m] = time.split(":").map(Number);
+  const period = h >= 12 ? "PM" : "AM";
+  const h12 = h % 12 || 12;
+  return `${h12}:${String(m).padStart(2, "0")} ${period}`;
+}
+
+type BusinessSettings = {
+  cancellationHours: number;
+  operatingDays: string[];
+  openTime: string;
+  closeTime: string;
+};
+
 export default function AgendaConfigPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [saving, setSaving] = useState(false);
+  const qc = useQueryClient();
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
+  const [initialized, setInitialized] = useState(false);
 
   const [cancellationHours, setCancellationHours] = useState(24);
   const [operatingDays, setOperatingDays] = useState<string[]>(["Mon", "Tue", "Wed", "Thu", "Fri"]);
+  const [openTime, setOpenTime] = useState("09:00");
+  const [closeTime, setCloseTime] = useState("18:00");
+
+  const { data: settings, isLoading } = useQuery<{ business: BusinessSettings }>({
+    queryKey: ["settings"],
+    queryFn: () => apiFetch<{ business: BusinessSettings }>("/settings"),
+  });
 
   useEffect(() => {
-    const token = localStorage.getItem("gm_token");
-    if (!token) { router.push("/login"); return; }
+    if (settings?.business && !initialized) {
+      const b = settings.business;
+      setCancellationHours(b.cancellationHours ?? 24);
+      setOperatingDays(b.operatingDays ?? ["Mon", "Tue", "Wed", "Thu", "Fri"]);
+      setOpenTime(b.openTime ?? "09:00");
+      setCloseTime(b.closeTime ?? "18:00");
+      setInitialized(true);
+    }
+  }, [settings, initialized]);
 
-    fetch(`${API_URL}/settings`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => r.ok ? r.json() : Promise.reject())
-      .then(({ business }: { business: { cancellationHours: number; operatingDays: string[] } }) => {
-        setCancellationHours(business.cancellationHours);
-        setOperatingDays(business.operatingDays);
-      })
-      .catch(() => router.push("/configuracion"))
-      .finally(() => setLoading(false));
-  }, [router]);
+  const saveMutation = useMutation({
+    mutationFn: (body: Record<string, unknown>) =>
+      apiFetch("/settings/agenda", { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["settings"] });
+      setFeedback({ type: "success", msg: "Configuración guardada correctamente" });
+      setTimeout(() => setFeedback(null), 3000);
+    },
+    onError: () => setFeedback({ type: "error", msg: "Error al guardar. Intenta de nuevo." }),
+  });
 
   function toggleDay(day: string) {
     setOperatingDays((prev) =>
@@ -48,29 +90,20 @@ export default function AgendaConfigPage() {
     );
   }
 
-  async function handleSave() {
-    const token = localStorage.getItem("gm_token");
-    if (!token) return;
-    setSaving(true);
-    setFeedback(null);
-
-    try {
-      const res = await fetch(`${API_URL}/settings/agenda`, {
-        method: "PATCH",
-        headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ cancellationHours, operatingDays }),
-      });
-      if (!res.ok) throw new Error();
-      setFeedback({ type: "success", msg: "Configuración guardada correctamente" });
-      setTimeout(() => setFeedback(null), 3000);
-    } catch {
-      setFeedback({ type: "error", msg: "Error al guardar. Intenta de nuevo." });
-    } finally {
-      setSaving(false);
+  function handleSave() {
+    if (openTime >= closeTime) {
+      setFeedback({ type: "error", msg: "La hora de apertura debe ser anterior a la hora de cierre." });
+      return;
     }
+    saveMutation.mutate({ cancellationHours, operatingDays, openTime, closeTime });
   }
 
-  if (loading) return (
+  const saving = saveMutation.isPending;
+
+  const inputClass = "w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all appearance-none cursor-pointer";
+  const labelClass = "block text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-1";
+
+  if (isLoading) return (
     <>
       <Sidebar activePath="/configuracion" />
       <main className="flex-1 ml-64 flex items-center justify-center bg-[var(--color-background)]">
@@ -88,14 +121,21 @@ export default function AgendaConfigPage() {
           <div className="max-w-2xl mx-auto px-6 py-6 space-y-6">
 
             {/* Header */}
-            <div className="flex items-center gap-3">
-              <Link href="/configuracion" className="p-2 text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)] rounded-full transition-colors">
-                <ArrowLeft size={20} strokeWidth={1.5} />
-              </Link>
-              <div>
-                <h1 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Agenda y Políticas</h1>
-                <p className="text-body-md text-[var(--color-on-surface-variant)]">Configura cómo funciona tu calendario.</p>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-3">
+                <Link href="/configuracion" className="p-2 text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)] rounded-full transition-colors">
+                  <ArrowLeft size={20} strokeWidth={1.5} />
+                </Link>
+                <div>
+                  <h1 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Agenda y Políticas</h1>
+                  <p className="text-body-md text-[var(--color-on-surface-variant)]">Configura cómo funciona tu calendario.</p>
+                </div>
               </div>
+              <button onClick={handleSave} disabled={saving}
+                className="flex items-center gap-2 bg-[var(--color-primary)] text-[var(--color-on-primary)] text-label-md font-semibold uppercase tracking-wider px-4 py-2.5 rounded-lg hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors disabled:opacity-60">
+                <Save size={14} strokeWidth={2} />
+                {saving ? "Guardando..." : "Guardar"}
+              </button>
             </div>
 
             {feedback && (
@@ -105,39 +145,20 @@ export default function AgendaConfigPage() {
               </div>
             )}
 
-            {/* Cancellation Policy */}
-            <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-4">
-              <div className="flex items-center gap-2">
-                <ShieldAlert size={20} className="text-[var(--color-primary)]" strokeWidth={1.5} />
-                <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Política de Cancelación</h2>
-              </div>
-              <p className="text-body-md text-[var(--color-on-surface-variant)]">
-                Horas mínimas que requiere un cliente para cancelar o reagendar.
-              </p>
-              <div>
-                <label className="block text-[11px] font-semibold text-[var(--color-primary)] uppercase tracking-wider mb-1">
-                  Horas
-                </label>
-                <input type="number" min={0} value={cancellationHours}
-                  onChange={(e) => setCancellationHours(Number(e.target.value))}
-                  className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-primary)]/40 rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
-              </div>
-            </section>
-
-            {/* Operating Days */}
+            {/* Días de Operación */}
             <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-4">
               <div className="flex items-center gap-2">
                 <CalendarCheck size={20} className="text-[var(--color-primary)]" strokeWidth={1.5} />
                 <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Días de Operación</h2>
               </div>
               <p className="text-body-md text-[var(--color-on-surface-variant)]">
-                Selecciona los días en que tu salón acepta citas.
+                Selecciona los días en que tu negocio acepta citas.
               </p>
               <div className="flex flex-wrap gap-2">
                 {DAYS.map(({ id, label }) => {
                   const active = operatingDays.includes(id);
                   return (
-                    <button key={id} onClick={() => toggleDay(id)}
+                    <button key={id} type="button" onClick={() => toggleDay(id)}
                       className={`px-4 py-2 rounded-full text-body-md font-semibold transition-all ${
                         active
                           ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] shadow-sm"
@@ -147,6 +168,82 @@ export default function AgendaConfigPage() {
                     </button>
                   );
                 })}
+              </div>
+            </section>
+
+            {/* Horario de Atención */}
+            <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <Clock size={20} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+                <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Horario de Atención</h2>
+              </div>
+              <p className="text-body-md text-[var(--color-on-surface-variant)]">
+                Rango de horas en que tu negocio atiende clientes, aplicado a todos los días de operación.
+              </p>
+
+              <div className="grid grid-cols-2 gap-4">
+                {/* Apertura */}
+                <div>
+                  <label className={labelClass}>Hora de apertura</label>
+                  <div className="relative">
+                    <select value={openTime} onChange={(e) => setOpenTime(e.target.value)} className={inputClass}>
+                      {TIME_OPTIONS.map((t) => (
+                        <option key={t} value={t}>{fmt12(t)}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                {/* Cierre */}
+                <div>
+                  <label className={labelClass}>Hora de cierre</label>
+                  <div className="relative">
+                    <select value={closeTime} onChange={(e) => setCloseTime(e.target.value)} className={inputClass}>
+                      {TIME_OPTIONS.filter((t) => t > openTime).map((t) => (
+                        <option key={t} value={t}>{fmt12(t)}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              {/* Resumen visual */}
+              <div className="rounded-lg bg-[var(--color-primary)]/8 border border-[var(--color-primary)]/20 px-4 py-3 flex items-center gap-3">
+                <Clock size={16} className="text-[var(--color-primary)] shrink-0" strokeWidth={1.5} />
+                <p className="text-body-md text-[var(--color-on-surface)]">
+                  Tu negocio atiende de{" "}
+                  <span className="font-semibold text-[var(--color-primary)]">{fmt12(openTime)}</span>
+                  {" "}a{" "}
+                  <span className="font-semibold text-[var(--color-primary)]">{fmt12(closeTime)}</span>
+                  {" "}·{" "}
+                  <span className="text-[var(--color-on-surface-variant)]">
+                    {(() => {
+                      const [oh, om] = openTime.split(":").map(Number);
+                      const [ch, cm] = closeTime.split(":").map(Number);
+                      const mins = (ch * 60 + cm) - (oh * 60 + om);
+                      const h = Math.floor(mins / 60);
+                      const m = mins % 60;
+                      return m > 0 ? `${h}h ${m}min` : `${h}h`;
+                    })()}
+                  </span>
+                </p>
+              </div>
+            </section>
+
+            {/* Política de Cancelación */}
+            <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <ShieldAlert size={20} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+                <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Política de Cancelación</h2>
+              </div>
+              <p className="text-body-md text-[var(--color-on-surface-variant)]">
+                Horas mínimas de anticipación que requiere un cliente para cancelar o reagendar.
+              </p>
+              <div>
+                <label className={labelClass}>Horas de anticipación</label>
+                <input type="number" min={0} max={168} value={cancellationHours}
+                  onChange={(e) => setCancellationHours(Number(e.target.value))}
+                  className="w-32 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
               </div>
             </section>
 

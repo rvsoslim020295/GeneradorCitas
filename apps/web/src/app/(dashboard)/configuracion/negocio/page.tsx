@@ -262,9 +262,11 @@ const PERU_GEO: Record<string, Record<string, string[]>> = {
 type Business = {
   name: string;
   type: string;
+  ruc: string | null;
   phone: string | null;
   address: string | null;
   timezone: string;
+  logoUrl: string | null;
 };
 
 export default function NegocioConfigPage() {
@@ -276,6 +278,7 @@ export default function NegocioConfigPage() {
   const [name, setName] = useState("");
   const [type, setType] = useState("");
   const [customType, setCustomType] = useState("");
+  const [ruc, setRuc] = useState("");
   const [phone, setPhone] = useState("");
   const [address, setAddress] = useState("");
   const [department, setDepartment] = useState("Lima");
@@ -299,7 +302,9 @@ export default function NegocioConfigPage() {
         setType("Otro");
         setCustomType(business.type ?? "");
       }
+      setRuc(business.ruc ?? "");
       setPhone(business.phone ?? "");
+      if (business.logoUrl) setLogoPreview(business.logoUrl);
       setAddress(business.address ?? "");
       const parts = (business.timezone ?? "Lima|Lima|Miraflores").split("|");
       setDepartment(parts[0] ?? "Lima");
@@ -314,6 +319,7 @@ export default function NegocioConfigPage() {
       apiFetch("/settings/business", { method: "PATCH", body: JSON.stringify(body) }),
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ["settings"] });
+      qc.invalidateQueries({ queryKey: ["me"] });
       setFeedback({ type: "success", msg: "Cambios guardados correctamente" });
       setTimeout(() => setFeedback(null), 3000);
     },
@@ -332,9 +338,11 @@ export default function NegocioConfigPage() {
     saveMutation.mutate({
       name,
       type: type === "Otro" ? (customType.trim() || "Otro") : type,
+      ruc: ruc || undefined,
       phone: phone || undefined,
       address: address || undefined,
       timezone: `${department}|${province}|${district}`,
+      logoUrl: logoPreview || undefined,
     });
   }
 
@@ -441,9 +449,16 @@ export default function NegocioConfigPage() {
             <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-4">
               <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Información de Contacto</h2>
               <div className="space-y-3">
-                <div>
-                  <label className={labelClass}>Número de Teléfono</label>
-                  <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} placeholder="+51 " />
+                <div className="grid grid-cols-2 gap-3">
+                  <div>
+                    <label className={labelClass}>RUC</label>
+                    <input value={ruc} onChange={(e) => setRuc(e.target.value.replace(/\D/g, "").slice(0, 11))}
+                      className={inputClass} maxLength={11} />
+                  </div>
+                  <div>
+                    <label className={labelClass}>Número de Teléfono</label>
+                    <input value={phone} onChange={(e) => setPhone(e.target.value)} className={inputClass} />
+                  </div>
                 </div>
                 <div>
                   <label className={labelClass}>Dirección</label>

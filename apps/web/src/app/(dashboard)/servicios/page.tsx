@@ -29,7 +29,7 @@ export default function ServiciosPage() {
       <Sidebar activePath="/servicios" />
 
       <main className="flex-1 ml-64 flex flex-col h-full bg-[var(--color-background)] relative overflow-hidden">
-        <TopBar />
+        <TopBar hideSearch />
 
         <div className="flex flex-col flex-1 overflow-hidden pt-16">
           <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-6 py-5 border-b border-[var(--color-outline-variant)] bg-[var(--color-background)]">

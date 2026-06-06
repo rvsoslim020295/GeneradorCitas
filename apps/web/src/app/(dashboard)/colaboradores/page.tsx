@@ -23,7 +23,7 @@ export default function ColaboradoresPage() {
       <Sidebar activePath="/colaboradores" />
 
       <main className="flex-1 ml-64 flex flex-col h-full bg-[var(--color-background)] relative overflow-hidden">
-        <TopBar />
+        <TopBar hideSearch />
 
         <div className="flex flex-col flex-1 overflow-hidden pt-16">
           <div className="flex items-center justify-between px-6 py-5 border-b border-[var(--color-outline-variant)] bg-[var(--color-background)]">

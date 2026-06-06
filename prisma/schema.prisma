@@ -10,14 +10,18 @@ datasource db {
 // Un negocio = un salón/barbería/spa registrado en GlowManager
 model Business {
   id                  String   @id @default(cuid())
-  name                String
-  type                String
+  name                String   @default("")
+  type                String   @default("")
+  ruc                 String?
+  logoUrl             String?
   phone               String?
   address             String?
   timezone            String   @default("America/Mexico_City")
   slotMinutes         Int      @default(30)
   cancellationHours   Int      @default(24)
   operatingDays       String[] @default(["Mon","Tue","Wed","Thu","Fri"])
+  openTime            String   @default("09:00")
+  closeTime           String   @default("18:00")
   trialEndsAt         DateTime?
   createdAt           DateTime @default(now())
   updatedAt           DateTime @updatedAt
@@ -30,15 +34,19 @@ model Business {
 
 // Un usuario pertenece a un negocio y puede ser dueño o colaborador
 model User {
-  id         String   @id @default(cuid())
-  email      String   @unique
-  password   String
-  name       String
-  role       Role     @default(OWNER)
-  businessId String
-  business   Business @relation(fields: [businessId], references: [id])
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  id                     String   @id @default(cuid())
+  email                  String   @unique
+  password               String
+  name                   String
+  lastName               String?
+  dni                    String?
+  role                   Role     @default(OWNER)
+  emailVerified          Boolean  @default(false)
+  emailVerificationToken String?  @unique
+  businessId             String
+  business               Business @relation(fields: [businessId], references: [id])
+  createdAt              DateTime @default(now())
+  updatedAt              DateTime @updatedAt
 }
 
 enum Role {
@@ -64,6 +72,7 @@ model Appointment {
   price          Float
   notes          String?
   tipPercent     Float             @default(0)
+  paidAmount     Float?
   paymentMethod  String?
   depositAmount  Float?
   businessId     String

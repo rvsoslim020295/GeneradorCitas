@@ -3,7 +3,7 @@
 import { useState } from "react";
 import {
   Calendar, CheckCircle, Banknote, TrendingUp,
-  TrendingDown, ChevronDown, AlertCircle,
+  TrendingDown, ChevronDown, AlertCircle, Gift,
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
@@ -37,7 +37,7 @@ const collabColors = [
 ];
 
 export default function ReportesPage() {
-  const [period, setPeriod] = useState("this_month");
+  const [period, setPeriod] = useState("this_week");
   const { data, isLoading, error } = useAnalytics(period);
 
   const maxDailyRevenue = data
@@ -62,9 +62,9 @@ export default function ReportesPage() {
                   onChange={(e) => setPeriod(e.target.value)}
                   className="appearance-none bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] text-body-md rounded-lg py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] cursor-pointer"
                 >
-                  <option value="this_month">Este Mes</option>
+                  <option value="this_week">Esta Semana</option>
                   <option value="last_week">Semana Pasada</option>
-                  <option value="last_30_days">Últimos 30 días</option>
+                  <option value="this_month">Este Mes (4 semanas)</option>
                   <option value="this_year">Este Año</option>
                 </select>
                 <ChevronDown size={16} strokeWidth={1.5} className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)] pointer-events-none" />
@@ -112,19 +112,51 @@ export default function ReportesPage() {
                   <KpiDelta current={data.kpis.completedAppointments} prev={data.kpis.completedAppointmentsPrev} isCount />
                 </div>
 
-                <div className="col-span-2 bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow relative overflow-hidden">
-                  <div className="absolute -right-6 -top-6 w-24 h-24 bg-[var(--color-primary-container)] rounded-full opacity-10 blur-xl pointer-events-none" />
-                  <div className="flex justify-between items-start mb-2 relative z-10">
-                    <span className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase">Ingresos Totales</span>
-                    <div className="bg-[var(--color-primary-container)] p-1.5 rounded-lg">
-                      <Banknote size={16} className="text-[var(--color-on-primary-container)]" strokeWidth={1.5} />
+                {/* Ingresos — fila de 3 columnas: servicios | propinas | total */}
+                <div className="col-span-2 grid grid-cols-3 gap-3">
+                  {/* Ingresos por servicios */}
+                  <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase">Por Servicios</span>
+                      <div className="bg-[var(--color-primary-container)]/20 p-1.5 rounded-lg">
+                        <Banknote size={16} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+                      </div>
                     </div>
+                    <span className="text-display-md font-bold text-[var(--color-on-surface)]">
+                      S/{data.kpis.serviceRevenue.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                    </span>
+                    <p className="text-[10px] text-[var(--color-on-surface-variant)] mt-1">Precio base de citas completadas</p>
                   </div>
-                  <span className="text-display-lg font-bold text-[var(--color-primary)] relative z-10">
-                    S/{data.kpis.totalRevenue.toLocaleString("es-PE")}
-                  </span>
-                  <div className="relative z-10">
-                    <KpiDelta current={data.kpis.totalRevenue} prev={data.kpis.totalRevenuePrev} />
+
+                  {/* Propinas */}
+                  <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
+                    <div className="flex justify-between items-start mb-2">
+                      <span className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase">Propinas</span>
+                      <div className="bg-emerald-100 p-1.5 rounded-lg">
+                        <Gift size={16} className="text-emerald-600" strokeWidth={1.5} />
+                      </div>
+                    </div>
+                    <span className="text-display-md font-bold text-emerald-600">
+                      S/{data.kpis.tipRevenue.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                    </span>
+                    <KpiDelta current={data.kpis.tipRevenue} prev={data.kpis.tipRevenuePrev} />
+                  </div>
+
+                  {/* Total */}
+                  <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[var(--color-primary)]/20 ambient-shadow relative overflow-hidden">
+                    <div className="absolute -right-4 -top-4 w-20 h-20 bg-[var(--color-primary-container)] rounded-full opacity-10 blur-xl pointer-events-none" />
+                    <div className="flex justify-between items-start mb-2 relative z-10">
+                      <span className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase">Total</span>
+                      <div className="bg-[var(--color-primary-container)] p-1.5 rounded-lg">
+                        <Banknote size={16} className="text-[var(--color-on-primary-container)]" strokeWidth={1.5} />
+                      </div>
+                    </div>
+                    <span className="text-display-md font-bold text-[var(--color-primary)] relative z-10">
+                      S/{data.kpis.totalRevenue.toLocaleString("es-PE", { minimumFractionDigits: 0, maximumFractionDigits: 2 })}
+                    </span>
+                    <div className="relative z-10">
+                      <KpiDelta current={data.kpis.totalRevenue} prev={data.kpis.totalRevenuePrev} />
+                    </div>
                   </div>
                 </div>
 
@@ -158,7 +190,9 @@ export default function ReportesPage() {
               <>
                 <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
                   <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Ingresos por Día</h3>
+                    <h3 className="text-body-lg font-semibold text-[var(--color-on-surface)]">
+                    {data.chartType === "weekly" ? "Ingresos por Semana" : data.chartType === "monthly" ? "Ingresos por Mes" : "Ingresos por Día"}
+                  </h3>
                   </div>
                   <div className="h-48 w-full flex items-stretch gap-2 px-1 relative">
                     <div className="absolute w-full border-t border-[var(--color-outline-variant)] opacity-30 bottom-[20%]" />
@@ -227,16 +261,15 @@ export default function ReportesPage() {
                   </div>
                 </div>
 
+                {/* Top 3 colaboradores */}
                 <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
                   <div className="flex justify-between items-center mb-4">
                     <h3 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Top 3 Colaboradores</h3>
-                    <span className="text-[12px] text-[var(--color-on-surface-variant)]">Por ingresos</span>
+                    <span className="text-[12px] text-[var(--color-on-surface-variant)]">Por servicios</span>
                   </div>
 
                   {data.topCollaborators.length === 0 ? (
-                    <p className="text-body-md text-[var(--color-outline)] text-center py-4">
-                      Sin datos de colaboradores todavía
-                    </p>
+                    <p className="text-body-md text-[var(--color-outline)] text-center py-4">Sin datos todavía</p>
                   ) : (
                     <div className="space-y-4">
                       {data.topCollaborators.map((collab, i) => (
@@ -245,23 +278,85 @@ export default function ReportesPage() {
                             {getInitials(collab.name)}
                           </div>
                           <div className="flex-1 min-w-0">
-                            <h4 className="text-body-md font-medium text-[var(--color-on-surface)] leading-tight truncate">
-                              {collab.name}
-                            </h4>
+                            <h4 className="text-body-md font-medium text-[var(--color-on-surface)] leading-tight truncate">{collab.name}</h4>
                             <span className="text-[11px] text-[var(--color-on-surface-variant)]">
                               {collab.appointmentCount} cita{collab.appointmentCount !== 1 ? "s" : ""}
                             </span>
                           </div>
                           <div className="text-right shrink-0">
-                            <span className="text-label-md text-[14px] text-[var(--color-on-surface)] block">
-                              S/{collab.revenue.toLocaleString("es-PE")}
+                            <span className="text-[13px] font-semibold text-[var(--color-on-surface)] block">
+                              S/{collab.serviceRevenue.toFixed(2)}
                             </span>
-                            <span className={`text-[10px] font-semibold ${i === 0 ? "text-[var(--color-secondary-container)]" : "text-[var(--color-on-surface-variant)]"}`}>
-                              {collab.percentage}% del total
+                            {collab.tipRevenue > 0 && (
+                              <span className="text-[10px] text-emerald-600 font-semibold">
+                                +S/{collab.tipRevenue.toFixed(2)} propina
+                              </span>
+                            )}
+                            <span className={`text-[10px] block ${i === 0 ? "text-[var(--color-primary)]" : "text-[var(--color-on-surface-variant)]"}`}>
+                              {collab.percentage}% del servicio
                             </span>
                           </div>
                         </div>
                       ))}
+                    </div>
+                  )}
+                </div>
+
+                {/* Todos los colaboradores */}
+                <div className="col-span-2 bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[#E2E8F0] ambient-shadow">
+                  <h3 className="text-body-lg font-semibold text-[var(--color-on-surface)] mb-4">Todos los Colaboradores</h3>
+                  {data.allCollaborators.length === 0 ? (
+                    <p className="text-body-md text-[var(--color-outline)] text-center py-4">Sin datos todavía</p>
+                  ) : (
+                    <div className="overflow-x-auto">
+                      <table className="w-full text-sm">
+                        <thead>
+                          <tr className="border-b border-[var(--color-outline-variant)]">
+                            <th className="text-left text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase py-2 pr-4">Colaborador</th>
+                            <th className="text-right text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase py-2 px-4">Citas</th>
+                            <th className="text-right text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase py-2 px-4">Servicios</th>
+                            <th className="text-right text-[11px] font-semibold text-emerald-600 uppercase py-2 px-4">Propinas</th>
+                            <th className="text-right text-[11px] font-semibold text-[var(--color-primary)] uppercase py-2 pl-4">Total</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-[var(--color-outline-variant)]/50">
+                          {data.allCollaborators.map((collab, i) => (
+                            <tr key={collab.name} className="hover:bg-[var(--color-surface-container-low)] transition-colors">
+                              <td className="py-3 pr-4">
+                                <div className="flex items-center gap-2">
+                                  <div className={`w-7 h-7 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${collabColors[i % collabColors.length]}`}>
+                                    {getInitials(collab.name)}
+                                  </div>
+                                  <span className="text-[var(--color-on-surface)] font-medium">{collab.name}</span>
+                                </div>
+                              </td>
+                              <td className="py-3 px-4 text-right text-[var(--color-on-surface-variant)]">{collab.appointmentCount}</td>
+                              <td className="py-3 px-4 text-right font-semibold text-[var(--color-on-surface)]">S/{collab.serviceRevenue.toFixed(2)}</td>
+                              <td className="py-3 px-4 text-right font-semibold text-emerald-600">
+                                {collab.tipRevenue > 0 ? `S/${collab.tipRevenue.toFixed(2)}` : <span className="text-[var(--color-on-surface-variant)] font-normal">—</span>}
+                              </td>
+                              <td className="py-3 pl-4 text-right font-bold text-[var(--color-primary)]">S/{collab.totalRevenue.toFixed(2)}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                        <tfoot>
+                          <tr className="border-t-2 border-[var(--color-outline-variant)]">
+                            <td className="py-2 pr-4 text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase">Total</td>
+                            <td className="py-2 px-4 text-right text-[11px] font-semibold text-[var(--color-on-surface)]">
+                              {data.allCollaborators.reduce((s, c) => s + c.appointmentCount, 0)}
+                            </td>
+                            <td className="py-2 px-4 text-right text-[11px] font-semibold text-[var(--color-on-surface)]">
+                              S/{data.kpis.serviceRevenue.toFixed(2)}
+                            </td>
+                            <td className="py-2 px-4 text-right text-[11px] font-semibold text-emerald-600">
+                              S/{data.kpis.tipRevenue.toFixed(2)}
+                            </td>
+                            <td className="py-2 pl-4 text-right text-[11px] font-bold text-[var(--color-primary)]">
+                              S/{data.kpis.totalRevenue.toFixed(2)}
+                            </td>
+                          </tr>
+                        </tfoot>
+                      </table>
                     </div>
                   )}
                 </div>

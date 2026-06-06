@@ -53,7 +53,7 @@ export default function OnboardingPage() {
             {currentStep === 2 && (
               <>
                 <h1 className="text-headline-md font-semibold text-[var(--color-on-surface)]">¿Cuándo atiendes?</h1>
-                <p className="text-body-md text-[var(--color-on-surface-variant)]">Configura los días y duración de citas de tu negocio.</p>
+                <p className="text-body-md text-[var(--color-on-surface-variant)]">Configura los días en que atiendes a tus clientes.</p>
               </>
             )}
             {currentStep === 3 && (

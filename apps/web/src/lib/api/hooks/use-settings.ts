@@ -10,6 +10,8 @@ export type Settings = {
   slotMinutes: number;
   cancellationHours: number;
   operatingDays: string[];
+  openTime: string;
+  closeTime: string;
 };
 
 export const settingsKeys = {
@@ -19,8 +21,8 @@ export const settingsKeys = {
 export function useSettings() {
   return useQuery({
     queryKey: settingsKeys.all,
-    queryFn: () => apiFetch<Settings>("/settings"),
-    staleTime: 1000 * 60 * 5, // 5 minutos — la config cambia poco
+    queryFn: () => apiFetch<{ business: Settings }>("/settings").then((r) => r.business),
+    staleTime: 1000 * 60 * 5,
   });
 }
 
