@@ -1,13 +1,15 @@
 import { Hono } from "hono";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
+import { randomBytes } from "crypto";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth, JWT_SECRET } from "../middleware/auth.js";
+import { sendVerificationEmail } from "../lib/mailer.js";
 
 const auth = new Hono();
 
-// ─── Schemas de validación ───────────────────────────────────────────────────
+// ─── Schemas ─────────────────────────────────────────────────────────────────
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(6),
@@ -15,14 +17,15 @@ const loginSchema = z.object({
 
 const registerSchema = z.object({
   name: z.string().min(2),
+  lastName: z.string().min(2),
+  dni: z.string().min(6),
+  ruc: z.string().min(11).max(11),
+  phone: z.string().min(6),
   email: z.string().email(),
   password: z.string().min(6),
-  businessName: z.string().min(2),
-  businessType: z.string().min(2),
 });
 
 // ─── POST /auth/login ─────────────────────────────────────────────────────────
-// Recibe email + password, verifica contra la DB, devuelve un JWT si es correcto
 auth.post("/login", async (c) => {
   const body = await c.req.json().catch(() => null);
   const parsed = loginSchema.safeParse(body);
@@ -33,31 +36,22 @@ auth.post("/login", async (c) => {
 
   const { email, password } = parsed.data;
 
-  // Buscamos el usuario por email
   const user = await prisma.user.findUnique({
     where: { email },
     include: { business: true },
   });
 
-  if (!user) {
-    // Usamos el mismo mensaje para no revelar si el email existe o no
-    return c.json({ error: "Credenciales incorrectas" }, 401);
-  }
+  if (!user) return c.json({ error: "Credenciales incorrectas" }, 401);
 
-  // bcrypt.compare compara la contraseña ingresada con el hash guardado en DB
   const validPassword = await bcrypt.compare(password, user.password);
-  if (!validPassword) {
-    return c.json({ error: "Credenciales incorrectas" }, 401);
+  if (!validPassword) return c.json({ error: "Credenciales incorrectas" }, 401);
+
+  if (!user.emailVerified) {
+    return c.json({ error: "Debes verificar tu correo electrónico antes de iniciar sesión." }, 403);
   }
 
-  // Generamos el JWT con los datos del usuario — expira en 7 días
   const token = jwt.sign(
-    {
-      userId: user.id,
-      email: user.email,
-      businessId: user.businessId,
-      role: user.role,
-    },
+    { userId: user.id, email: user.email, businessId: user.businessId, role: user.role },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -69,17 +63,12 @@ auth.post("/login", async (c) => {
       name: user.name,
       email: user.email,
       role: user.role,
-      business: {
-        id: user.business.id,
-        name: user.business.name,
-        type: user.business.type,
-      },
+      business: { id: user.business.id, name: user.business.name, type: user.business.type },
     },
   });
 });
 
 // ─── POST /auth/register ──────────────────────────────────────────────────────
-// Crea un nuevo negocio + usuario dueño en una sola operación
 auth.post("/register", async (c) => {
   const body = await c.req.json().catch(() => null);
   const parsed = registerSchema.safeParse(body);
@@ -88,53 +77,76 @@ auth.post("/register", async (c) => {
     return c.json({ error: "Datos inválidos", details: parsed.error.issues }, 400);
   }
 
-  const { name, email, password, businessName, businessType } = parsed.data;
+  const { name, lastName, dni, ruc, phone, email, password } = parsed.data;
 
   const existing = await prisma.user.findUnique({ where: { email } });
-  if (existing) {
-    return c.json({ error: "Este email ya está registrado" }, 409);
-  }
+  if (existing) return c.json({ error: "Este email ya está registrado" }, 409);
 
-  // hasheamos la contraseña antes de guardarla (salt rounds = 10)
   const hashedPassword = await bcrypt.hash(password, 10);
+  const verificationToken = randomBytes(32).toString("hex");
 
-  // Creamos el negocio y el usuario en una transacción atómica
-  // El trial dura 7 días desde el momento del registro
   const trialEndsAt = new Date();
   trialEndsAt.setDate(trialEndsAt.getDate() + 7);
 
   const result = await prisma.$transaction(async (tx) => {
     const business = await tx.business.create({
-      data: { name: businessName, type: businessType, trialEndsAt },
+      data: { ruc, phone, trialEndsAt },
     });
     const user = await tx.user.create({
       data: {
         name,
+        lastName,
+        dni,
         email,
         password: hashedPassword,
         role: "OWNER",
         businessId: business.id,
+        emailVerificationToken: verificationToken,
       },
     });
     return { business, user };
   });
 
-  const token = jwt.sign(
-    {
-      userId: result.user.id,
-      email: result.user.email,
-      businessId: result.business.id,
-      role: result.user.role,
-    },
+  // Enviar email de verificación (consola si SMTP no configurado)
+  try {
+    await sendVerificationEmail(email, verificationToken, name);
+  } catch (err) {
+    console.error("Error enviando email de verificación:", err);
+  }
+
+  return c.json({
+    message: "Cuenta creada. Revisa tu correo para verificar tu cuenta.",
+    email: result.user.email,
+  }, 201);
+});
+
+// ─── GET /auth/verify-email?token= ───────────────────────────────────────────
+auth.get("/verify-email", async (c) => {
+  const token = c.req.query("token");
+  if (!token) return c.json({ error: "Token requerido" }, 400);
+
+  const user = await prisma.user.findUnique({
+    where: { emailVerificationToken: token },
+  });
+
+  if (!user) return c.json({ error: "Token inválido o ya utilizado" }, 400);
+
+  await prisma.user.update({
+    where: { id: user.id },
+    data: { emailVerified: true, emailVerificationToken: null },
+  });
+
+  // Devolvemos un JWT para que el frontend pueda continuar al onboarding
+  const jwt_token = jwt.sign(
+    { userId: user.id, email: user.email, businessId: user.businessId, role: user.role },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
 
-  return c.json({ token, user: { id: result.user.id, name: result.user.name, email: result.user.email } }, 201);
+  return c.json({ token: jwt_token, user: { id: user.id, name: user.name, email: user.email } });
 });
 
 // ─── GET /auth/me ─────────────────────────────────────────────────────────────
-// Ruta protegida: devuelve los datos del usuario autenticado
 auth.get("/me", requireAuth, async (c) => {
   const { userId } = c.get("user");
 
@@ -145,7 +157,6 @@ auth.get("/me", requireAuth, async (c) => {
 
   if (!user) return c.json({ error: "Usuario no encontrado" }, 404);
 
-  // Calculamos días restantes del trial
   const trialEndsAt = user.business.trialEndsAt;
   const now = new Date();
   const trialDaysLeft = trialEndsAt
@@ -162,6 +173,7 @@ auth.get("/me", requireAuth, async (c) => {
       id: user.business.id,
       name: user.business.name,
       type: user.business.type,
+      logoUrl: user.business.logoUrl,
       trialEndsAt: user.business.trialEndsAt,
       trialDaysLeft,
       trialActive,

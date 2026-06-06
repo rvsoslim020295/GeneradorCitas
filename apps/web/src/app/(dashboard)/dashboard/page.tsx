@@ -10,7 +10,7 @@ import { useAppointments, useAnalytics, useUpdateAppointmentStatus } from "@/lib
 import { apiFetch } from "@/lib/api/client";
 import { useQuery } from "@tanstack/react-query";
 
-type UserData = { name: string; business: { name: string } };
+type UserData = { name: string; business: { name: string; type: string; logoUrl?: string | null } };
 
 function fullName(c: { name: string; lastName: string | null }) {
   return [c.name, c.lastName].filter(Boolean).join(" ");
@@ -159,16 +159,59 @@ export default function DashboardPage() {
         )}
 
         <div className="flex-1 overflow-y-auto pt-[88px] px-8 pb-8" style={{ scrollbarWidth: "thin" }}>
+
+          {/* Card de bienvenida — negocio */}
+          {userData?.business?.name && (
+            <div className="relative mb-8 rounded-2xl overflow-hidden border border-[var(--color-primary)]/20 bg-gradient-to-br from-[var(--color-primary)]/8 via-[var(--color-surface-container-lowest)] to-[var(--color-surface-container-low)] shadow-sm">
+              {/* Decoración de fondo */}
+              <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--color-primary)]/6 rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none" />
+              <div className="absolute bottom-0 left-1/2 w-40 h-40 bg-[var(--color-primary)]/4 rounded-full translate-y-1/2 pointer-events-none" />
+
+              <div className="relative px-8 py-6 flex items-center gap-6">
+                {/* Logo / Iniciales */}
+                <div className="shrink-0 w-16 h-16 rounded-2xl shadow-md overflow-hidden">
+                  {userData.business.logoUrl ? (
+                    <img src={userData.business.logoUrl} alt="Logo" className="w-full h-full object-cover" />
+                  ) : (
+                    <div className="w-full h-full bg-[var(--color-primary)] flex items-center justify-center">
+                      <span className="text-[var(--color-on-primary)] font-bold text-2xl tracking-tight select-none">
+                        {userData.business.name.split(" ").slice(0, 2).map((w: string) => w[0]).join("").toUpperCase()}
+                      </span>
+                    </div>
+                  )}
+                </div>
+
+                {/* Nombre e info */}
+                <div className="flex-1 min-w-0">
+                  <p className="text-label-md font-semibold uppercase tracking-widest text-[var(--color-primary)] mb-0.5">
+                    {userData.business.type || "Tu negocio"}
+                  </p>
+                  <h2 className="text-display-sm font-bold text-[var(--color-on-surface)] truncate leading-tight">
+                    {userData.business.name}
+                  </h2>
+                  <p className="text-body-md text-[var(--color-on-surface-variant)] mt-1">
+                    Bienvenido, <span className="font-semibold text-[var(--color-on-surface)]">{userData.name.split(" ")[0]}</span>. Aquí tienes el resumen de tu negocio.
+                  </p>
+                </div>
+
+                {/* Fecha */}
+                <div className="shrink-0 text-right hidden md:block">
+                  <div className="text-label-md text-[var(--color-on-surface-variant)] bg-[var(--color-surface-container)] rounded-lg px-3 py-1.5 flex items-center gap-2 capitalize">
+                    <CalendarDays size={15} strokeWidth={1.5} />
+                    {today()}
+                  </div>
+                </div>
+              </div>
+            </div>
+          )}
+
           <div className="flex justify-between items-end mb-6">
             <div>
               <h2 className="text-display-lg font-bold text-[var(--color-on-surface)] mb-1">
                 Resumen Operativo
               </h2>
-              <p className="text-body-lg text-[var(--color-on-surface-variant)]">
-                Bienvenido{userData?.name ? `, ${userData.name.split(" ")[0]}` : ""}. Aquí tienes un vistazo de tu día.
-              </p>
             </div>
-            <div className="text-label-md text-[var(--color-on-surface-variant)] bg-[var(--color-surface-container)] rounded-lg px-3 py-1 flex items-center gap-2 capitalize">
+            <div className="md:hidden text-label-md text-[var(--color-on-surface-variant)] bg-[var(--color-surface-container)] rounded-lg px-3 py-1 flex items-center gap-2 capitalize">
               <CalendarDays size={16} strokeWidth={1.5} />
               {today()}
             </div>

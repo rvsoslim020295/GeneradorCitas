@@ -4,19 +4,11 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import {
-  Flower2, Mail, Lock, User, Store, Scissors,
-  ChevronDown, LogIn, AlertCircle, Eye, EyeOff,
+  Flower2, Mail, Lock, User, CreditCard, Building2, Phone,
+  LogIn, AlertCircle, Eye, EyeOff,
 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
-const BUSINESS_TYPES = [
-  { value: "salon", label: "Peluquería / Salón de Belleza" },
-  { value: "barbershop", label: "Barbería" },
-  { value: "spa", label: "Spa / Centro de Estética" },
-  { value: "nails", label: "Nail Bar" },
-  { value: "other", label: "Otro" },
-];
 
 export default function RegistroPage() {
   const router = useRouter();
@@ -30,14 +22,16 @@ export default function RegistroPage() {
     setLoading(true);
 
     const form = e.currentTarget;
-    const name = (form.elements.namedItem("name") as HTMLInputElement).value;
-    const email = (form.elements.namedItem("email") as HTMLInputElement).value;
+    const name = (form.elements.namedItem("name") as HTMLInputElement).value.trim();
+    const lastName = (form.elements.namedItem("lastName") as HTMLInputElement).value.trim();
+    const dni = (form.elements.namedItem("dni") as HTMLInputElement).value.trim();
+    const ruc = (form.elements.namedItem("ruc") as HTMLInputElement).value.trim();
+    const phone = (form.elements.namedItem("phone") as HTMLInputElement).value.trim();
+    const email = (form.elements.namedItem("email") as HTMLInputElement).value.trim();
     const password = (form.elements.namedItem("password") as HTMLInputElement).value;
-    const businessName = (form.elements.namedItem("businessName") as HTMLInputElement).value;
-    const businessType = (form.elements.namedItem("businessType") as HTMLSelectElement).value;
 
-    if (!businessType) {
-      setError("Selecciona el tipo de negocio.");
+    if (ruc.length !== 11) {
+      setError("El RUC debe tener exactamente 11 dígitos.");
       setLoading(false);
       return;
     }
@@ -46,7 +40,7 @@ export default function RegistroPage() {
       const res = await fetch(`${API_URL}/auth/register`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password, businessName, businessType }),
+        body: JSON.stringify({ name, lastName, dni, ruc, phone, email, password }),
       });
 
       const data = await res.json();
@@ -56,11 +50,8 @@ export default function RegistroPage() {
         return;
       }
 
-      // Guardamos el token y redirigimos al dashboard
-      // El negocio ya quedó creado con nombre y tipo desde este formulario
-      localStorage.setItem("gm_token", data.token);
-      localStorage.setItem("gm_user", JSON.stringify(data.user));
-      router.push("/onboarding");
+      // Redirigir a pantalla de "verifica tu correo"
+      router.push(`/verificar-correo?email=${encodeURIComponent(email)}`);
     } catch {
       setError("No se pudo conectar con el servidor.");
     } finally {
@@ -68,11 +59,14 @@ export default function RegistroPage() {
     }
   }
 
-  const inputClass = "block w-full rounded-lg border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] py-[10px] pl-10 pr-3 font-body-md text-body-md text-[var(--color-on-surface)] placeholder:text-[var(--color-outline)] transition-colors duration-200 focus:border-[var(--color-primary)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20";
+  const inputWrap = "input-glow-wrap relative rounded-lg bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] flex items-center overflow-hidden transition-all duration-200 focus-within:border-[var(--color-primary)] focus-within:shadow-[0_0_0_3px_rgb(68_65_196_/_0.15)]";
+  const inputBase = "w-full bg-transparent border-none focus:ring-0 focus:outline-none text-body-md text-[var(--color-on-surface)] py-[10px] px-3";
+  const iconWrap = "ml-3 text-[var(--color-outline)] shrink-0";
+  const labelClass = "block font-label-md text-label-md uppercase tracking-wider text-[var(--color-on-surface-variant)] mb-1";
 
   return (
-    <main className="flex min-h-screen w-full items-center justify-center bg-[var(--color-surface-container-low)] p-4">
-      <div className="ambient-shadow relative w-full max-w-[480px] overflow-hidden rounded-xl border border-[var(--color-outline-variant)]/50 bg-[var(--color-surface-container-lowest)] p-8">
+    <main className="flex min-h-screen w-full items-center justify-center bg-[var(--color-surface-container-low)] p-4 py-10">
+      <div className="ambient-shadow relative w-full max-w-[500px] overflow-hidden rounded-xl border border-[var(--color-outline-variant)]/50 bg-[var(--color-surface-container-lowest)] p-8">
         <div className="absolute left-0 top-0 h-1 w-full bg-[var(--color-primary)]" />
 
         {/* Header */}
@@ -105,99 +99,82 @@ export default function RegistroPage() {
           </div>
         )}
 
-        <form onSubmit={handleSubmit} className="space-y-4">
-          {/* Nombre completo */}
-          <div>
-            <label className="mb-1 block font-label-md text-label-md uppercase text-[var(--color-on-surface-variant)]">
-              Nombre completo
-            </label>
-            <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <User className="text-[var(--color-outline)]" size={18} strokeWidth={1.5} />
+        <form onSubmit={handleSubmit} className="space-y-4" autoComplete="off">
+          {/* Nombres + Apellidos en fila */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>Nombres</label>
+              <div className={inputWrap}>
+                <User className={iconWrap} size={18} strokeWidth={1.5} />
+                <input name="name" type="text" required autoComplete="off" className={inputBase} />
               </div>
-              <input name="name" type="text" required placeholder="Ana Martínez" className={inputClass} />
+            </div>
+            <div>
+              <label className={labelClass}>Apellidos</label>
+              <div className={inputWrap}>
+                <User className={iconWrap} size={18} strokeWidth={1.5} />
+                <input name="lastName" type="text" required autoComplete="off" className={inputBase} />
+              </div>
+            </div>
+          </div>
+
+          {/* DNI + RUC en fila */}
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <label className={labelClass}>DNI</label>
+              <div className={inputWrap}>
+                <CreditCard className={iconWrap} size={18} strokeWidth={1.5} />
+                <input name="dni" type="text" required minLength={8} maxLength={8}
+                  pattern="\d{8}" title="DNI: 8 dígitos"
+                  autoComplete="off" className={inputBase} />
+              </div>
+            </div>
+            <div>
+              <label className={labelClass}>RUC</label>
+              <div className={inputWrap}>
+                <Building2 className={iconWrap} size={18} strokeWidth={1.5} />
+                <input name="ruc" type="text" required minLength={11} maxLength={11}
+                  pattern="\d{11}" title="RUC: 11 dígitos"
+                  autoComplete="off" className={inputBase} />
+              </div>
+            </div>
+          </div>
+
+          {/* Teléfono */}
+          <div>
+            <label className={labelClass}>Número de teléfono</label>
+            <div className={inputWrap}>
+              <Phone className={iconWrap} size={18} strokeWidth={1.5} />
+              <input name="phone" type="tel" required autoComplete="off" className={inputBase} />
             </div>
           </div>
 
           {/* Email */}
           <div>
-            <label className="mb-1 block font-label-md text-label-md uppercase text-[var(--color-on-surface-variant)]">
-              Email
-            </label>
-            <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Mail className="text-[var(--color-outline)]" size={18} strokeWidth={1.5} />
-              </div>
-              <input name="email" type="email" required placeholder="ana@tunegocio.com" className={inputClass} />
+            <label className={labelClass}>Correo electrónico</label>
+            <div className={inputWrap}>
+              <Mail className={iconWrap} size={18} strokeWidth={1.5} />
+              <input name="email" type="email" required autoComplete="new-email" className={inputBase} />
             </div>
           </div>
 
           {/* Contraseña */}
           <div>
-            <label className="mb-1 block font-label-md text-label-md uppercase text-[var(--color-on-surface-variant)]">
-              Contraseña
-            </label>
-            <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Lock className="text-[var(--color-outline)]" size={18} strokeWidth={1.5} />
-              </div>
+            <label className={labelClass}>Contraseña</label>
+            <div className={`${inputWrap} pr-10`}>
+              <Lock className={iconWrap} size={18} strokeWidth={1.5} />
               <input
                 name="password" type={showPassword ? "text" : "password"}
-                required minLength={6} placeholder="Mínimo 6 caracteres"
-                className={`${inputClass} pr-10`}
+                required minLength={6}
+                autoComplete="new-password"
+                className={inputBase}
               />
               <button type="button" onClick={() => setShowPassword(!showPassword)}
                 className="absolute inset-y-0 right-0 flex items-center pr-3 text-[var(--color-outline)] hover:text-[var(--color-primary)]">
                 {showPassword ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
               </button>
             </div>
-          </div>
-
-          {/* Separador */}
-          <div className="relative py-1">
-            <div className="absolute inset-0 flex items-center">
-              <div className="w-full border-t border-[var(--color-outline-variant)]" />
-            </div>
-            <div className="relative flex justify-center">
-              <span className="bg-[var(--color-surface-container-lowest)] px-3 text-label-md text-[var(--color-outline)]">
-                Tu negocio
-              </span>
-            </div>
-          </div>
-
-          {/* Nombre del negocio */}
-          <div>
-            <label className="mb-1 block font-label-md text-label-md uppercase text-[var(--color-on-surface-variant)]">
-              Nombre del negocio
-            </label>
-            <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Store className="text-[var(--color-outline)]" size={18} strokeWidth={1.5} />
-              </div>
-              <input name="businessName" type="text" required placeholder="Studio Elegance" className={inputClass} />
-            </div>
-          </div>
-
-          {/* Tipo de negocio */}
-          <div>
-            <label className="mb-1 block font-label-md text-label-md uppercase text-[var(--color-on-surface-variant)]">
-              Tipo de negocio
-            </label>
-            <div className="relative">
-              <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                <Scissors className="text-[var(--color-outline)]" size={18} strokeWidth={1.5} />
-              </div>
-              <select name="businessType" defaultValue=""
-                className={`${inputClass} appearance-none pr-8 cursor-pointer`}>
-                <option value="" disabled>Selecciona una categoría...</option>
-                {BUSINESS_TYPES.map((t) => (
-                  <option key={t.value} value={t.value}>{t.label}</option>
-                ))}
-              </select>
-              <div className="pointer-events-none absolute inset-y-0 right-0 flex items-center pr-3">
-                <ChevronDown className="text-[var(--color-outline)]" size={16} strokeWidth={1.5} />
-              </div>
-            </div>
+            <p className="mt-1 text-body-sm text-[var(--color-outline)]">Mínimo 6 caracteres</p>
           </div>
 
           {/* Submit */}

@@ -33,6 +33,11 @@ export default function LoginPage() {
 
       const data = await res.json();
 
+      if (res.status === 403) {
+        setError("Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.");
+        return;
+      }
+
       if (!res.ok) {
         setError(data.error ?? "Error al iniciar sesión");
         return;
@@ -89,7 +94,7 @@ export default function LoginPage() {
             </div>
           )}
 
-          <form onSubmit={handleSubmit} className="space-y-stack-md">
+          <form onSubmit={handleSubmit} className="space-y-stack-md" autoComplete="off">
             <div>
               <label
                 className="mb-stack-sm block font-label-md text-label-md uppercase text-on-surface-variant"
@@ -105,10 +110,9 @@ export default function LoginPage() {
                   className="input-glow block w-full rounded-lg border border-outline-variant bg-surface-container-lowest py-[10px] pl-10 pr-3 font-body-md text-body-md text-on-surface placeholder:text-outline transition-colors duration-200"
                   id="email"
                   name="email"
-                  placeholder="name@yourbusiness.com"
                   required
                   type="email"
-                  defaultValue="ana@glowmanager.com"
+                  autoComplete="off"
                 />
               </div>
             </div>
@@ -128,10 +132,9 @@ export default function LoginPage() {
                   className="input-glow block w-full rounded-lg border border-outline-variant bg-surface-container-lowest py-[10px] pl-10 pr-3 font-body-md text-body-md text-on-surface placeholder:text-outline transition-colors duration-200"
                   id="password"
                   name="password"
-                  placeholder="••••••••"
                   required
                   type="password"
-                  defaultValue="password123"
+                  autoComplete="new-password"
                 />
               </div>
             </div>

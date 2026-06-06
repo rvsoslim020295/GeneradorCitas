@@ -31,9 +31,11 @@ settings.patch("/business", async (c) => {
   const schema = z.object({
     name: z.string().min(2).optional(),
     type: z.string().min(2).optional(),
+    ruc: z.string().optional(),
     phone: z.string().optional(),
     address: z.string().optional(),
     timezone: z.string().optional(),
+    logoUrl: z.string().optional(),
   });
 
   const parsed = schema.safeParse(body);
@@ -57,6 +59,8 @@ settings.patch("/agenda", async (c) => {
     slotMinutes: z.number().int().positive().optional(),
     cancellationHours: z.number().int().nonnegative().optional(),
     operatingDays: z.array(z.string()).optional(),
+    openTime: z.string().optional(),
+    closeTime: z.string().optional(),
   });
 
   const parsed = schema.safeParse(body);

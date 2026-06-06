@@ -25,7 +25,7 @@ export function StepPrimerServicio({ onNext }: Props) {
       await fetch(`${API_URL}/services`, {
         method: "POST",
         headers: { "Content-Type": "application/json", Authorization: `Bearer ${token}` },
-        body: JSON.stringify({ name, price: parseFloat(price), durationMinutes: parseInt(duration) }),
+        body: JSON.stringify({ name, price: parseFloat(price), durationMin: parseInt(duration), category: "General" }),
       });
     } catch {
       // continuar aunque falle

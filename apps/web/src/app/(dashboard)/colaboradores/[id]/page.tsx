@@ -14,6 +14,7 @@ import {
   useCollaborator, useCollaboratorAbsences,
   useUpdateCollaborator, useDeleteCollaborator,
   useAddAbsence, useDeleteAbsence,
+  useSettings,
 } from "@/lib/api/hooks";
 import { useRouter } from "next/navigation";
 
@@ -61,6 +62,10 @@ export default function CollaboratorProfilePage() {
   const [absStart, setAbsStart] = useState("");
   const [absEnd, setAbsEnd] = useState("");
   const [absFullDay, setAbsFullDay] = useState(true);
+
+  const { data: settings } = useSettings();
+  const bizOpen  = settings?.openTime  ?? "00:00";
+  const bizClose = settings?.closeTime ?? "23:59";
 
   const { data: collaborator, isLoading } = useCollaborator(id);
   const { data: absences = [] } = useCollaboratorAbsences(id);
@@ -110,7 +115,31 @@ export default function CollaboratorProfilePage() {
   }
 
   function updateDay(day: string, field: keyof DaySchedule, value: string | boolean) {
-    setSchedule((prev) => ({ ...prev, [day]: { ...prev[day], [field]: value } }));
+    setSchedule((prev) => {
+      const current = prev[day];
+
+      // Al activar el día, ajustar al horario del negocio si está fuera
+      if (field === "enabled" && value === true) {
+        const clampedStart = current.start < bizOpen  ? bizOpen  : current.start > bizClose ? bizOpen  : current.start;
+        const clampedEnd   = current.end   > bizClose ? bizClose : current.end   < bizOpen  ? bizClose : current.end;
+        return { ...prev, [day]: { enabled: true, start: clampedStart, end: clampedEnd } };
+      }
+
+      // Al cambiar hora de inicio, no permitir salir del rango del negocio
+      if (field === "start") {
+        const clamped = (value as string) < bizOpen ? bizOpen : (value as string) >= bizClose ? bizOpen : value as string;
+        const newEnd  = clamped >= current.end ? bizClose : current.end;
+        return { ...prev, [day]: { ...current, start: clamped, end: newEnd } };
+      }
+
+      // Al cambiar hora de fin, no permitir salir del rango del negocio
+      if (field === "end") {
+        const clamped = (value as string) > bizClose ? bizClose : (value as string) <= current.start ? bizClose : value as string;
+        return { ...prev, [day]: { ...current, end: clamped } };
+      }
+
+      return { ...prev, [day]: { ...current, [field]: value } };
+    });
   }
 
   async function handleSave() {
@@ -319,10 +348,17 @@ export default function CollaboratorProfilePage() {
 
             {/* Horario laboral */}
             <div className="space-y-3">
-              <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)] flex items-center gap-2">
-                <CalendarDays size={18} className="text-[var(--color-primary)]" strokeWidth={1.5} />
-                Horario Laboral Regular
-              </h2>
+              <div className="flex items-center justify-between">
+                <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)] flex items-center gap-2">
+                  <CalendarDays size={18} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+                  Horario Laboral Regular
+                </h2>
+                {settings && (
+                  <span className="text-[11px] text-[var(--color-on-surface-variant)] bg-[var(--color-surface-container)] px-2.5 py-1 rounded-full border border-[var(--color-outline-variant)]">
+                    Rango del local: {bizOpen} – {bizClose}
+                  </span>
+                )}
+              </div>
               <div className="space-y-2">
                 {DAY_KEYS.map((key) => {
                   const { enabled, start, end } = schedule[key];
@@ -335,10 +371,12 @@ export default function CollaboratorProfilePage() {
                       <span className="w-12 shrink-0 text-body-md font-semibold text-[var(--color-on-surface)]">{DAY_LABELS[key]}</span>
                       {enabled ? (
                         <div className="flex items-center gap-2 flex-1">
-                          <input type="time" value={start} onChange={(e) => updateDay(key, "start", e.target.value)}
+                          <input type="time" value={start} min={bizOpen} max={bizClose}
+                            onChange={(e) => updateDay(key, "start", e.target.value)}
                             className="bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] rounded-md px-2 py-1 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all" />
                           <span className="text-[var(--color-outline)]">—</span>
-                          <input type="time" value={end} onChange={(e) => updateDay(key, "end", e.target.value)}
+                          <input type="time" value={end} min={bizOpen} max={bizClose}
+                            onChange={(e) => updateDay(key, "end", e.target.value)}
                             className="bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] rounded-md px-2 py-1 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all" />
                         </div>
                       ) : (
