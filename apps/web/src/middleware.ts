@@ -11,8 +11,11 @@ const PUBLIC_ROUTES = [
 
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
-  const token = req.cookies.get("gm_token")?.value;
 
+  // Las rutas /admin tienen su propia lógica de auth — no interferir
+  if (pathname.startsWith("/admin")) return NextResponse.next();
+
+  const token = req.cookies.get("gm_token")?.value;
   const isPublic = PUBLIC_ROUTES.some((r) => pathname.startsWith(r));
 
   // Usuario autenticado intenta acceder a una ruta pública → dashboard
