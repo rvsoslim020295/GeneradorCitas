@@ -15,7 +15,7 @@ function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void 
   return (
     <button onClick={onChange}
       className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${checked ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-variant)]"}`}>
-      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0.5"}`} />
+      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0"}`} />
     </button>
   );
 }
