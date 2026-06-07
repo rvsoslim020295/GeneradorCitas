@@ -1,8 +1,8 @@
 # Estado del Proyecto — GlowManager
 **Fecha:** 6 de Junio 2026  
-**Versión:** 4.0  
+**Versión:** 5.0  
 **Repositorio:** https://github.com/rvsoslim020295/GeneradorCitas  
-**Rama activa:** `main` (todos los PRs mergeados)
+**Rama activa:** `main` + `feat/super-admin` (pendiente de merge)
 
 ---
 
@@ -10,11 +10,34 @@
 
 GlowManager es un panel administrativo B2B para negocios de belleza (salones, barberías, spas, nail bars). Permite gestionar citas, clientes, colaboradores, servicios, pagos y reportes desde una interfaz web orientada a dueños y recepcionistas en desktop.
 
-**Estado actual:** MVP 100% funcional y production-ready en seguridad. Esta sesión (v4.0) resolvió los bugs de seguridad BUG-04 y BUG-05 (JWT httpOnly + protección de rutas), BUG-03 (logo a Supabase Storage) y agregó los estados `IN_PROGRESS` y `RESCHEDULED` a las citas.
+**Estado actual:** MVP 100% funcional, production-ready en seguridad, con panel de super administrador funcional y sistema de planes de suscripción manual implementado.
 
 ---
 
-## 2. Stack Tecnológico
+## 2. Lo implementado en esta sesión (v5.0)
+
+### 2.1 Fix: endpoint /users faltante (CFG-03)
+- Creado `apps/api/src/routes/users.ts` con CRUD completo (GET, POST, PATCH, DELETE)
+- Roles alineados al schema real: `OWNER`, `ADMIN`, `COLLABORATOR`
+- Eliminados campos inexistentes `isActive` y `lastLoginAt` del frontend
+- Página `/configuracion/usuarios` ahora carga correctamente
+
+### 2.2 Fix: toggle de WhatsApp desalineado
+- Corregido `left-0.5` en el componente `Toggle` de `/configuracion/whatsapp`
+
+### 2.3 Panel Super Administrador + Planes de suscripción
+- **Schema:** enums `PlanType` (TRIAL, BASIC, PRO, ENTERPRISE) y `PlanStatus` (ACTIVE, EXPIRED, SUSPENDED)
+- **Schema:** campos `plan`, `planStatus`, `planExpiresAt` en `Business`
+- **Schema:** modelo `SuperAdmin` independiente
+- **Backend:** middleware `requireSuperAdmin` con cookie `gm_admin_token`
+- **Backend:** rutas `/admin/auth/login`, `/admin/auth/logout`, `/admin/stats`, `/admin/businesses`, `/admin/businesses/:id`, `/admin/businesses/:id/plan`, `/admin/businesses/:id/suspend`
+- **Script:** `create-super-admin.ts` para crear la cuenta inicial desde `.env`
+- **Frontend:** `/admin/login`, `/admin/dashboard`, `/admin/negocios/[id]`
+- **Middleware:** rutas `/admin` excluidas del flujo de auth de clientes
+
+---
+
+## 3. Stack Tecnológico
 
 ### Frontend (`apps/web`)
 | Capa | Tecnología | Versión |
@@ -33,7 +56,8 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
 | Framework | Hono.js |
 | ORM | Prisma 7.8 |
 | Base de datos | PostgreSQL |
-| Autenticación | JWT en httpOnly cookie — expira en 7 días |
+| Autenticación clientes | JWT en httpOnly cookie `gm_token` — 7 días |
+| Autenticación admin | JWT en httpOnly cookie `gm_admin_token` — 7 días |
 | Email | Nodemailer (SMTP Gmail) |
 | Storage | Supabase Storage (bucket `logos`) |
 | Runtime | Node.js (tsx watch) |
@@ -49,206 +73,163 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
 
 ---
 
-## 3. Arquitectura del Frontend
+## 4. Arquitectura del Frontend
 
 ### Estructura de rutas (`apps/web/src/app/`)
 
 ```
 (auth)/
-  login/                    AUTH-01 — Login
-  registro/                 AUTH-00 — Registro de nuevo negocio
-  recuperar-contrasena/     AUTH-02 — Recuperar contraseña
-  resetear-contrasena/      AUTH-03 — Resetear contraseña
-  verificar-correo/         AUTH-04 — Pantalla "revisa tu bandeja"
-  verificar-email/          AUTH-05 — Confirmación de token de verificación
+  login/                    AUTH-01
+  registro/                 AUTH-00
+  recuperar-contrasena/     AUTH-02
+  resetear-contrasena/      AUTH-03
+  verificar-correo/         AUTH-04
+  verificar-email/          AUTH-05
 
 (onboarding)/
-  onboarding/               SETUP-01 — Wizard 4 pasos
+  onboarding/               SETUP-01
 
 (agenda)/
-  agenda/                   CAL-01 — Calendario Día/Semana/Mes
-  nueva-cita/               CAL-03 — Nueva cita con slots reales
-  citas/[id]/               CAL-02 — Detalle de cita (modal centrado)
-  citas/[id]/cobrar/        CAL-04 — Cierre y pago con anticipo descontado
+  agenda/                   CAL-01
+  nueva-cita/               CAL-03
+  citas/[id]/               CAL-02
+  citas/[id]/cobrar/        CAL-04
 
 (dashboard)/
-  dashboard/                DASH-01 — KPIs, alertas y card de bienvenida del negocio
-  clientes/                 CLI-01 — Directorio (sin buscador global en TopBar)
-  clientes/[id]/            CLI-02 — Perfil + historial + edición inline
+  dashboard/                DASH-01
+  clientes/                 CLI-01
+  clientes/[id]/            CLI-02
   clientes/nuevo/
-  colaboradores/            STAFF-01 — Lista (sin buscador global en TopBar)
-  colaboradores/[id]/       STAFF-02 — Perfil, horarios, avatar, ausencias
+  colaboradores/            STAFF-01
+  colaboradores/[id]/       STAFF-02
   colaboradores/nuevo/
-  servicios/                SRV-01 — Catálogo (sin buscador global en TopBar)
-  servicios/[id]/           SRV-02 — Editar (bufferMinutes, color, isActive)
+  servicios/                SRV-01
+  servicios/[id]/           SRV-02
   servicios/nuevo/
-  reportes/                 RPT-01 — Analytics completo con desglose de ingresos
+  reportes/                 RPT-01
   configuracion/            CFG hub
-  configuracion/negocio/    CFG-01 — Datos del negocio + upload de logo a Supabase
-  configuracion/agenda/     CFG-02 — Días, horario apertura/cierre, cancelación
-  configuracion/usuarios/   CFG-03
+  configuracion/negocio/    CFG-01 — upload logo a Supabase
+  configuracion/agenda/     CFG-02
+  configuracion/usuarios/   CFG-03 — CRUD usuarios del negocio
   configuracion/whatsapp/   CFG-04
+
+admin/
+  login/                    ADMIN-01 — Login super admin
+  dashboard/                ADMIN-02 — Listado de negocios + stats
+  negocios/[id]/            ADMIN-03 — Gestión de plan y acceso
 ```
 
 ### Componentes globales
 ```
 src/middleware.ts            Protección de rutas — redirige según cookie gm_token
+                             Rutas /admin excluidas del flujo de clientes
 
 src/components/layout/
   sidebar.tsx          Navegación lateral — filtro por rol
-  top-bar.tsx          TopBar con prop hideSearch para páginas con buscador propio
+  top-bar.tsx          TopBar con prop hideSearch
   global-search.tsx    Buscador global con debounce 300ms
   query-provider.tsx   QueryClientProvider + ReactQuery DevTools
 
 src/lib/api/
-  client.ts            apiFetch — credentials: "include", sin header Authorization manual
+  client.ts            apiFetch — credentials: "include"
 
 src/lib/api/hooks/
-  index.ts             Barrel de exports
+  index.ts
   use-clients.ts
   use-collaborators.ts
   use-services.ts
-  use-appointments.ts  → tipo Appointment incluye los 7 estados + paidAmount
-  use-analytics.ts     → tipos CollaboratorStat, AnalyticsData con chartType
+  use-appointments.ts  → 7 estados incluyendo IN_PROGRESS y RESCHEDULED
+  use-analytics.ts
   use-notifications.ts
-  use-settings.ts      → incluye openTime, closeTime en el tipo Settings
-  use-availability.ts  → retorna SlotsResponse { slots: string[], slotDuration: number }
-
-src/lib/hooks/
-  use-debounce.ts
-
-src/hooks/
-  use-role.ts          Lee rol del usuario desde localStorage (gm_user, no gm_token)
+  use-settings.ts
+  use-availability.ts
 ```
 
 ---
 
-## 4. Arquitectura del Backend
+## 5. Arquitectura del Backend
 
 ### Endpoints (`apps/api/src/routes/`)
 
-| Archivo | Rutas |
+| Archivo | Rutas principales |
 |---|---|
-| `auth.ts` | `POST /auth/register` — crea negocio + usuario, genera token de verificación, envía email |
-| `auth.ts` | `GET /auth/verify-email?token=` — verifica cuenta, setea cookie httpOnly, retorna user |
-| `auth.ts` | `POST /auth/login` — bloquea si `emailVerified = false` (403), setea cookie httpOnly |
-| `auth.ts` | `POST /auth/logout` — borra cookie `gm_token` (Max-Age=0) |
-| `auth.ts` | `GET /auth/me` — incluye `logoUrl` del negocio y datos de trial |
-| `clients.ts` | CRUD `/clients` |
-| `collaborators.ts` | CRUD `/collaborators` + ausencias. Al crear → guarda schedule default Lun–Vie 09:00–18:00 |
-| `services.ts` | CRUD `/services` |
-| `appointments.ts` | CRUD `/appointments` — valida horario negocio (422), valida conflicto de cliente (409) |
-| `appointments.ts` | `PATCH /appointments/:id/status` — acepta los 7 estados |
-| `appointments.ts` | `POST /appointments/:id/payment` — guarda `paidAmount`, no modifica `price` |
-| `appointments.ts` | `POST /appointments/:id/deposit` — valida que anticipo ≤ price (422) |
-| `availability.ts` | `GET /availability/slots` — intersecta horario colaborador ∩ negocio, filtra slots pasados si es hoy |
-| `notifications.ts` | `GET /notifications` |
-| `analytics.ts` | `GET /analytics?period=` — soporta: `this_week`, `last_week`, `this_month`, `this_year` |
-| `settings.ts` | `GET /settings`, `PATCH /settings/business`, `PATCH /settings/agenda` |
-| `settings.ts` | `POST /settings/logo` — sube imagen a Supabase Storage, guarda URL en business.logoUrl |
-
-### Lógica de períodos en Analytics
-
-| Período | Rango | Gráfico |
-|---|---|---|
-| `this_week` | Dom–Sáb de la semana actual | 7 barras diarias |
-| `last_week` | Dom–Sáb de la semana anterior | 7 barras diarias |
-| `this_month` | 4 semanas dom–sáb que incluyen hoy | 4 barras semanales |
-| `this_year` | 1 ene – hoy | Barras por mes |
-
-### Utilidades del backend
-```
-src/lib/
-  prisma.ts      Cliente Prisma singleton
-  mailer.ts      Nodemailer — sendVerificationEmail() con fallback a console.log en dev
-```
+| `auth.ts` | POST /auth/register, GET /auth/verify-email, POST /auth/login, POST /auth/logout, GET /auth/me |
+| `users.ts` | CRUD /users — usuarios del negocio actual |
+| `clients.ts` | CRUD /clients |
+| `collaborators.ts` | CRUD /collaborators + ausencias |
+| `services.ts` | CRUD /services |
+| `appointments.ts` | CRUD /appointments + status + payment + deposit |
+| `availability.ts` | GET /availability/slots |
+| `notifications.ts` | GET /notifications |
+| `analytics.ts` | GET /analytics?period= |
+| `settings.ts` | GET/PATCH /settings, POST /settings/logo |
+| `admin.ts` | POST /admin/auth/login, POST /admin/auth/logout, GET /admin/stats, CRUD /admin/businesses |
 
 ### Middleware
-- `auth.ts` — `requireAuth`: verifica JWT desde cookie `gm_token` o header `Authorization`, expone `c.get("user")`
+- `auth.ts` — `requireAuth`: lee cookie `gm_token` o header `Authorization`
+- `admin-auth.ts` — `requireSuperAdmin`: lee cookie `gm_admin_token`
 - CORS: `credentials: true`, origin desde env `FRONTEND_URL`
 
 ---
 
-## 5. Schema Prisma (estado actual)
+## 6. Schema Prisma (estado actual)
 
 ```prisma
+enum Role { OWNER / COLLABORATOR / ADMIN }
+
 enum AppointmentStatus {
-  PENDING
-  CONFIRMED
-  IN_PROGRESS
-  COMPLETED
-  CANCELLED
-  NO_SHOW
-  RESCHEDULED
+  PENDING / CONFIRMED / IN_PROGRESS / COMPLETED / CANCELLED / NO_SHOW / RESCHEDULED
 }
 
+enum PlanType { TRIAL / BASIC / PRO / ENTERPRISE }
+enum PlanStatus { ACTIVE / EXPIRED / SUSPENDED }
+
 model Business {
-  id                String   @id @default(cuid())
-  name              String   @default("")
-  type              String   @default("")
-  ruc               String?
-  logoUrl           String?  ← URL pública de Supabase Storage (no base64)
-  phone             String?
-  address           String?
-  timezone          String   @default("America/Mexico_City")
-  slotMinutes       Int      @default(30)
-  cancellationHours Int      @default(24)
-  operatingDays     String[] @default(["Mon","Tue","Wed","Thu","Fri"])
-  openTime          String   @default("09:00")
-  closeTime         String   @default("18:00")
+  ...
+  plan              PlanType   @default(TRIAL)
+  planStatus        PlanStatus @default(ACTIVE)
+  planExpiresAt     DateTime?
   trialEndsAt       DateTime?
 }
 
-model User {
-  id                     String   @id @default(cuid())
-  email                  String   @unique
-  password               String
-  name                   String
-  lastName               String?
-  dni                    String?
-  role                   Role     @default(OWNER)
-  emailVerified          Boolean  @default(false)
-  emailVerificationToken String?  @unique
-  businessId             String
+model SuperAdmin {
+  id        String
+  email     String @unique
+  password  String
+  name      String
 }
 
 model Appointment {
-  ...
-  price          Float       ← precio BASE del servicio (inmutable)
-  tipPercent     Float       @default(0)   ← ratio 0–1
-  paidAmount     Float?      ← precio base + propina (se llena al cobrar)
-  depositAmount  Float?      ← anticipo registrado (≤ price)
+  price          Float    ← precio base (inmutable)
+  tipPercent     Float    @default(0)
+  paidAmount     Float?   ← total cobrado con propina
+  depositAmount  Float?   ← anticipo (≤ price)
   paymentMethod  String?
-  status         AppointmentStatus @default(PENDING)
-  ...
+  status         AppointmentStatus
 }
-```
-
-### Invariante clave de pagos
-```
-price       = precio del servicio (nunca cambia)
-paidAmount  = price * (1 + tipPercent)   ← se guarda al completar el cobro
-tipAmount   = paidAmount - price
-depositAmount ≤ price                    ← validado en backend (422) y frontend
 ```
 
 ---
 
-## 6. Variables de entorno
+## 7. Variables de entorno
 
 ### Backend (`apps/api/.env`)
 ```
 DATABASE_URL=postgresql://...
 JWT_SECRET=...
+ADMIN_JWT_SECRET=...           ← para cookies del panel admin
 FRONTEND_URL=http://localhost:3000
 SUPABASE_URL=https://smpsncdzdvoanqxieicc.supabase.co
 SUPABASE_SERVICE_KEY=sb_secret_...
 SMTP_HOST=smtp.gmail.com
 SMTP_PORT=587
-SMTP_USER=...
+SMTP_USER=glowmanager95@gmail.com
 SMTP_PASS=...
 APP_URL=http://localhost:3000
-TZ=America/Lima   ← OBLIGATORIO en producción
+TZ=America/Lima                ← OBLIGATORIO en producción
+SUPER_ADMIN_EMAIL=...          ← solo para el script de seed
+SUPER_ADMIN_NAME=...
+SUPER_ADMIN_PASSWORD=...
 ```
 
 ### Frontend (`apps/web/.env.local`)
@@ -258,128 +239,110 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 
 ---
 
-## 7. Convención de datos
+## 8. Panel Super Admin
 
-```ts
-// ✅ Siempre así
-import { useClients, useSettings, useAnalytics } from "@/lib/api/hooks";
-const { data: clients, isLoading } = useClients(search);
-const { data: settings } = useSettings();
-const { data: analytics } = useAnalytics("this_week");
+| Ruta | Descripción |
+|---|---|
+| `/admin/login` | Login exclusivo con credenciales de super admin |
+| `/admin/dashboard` | Stats globales + lista de todos los negocios registrados |
+| `/admin/negocios/:id` | Detalle del negocio, cambio de plan, fecha de vencimiento, suspender/reactivar |
 
-// Slots de disponibilidad — formato correcto del backend
-const { data: slotsData } = useAvailabilitySlots(collaboratorId, serviceId, date);
-const slots = slotsData?.slots ?? []; // string[], NO Slot[]
+**Flujo de activación manual de planes:**
+1. Cliente se registra → 7 días trial gratis
+2. Al vencer, el negocio queda `planStatus: EXPIRED`
+3. Cliente paga (transferencia, yape, etc.)
+4. Admin entra a `/admin/negocios/:id`, selecciona plan y fecha de vencimiento, guarda
+5. Cliente recupera acceso automáticamente
 
-// ❌ Nunca más así
-const token = localStorage.getItem("gm_token"); // ← token ya no existe en localStorage
-const res = await fetch(`${API_URL}/clients`, { headers: { Authorization: `Bearer ${token}` } });
-
-// ✅ Para fetch directo (fuera de hooks)
-const res = await fetch(`${API_URL}/ruta`, { credentials: "include" });
+**Crear/recrear cuenta super admin:**
+```bash
+cd apps/api
+npx tsx src/scripts/create-super-admin.ts
 ```
 
 ---
 
-## 8. Pantallas — Estado Final
+## 9. Pantallas — Estado Final
 
 | ID | Pantalla | Estado |
 |---|---|---|
-| AUTH-00 | Registro | ✅ |
-| AUTH-01 | Login | ✅ |
-| AUTH-02 | Recuperar contraseña | ✅ |
-| AUTH-03 | Resetear contraseña | ✅ |
-| AUTH-04 | Verifica tu correo | ✅ |
-| AUTH-05 | Verificar email (token) | ✅ |
-| SETUP-01 | Onboarding wizard 4 pasos | ✅ |
-| DASH-01 | Dashboard con card de bienvenida + KPIs | ✅ |
-| CAL-01 | Calendario Día/Semana/Mes | ✅ |
-| CAL-02 | Detalle de cita | ✅ |
-| CAL-03 | Nueva cita con slots reales | ✅ |
-| CAL-04 | Cierre de cita / pago con anticipo | ✅ |
-| CLI-01 | Directorio de clientes | ✅ |
-| CLI-02 | Perfil cliente | ✅ |
-| STAFF-01 | Lista colaboradores | ✅ |
-| STAFF-02 | Perfil colaborador | ✅ |
-| SRV-01 | Catálogo de servicios | ✅ |
-| SRV-02 | Formulario nuevo/editar servicio | ✅ |
-| RPT-01 | Reportes con desglose servicios/propinas y tabla de colaboradores | ✅ |
-| CFG-01 | Datos del negocio + logo en Supabase Storage | ✅ |
-| CFG-02 | Agenda y políticas | ✅ |
-| CFG-03 | Gestión de usuarios del sistema | ✅ |
-| CFG-04 | Notificaciones WhatsApp (UI) | ✅ |
-| SYS-01 | Notificaciones in-app | ✅ |
-| SYS-02 | 404 | ✅ |
-| SYS-03 | Error general | ✅ |
+| AUTH-00 a AUTH-05 | Flujo completo de auth + verificación email | ✅ |
+| SETUP-01 | Onboarding wizard | ✅ |
+| DASH-01 | Dashboard KPIs | ✅ |
+| CAL-01 a CAL-04 | Agenda, nueva cita, detalle, cobro | ✅ |
+| CLI-01, CLI-02 | Clientes | ✅ |
+| STAFF-01, STAFF-02 | Colaboradores | ✅ |
+| SRV-01, SRV-02 | Servicios | ✅ |
+| RPT-01 | Reportes | ✅ |
+| CFG-01 a CFG-04 | Configuración completa | ✅ |
+| SYS-01 a SYS-03 | Notificaciones, 404, Error | ✅ |
+| ADMIN-01 a ADMIN-03 | Panel super admin | ✅ |
 
-**Total: 26/26 (100%)**
+**Total pantallas clientes: 26/26 · Panel admin: 3/3**
 
 ---
 
-## 9. Bugs Pendientes
+## 10. Bugs — Estado Final
 
-| ID | Descripción | Severidad | Módulo | Estado |
-|---|---|---|---|---|
-| BUG-01 | Anticipo sin validación | Media | Citas | ✅ Resuelto |
-| BUG-02 | KPIs hardcodeados | Media | Reportes | ✅ Resuelto |
-| BUG-03 | Logo en base64 en BD | Baja | Configuración | ✅ Resuelto — Supabase Storage |
-| BUG-04 | Protección de rutas solo client-side | Media | Seguridad | ✅ Resuelto — middleware.ts |
-| BUG-05 | JWT en localStorage (XSS) | Media | Seguridad | ✅ Resuelto — httpOnly cookie |
+| ID | Descripción | Estado |
+|---|---|---|
+| BUG-01 | Anticipo sin validación | ✅ Resuelto |
+| BUG-02 | KPIs hardcodeados | ✅ Resuelto |
+| BUG-03 | Logo en base64 en BD | ✅ Resuelto — Supabase Storage |
+| BUG-04 | Protección de rutas solo client-side | ✅ Resuelto — middleware.ts |
+| BUG-05 | JWT en localStorage | ✅ Resuelto — httpOnly cookie |
 
 **Sin bugs pendientes conocidos.**
 
 ---
 
-## 10. Deuda Técnica Pendiente
+## 11. Deuda Técnica Pendiente
 
 ### Media prioridad
 | Item | Descripción |
 |---|---|
-| `IN_PROGRESS` / `RESCHEDULED` | Estados implementados en schema y UI ✅ |
-| WhatsApp real | CFG-04 tiene la UI pero sin integración Twilio/Meta ni cron job |
+| Bloqueo por plan vencido | Al hacer login, verificar planStatus y redirigir si EXPIRED/SUSPENDED |
+| WhatsApp real | CFG-04 tiene UI pero sin integración real (BuilderBot o Meta Cloud API pendiente) |
 
 ### Baja prioridad
 | Item | Descripción |
 |---|---|
-| Drag & drop en calendario | Evaluar migrar a FullCalendar |
+| Culqi / pagos automáticos | Actualmente el plan se activa manualmente por el admin |
+| Drag & drop en calendario | Evaluar FullCalendar |
 | `payments` tabla separada | El pago está inline en `Appointment` |
-| `staff_services` N:M | Especialidades como `String[]` en lugar de tabla puente |
-| Responsividad móvil | Diseño optimizado para desktop únicamente |
-| `audit_log` | Tabla de trazabilidad de acciones críticas |
+| `staff_services` N:M | Especialidades como `String[]` |
+| Responsividad móvil | Solo desktop |
+| `audit_log` | Trazabilidad de acciones críticas |
 
 ---
 
-## 11. PRs
+## 12. PRs
 
 | PR | Título | Estado |
 |---|---|---|
-| #23 | feat(cita-detail): modal centrado, Cobrar/Completar, anticipo | ✅ Mergeado |
-| #24 | feat(data): integrar TanStack Query v5 | ✅ Mergeado |
-| #25 | feat(data): completar migración TanStack Query | ✅ Mergeado |
-| #26 | feat: comparativos reales, BUG-01, paidAmount, reportes completos | ✅ Mergeado |
-| #27 | feat: verificación de email, reportes completos y correcciones BUG-01/02 | ✅ Mergeado |
-| #28 | feat(BUG-03): migrar logo a Supabase Storage | ✅ Mergeado |
-| #29 | feat: estados IN_PROGRESS y RESCHEDULED en citas | ✅ Mergeado |
-| #30 | feat(security): migrar JWT a httpOnly cookie + protección de rutas | ✅ Mergeado |
+| #23–#26 | TanStack Query, cita-detail, comparativos, BUG-01 | ✅ Mergeados |
+| #27 | Verificación de email + correcciones | ✅ Mergeado |
+| #28 | BUG-03 — Logo a Supabase Storage | ✅ Mergeado |
+| #29 | Estados IN_PROGRESS y RESCHEDULED | ✅ Mergeado |
+| #30 | BUG-04 + BUG-05 — Seguridad httpOnly cookie | ✅ Mergeado |
+| #31 (pendiente) | Panel super admin + planes de suscripción | 🔄 Pendiente de merge |
 
 ---
 
-## 12. Próximos Pasos Sugeridos
+## 13. Próximos Pasos Sugeridos
 
-1. **Deploy a producción** — Frontend en Vercel, Backend en Railway, BD en Supabase PostgreSQL
-2. **WhatsApp real** — integración Twilio o Meta Cloud API + cron job de recordatorios
-3. **Drag & drop en calendario** — evaluar FullCalendar
-4. **`payments` tabla separada** — mejor trazabilidad financiera
-5. **Responsividad móvil** — actualmente solo desktop
+1. **Merge PR #31** — panel super admin
+2. **Bloqueo por plan vencido** — verificar `planStatus` al login y mostrar pantalla de plan vencido
+3. **Deploy a producción** — Vercel (frontend) + Railway (backend) + Supabase (BD)
+4. **BuilderBot / WhatsApp** — integración de notificaciones reales
+5. **Culqi** — pasarela de pagos para automatizar activación de planes
 
 ---
 
-## 13. Nota importante para producción
+## 14. Nota importante para producción
 
-Al desplegar en Railway, agregar la variable de entorno:
 ```
-TZ=America/Lima
+TZ=America/Lima          ← en Railway, para cálculos de horarios correctos
+FRONTEND_URL=https://tu-dominio.vercel.app  ← para CORS y cookies
+NODE_ENV=production      ← activa flag Secure en las cookies httpOnly
 ```
-El backend usa `getHours()` (hora local del proceso) para validar horarios de citas y slots de disponibilidad. Sin esta variable, los cálculos serán incorrectos en servidores con TZ diferente.
-
-Además configurar `FRONTEND_URL` con la URL real de Vercel para que CORS y las cookies funcionen correctamente en producción.
