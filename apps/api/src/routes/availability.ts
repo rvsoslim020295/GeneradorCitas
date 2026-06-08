@@ -120,7 +120,7 @@ availability.get("/slots", async (c) => {
       where: {
         collaboratorId: collab.id,
         businessId,
-        status: { notIn: ["CANCELLED", "NO_SHOW", "COMPLETED"] },
+        status: { notIn: ["CANCELLED", "NO_SHOW", "COMPLETED", "RESCHEDULED"] },
         startTime: { gte: dayStart, lte: dayEnd },
       },
       select: { startTime: true, endTime: true },
@@ -282,7 +282,7 @@ availability.get("/check", async (c) => {
       where: {
         collaboratorId: collab.id,
         businessId,
-        status: { notIn: ["CANCELLED", "NO_SHOW", "COMPLETED"] },
+        status: { notIn: ["CANCELLED", "NO_SHOW", "COMPLETED", "RESCHEDULED"] },
         startTime: { gte: dayStart, lte: dayEnd },
       },
       select: { startTime: true, endTime: true },
