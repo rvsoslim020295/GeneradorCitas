@@ -150,8 +150,9 @@ model Service {
   description   String?
   category      String
   durationMin   Int
-  bufferMinutes Int      @default(0)
-  price         Float
+  bufferMinutes  Int      @default(0)
+  maxConcurrent  Int?
+  price          Float
   color         String   @default("#3B82F6")
   isActive      Boolean  @default(true)
   businessId    String

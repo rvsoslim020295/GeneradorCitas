@@ -72,6 +72,20 @@ availability.get("/slots", async (c) => {
   const isToday    = date === now.toISOString().split("T")[0];
   const nowMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : 0;
 
+  // ── Citas activas del servicio en el día (para chequeo de capacidad) ─────────
+  // Solo cuenta PENDING, CONFIRMED e IN_PROGRESS — COMPLETED libera el cupo
+  const serviceDayApts = service.maxConcurrent
+    ? await prisma.appointment.findMany({
+        where: {
+          serviceId: service.id,
+          businessId,
+          status: { in: ["PENDING", "CONFIRMED", "IN_PROGRESS"] },
+          startTime: { gte: dayStart, lte: dayEnd },
+        },
+        select: { startTime: true, endTime: true },
+      })
+    : [];
+
   // Para cada slot, guardar qué colaborador lo tiene libre (el primero encontrado)
   const slotCollaboratorMap: Record<string, string> = {};
 
@@ -83,11 +97,12 @@ availability.get("/slots", async (c) => {
     const workStart = Math.max(timeToMinutes(daySchedule.start), businessOpen);
     const workEnd   = Math.min(timeToMinutes(daySchedule.end),   businessClose);
 
+    // COMPLETED también excluido: si terminó antes, el colaborador queda libre
     const existingApts = await prisma.appointment.findMany({
       where: {
         collaboratorId: collab.id,
         businessId,
-        status: { notIn: ["CANCELLED", "NO_SHOW"] },
+        status: { notIn: ["CANCELLED", "NO_SHOW", "COMPLETED"] },
         startTime: { gte: dayStart, lte: dayEnd },
       },
       select: { startTime: true, endTime: true },
@@ -101,14 +116,26 @@ availability.get("/slots", async (c) => {
     for (let slotStart = workStart; slotStart + totalMinutes <= workEnd; slotStart += slotStep) {
       if (slotStart < nowMinutes) continue;
       const slotEnd = slotStart + totalMinutes;
+
+      // ── Chequeo 1: colaborador libre ──────────────────────────────────────
       const hasConflict = busyRanges.some(r => slotStart < r.end && slotEnd > r.start);
-      if (!hasConflict) {
-        const hh  = String(Math.floor(slotStart / 60)).padStart(2, "0");
-        const mm  = String(slotStart % 60).padStart(2, "0");
-        const key = `${hh}:${mm}`;
-        // Solo registrar el primer colaborador disponible para ese slot
-        if (!slotCollaboratorMap[key]) slotCollaboratorMap[key] = collab.id;
+      if (hasConflict) continue;
+
+      // ── Chequeo 2: capacidad del servicio no superada ─────────────────────
+      if (service.maxConcurrent) {
+        const concurrent = serviceDayApts.filter(apt => {
+          const aptStart = apt.startTime.getHours() * 60 + apt.startTime.getMinutes();
+          const aptEnd   = apt.endTime.getHours()   * 60 + apt.endTime.getMinutes();
+          return slotStart < aptEnd && slotEnd > aptStart;
+        }).length;
+        if (concurrent >= service.maxConcurrent) continue;
       }
+
+      const hh  = String(Math.floor(slotStart / 60)).padStart(2, "0");
+      const mm  = String(slotStart % 60).padStart(2, "0");
+      const key = `${hh}:${mm}`;
+      // Solo registrar el primer colaborador disponible para ese slot
+      if (!slotCollaboratorMap[key]) slotCollaboratorMap[key] = collab.id;
     }
   }
 

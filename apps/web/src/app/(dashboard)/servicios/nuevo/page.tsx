@@ -27,6 +27,7 @@ export default function NuevoServicioPage() {
   const [category, setCategory] = useState("");
   const [durationMin, setDurationMin] = useState(30);
   const [bufferMin, setBufferMin] = useState(0);
+  const [maxConcurrent, setMaxConcurrent] = useState<string>("");
   const [color, setColor] = useState("#4441c4");
   const [price, setPrice] = useState("");
   const [selectedCollabs, setSelectedCollabs] = useState<string[]>([]);
@@ -54,6 +55,7 @@ export default function NuevoServicioPage() {
         category,
         durationMin,
         bufferMinutes: bufferMin,
+        maxConcurrent: maxConcurrent !== "" ? parseInt(maxConcurrent) : null,
         color,
         price: parseFloat(price),
       } as never);
@@ -152,6 +154,21 @@ export default function NuevoServicioPage() {
                   </select>
                   <ChevronDown size={16} strokeWidth={1.5} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)] pointer-events-none" />
                 </div>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider flex items-center gap-1.5">
+                  <Users size={13} strokeWidth={2} />
+                  Capacidad máxima simultánea
+                </label>
+                <p className="text-[11px] text-[var(--color-outline)]">¿Cuántas personas pueden recibir este servicio al mismo tiempo? Ej: 3 sillas de corte. Déjalo vacío para sin límite.</p>
+                <input
+                  type="number" min="1" step="1"
+                  value={maxConcurrent}
+                  onChange={(e) => setMaxConcurrent(e.target.value)}
+                  placeholder="Sin límite"
+                  className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all placeholder:text-[var(--color-outline-variant)]"
+                />
               </div>
 
               <div className="space-y-2">
