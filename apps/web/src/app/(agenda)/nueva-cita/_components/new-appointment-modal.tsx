@@ -7,7 +7,7 @@ import {
   CalendarCheck, X, Search, UserPlus, ChevronDown,
   Clock, Banknote, CalendarDays, CheckCircle, AlertCircle, Loader2,
 } from "lucide-react";
-import { OriginSelector } from "./origin-selector";
+import { OriginSelector, type OriginId } from "./origin-selector";
 import {
   useServices, useCollaborators, useClients,
   useAvailabilitySlots, useCreateAppointment,
@@ -35,6 +35,7 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
   const [date, setDate] = useState(todayISO());
   const [time, setTime] = useState("");
   const [notes, setNotes] = useState("");
+  const [origin, setOrigin] = useState<OriginId>("whatsapp");
   const [error, setError] = useState("");
   const [conflictId, setConflictId] = useState<string | null>(null);
 
@@ -52,7 +53,8 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
   const allClients: Client[] = clientsData ?? [];
   const filteredClients = debouncedSearch.trim() ? allClients.slice(0, 6) : [];
   const availableSlots = slotsData?.slots ?? [];
-  const slotsReady = !!collaboratorId && !!serviceId && !!date && !slotsLoading;
+  const slotCollaboratorMap = slotsData?.slotCollaboratorMap ?? {};
+  const slotsReady = !!serviceId && !!date && !slotsLoading;
 
   const selectedService = services.find((s) => s.id === serviceId) ?? null;
 
@@ -89,14 +91,18 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
     const endTime = endDate.toISOString();
 
     try {
+      // Si es "cualquiera disponible", usar el colaborador asignado al slot elegido
+      const resolvedCollaboratorId = collaboratorId || slotCollaboratorMap[time] || collaborators[0]?.id;
+
       await createAppointment.mutateAsync({
         clientId: selectedClient.id,
-        collaboratorId: collaboratorId || collaborators[0]?.id,
+        collaboratorId: resolvedCollaboratorId,
         serviceId,
         startTime,
         endTime,
         price: svc.price,
         notes: notes || undefined,
+        origin,
       });
       router.push("/agenda");
     } catch (err: unknown) {
@@ -258,9 +264,9 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
                 )}
               </label>
 
-              {!collaboratorId || !serviceId ? (
+              {!serviceId ? (
                 <p className="text-[11px] text-[var(--color-on-surface-variant)] py-1">
-                  Selecciona colaborador y servicio para ver disponibilidad
+                  Selecciona un servicio para ver disponibilidad
                 </p>
               ) : slotsLoading ? (
                 <div className="flex items-center gap-2 py-1 text-[var(--color-on-surface-variant)]">
@@ -299,7 +305,7 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
           </div>
           <div className="space-y-2">
             <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Origen</label>
-            <OriginSelector />
+            <OriginSelector value={origin} onChange={setOrigin} />
           </div>
         </div>
       </div>

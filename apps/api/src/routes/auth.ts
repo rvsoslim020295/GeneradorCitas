@@ -5,6 +5,7 @@ import { randomBytes } from "crypto";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth, JWT_SECRET } from "../middleware/auth.js";
+import { ADMIN_JWT_SECRET } from "../middleware/admin-auth.js";
 import { sendVerificationEmail } from "../lib/mailer.js";
 
 const auth = new Hono();
@@ -35,42 +36,77 @@ auth.post("/login", async (c) => {
   }
 
   const { email, password } = parsed.data;
+  const rememberMe = (body as Record<string, unknown>)?.rememberMe === true;
+  const isProduction = process.env.NODE_ENV === "production";
+  // Sin rememberMe → sin Max-Age (cookie de sesión, se borra al cerrar el navegador)
+  // Con rememberMe → 30 días
+  const maxAge = rememberMe ? 60 * 60 * 24 * 30 : null;
 
+  // ── Intentar como usuario de negocio primero ──────────────────────────────
   const user = await prisma.user.findUnique({
     where: { email },
     include: { business: true },
   });
 
-  if (!user) return c.json({ error: "Credenciales incorrectas" }, 401);
+  if (user) {
+    const validPassword = await bcrypt.compare(password, user.password);
+    if (!validPassword) return c.json({ error: "Credenciales incorrectas" }, 401);
 
-  const validPassword = await bcrypt.compare(password, user.password);
-  if (!validPassword) return c.json({ error: "Credenciales incorrectas" }, 401);
+    if (!user.emailVerified) {
+      return c.json({ error: "Debes verificar tu correo electrónico antes de iniciar sesión." }, 403);
+    }
 
-  if (!user.emailVerified) {
-    return c.json({ error: "Debes verificar tu correo electrónico antes de iniciar sesión." }, 403);
+    const token = jwt.sign(
+      { userId: user.id, email: user.email, businessId: user.businessId, role: user.role },
+      JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    c.header(
+      "Set-Cookie",
+      `gm_token=${token}; HttpOnly; SameSite=Lax; Path=/${maxAge ? `; Max-Age=${maxAge}` : ""}${isProduction ? "; Secure" : ""}`
+    );
+
+    return c.json({
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        role: user.role,
+        business: { id: user.business.id, name: user.business.name, type: user.business.type },
+      },
+    });
   }
 
-  const token = jwt.sign(
-    { userId: user.id, email: user.email, businessId: user.businessId, role: user.role },
-    JWT_SECRET,
-    { expiresIn: "7d" }
-  );
+  // ── Intentar como super admin ─────────────────────────────────────────────
+  const superAdmin = await prisma.superAdmin.findUnique({ where: { email } });
 
-  const isProduction = process.env.NODE_ENV === "production";
-  c.header(
-    "Set-Cookie",
-    `gm_token=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800${isProduction ? "; Secure" : ""}`
-  );
+  if (superAdmin) {
+    const validPassword = await bcrypt.compare(password, superAdmin.password);
+    if (!validPassword) return c.json({ error: "Credenciales incorrectas" }, 401);
 
-  return c.json({
-    user: {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      role: user.role,
-      business: { id: user.business.id, name: user.business.name, type: user.business.type },
-    },
-  });
+    const token = jwt.sign(
+      { adminId: superAdmin.id, email: superAdmin.email },
+      ADMIN_JWT_SECRET,
+      { expiresIn: "7d" }
+    );
+
+    c.header(
+      "Set-Cookie",
+      `gm_admin_token=${token}; HttpOnly; SameSite=Lax; Path=/${maxAge ? `; Max-Age=${maxAge}` : ""}${isProduction ? "; Secure" : ""}`
+    );
+
+    return c.json({
+      user: {
+        id: superAdmin.id,
+        name: superAdmin.name,
+        email: superAdmin.email,
+        role: "SUPER_ADMIN",
+      },
+    });
+  }
+
+  return c.json({ error: "Credenciales incorrectas" }, 401);
 });
 
 // ─── POST /auth/register ──────────────────────────────────────────────────────
@@ -190,6 +226,8 @@ auth.get("/me", requireAuth, async (c) => {
       name: user.business.name,
       type: user.business.type,
       logoUrl: user.business.logoUrl,
+      plan: user.business.plan,
+      planStatus: user.business.planStatus,
       trialEndsAt: user.business.trialEndsAt,
       trialDaysLeft,
       trialActive,

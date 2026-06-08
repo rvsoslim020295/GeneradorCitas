@@ -2,10 +2,13 @@ import { Hono } from "hono";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { getLimits } from "../lib/plan-limits.js";
 
 const appointments = new Hono();
 
 appointments.use("*", requireAuth);
+
+const ORIGINS = ["whatsapp", "phone", "instagram", "walkin"] as const;
 
 const createSchema = z.object({
   clientId: z.string(),
@@ -15,6 +18,7 @@ const createSchema = z.object({
   endTime: z.string().datetime(),
   price: z.number().nonnegative(),
   notes: z.string().optional(),
+  origin: z.enum(ORIGINS).optional().default("walkin"),
 });
 
 const statusSchema = z.object({
@@ -85,8 +89,42 @@ appointments.post("/", async (c) => {
   const start = new Date(startTime);
   const end   = new Date(endTime);
 
-  // ── Validar que la cita esté dentro del horario del negocio ──
+  // ── Verificar límites del plan ────────────────────────────────────────────
   const business = await prisma.business.findUnique({ where: { id: businessId } });
+  const limits = getLimits(business?.plan ?? "BASIC");
+
+  // Límite de citas por mes
+  if (limits.maxAppointmentsPerMonth !== -1) {
+    const monthStart = new Date(start.getFullYear(), start.getMonth(), 1);
+    const monthEnd   = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+    const monthCount = await prisma.appointment.count({
+      where: {
+        businessId,
+        startTime: { gte: monthStart, lt: monthEnd },
+        status: { notIn: ["CANCELLED", "NO_SHOW"] },
+      },
+    });
+    if (monthCount >= limits.maxAppointmentsPerMonth) {
+      return c.json({
+        error: `Has alcanzado el límite de ${limits.maxAppointmentsPerMonth} citas este mes. Actualiza tu plan para continuar.`,
+        code: "PLAN_LIMIT_APPOINTMENTS",
+      }, 403);
+    }
+  }
+
+  // Límite de anticipación
+  if (limits.maxAdvanceDays !== -1) {
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + limits.maxAdvanceDays);
+    if (start > maxDate) {
+      return c.json({
+        error: `Tu plan solo permite agendar citas con hasta ${limits.maxAdvanceDays} días de anticipación. Actualiza tu plan para agendar más adelante.`,
+        code: "PLAN_LIMIT_ADVANCE_DAYS",
+      }, 403);
+    }
+  }
+
+  // ── Validar que la cita esté dentro del horario del negocio ──
   if (business?.openTime && business?.closeTime) {
     const [oh, om] = (business.openTime).split(":").map(Number);
     const [ch, cm] = (business.closeTime).split(":").map(Number);
@@ -255,6 +293,16 @@ appointments.post("/:id/deposit", async (c) => {
 
   const parsed = z.object({ depositAmount: z.number().positive() }).safeParse(body);
   if (!parsed.success) return c.json({ error: "Monto de anticipo inválido" }, 400);
+
+  // ── Verificar que el plan permita anticipos ───────────────────────────────
+  const biz = await prisma.business.findUnique({ where: { id: businessId } });
+  const limits = getLimits(biz?.plan ?? "BASIC");
+  if (!limits.canUseDeposits) {
+    return c.json({
+      error: "Tu plan actual no incluye el registro de anticipos. Actualiza tu plan para usar esta función.",
+      code: "PLAN_LIMIT_DEPOSITS",
+    }, 403);
+  }
 
   const existing = await prisma.appointment.findFirst({ where: { id, businessId } });
   if (!existing) return c.json({ error: "Cita no encontrada" }, 404);

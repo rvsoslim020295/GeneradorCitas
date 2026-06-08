@@ -14,6 +14,7 @@ export default function LoginPage() {
   const router = useRouter();
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
+  const [rememberMe, setRememberMe] = useState(false);
 
   async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
     e.preventDefault();
@@ -29,7 +30,7 @@ export default function LoginPage() {
         method: "POST",
         credentials: "include",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+        body: JSON.stringify({ email, password, rememberMe }),
       });
 
       const data = await res.json();
@@ -47,7 +48,11 @@ export default function LoginPage() {
       // Token viene como httpOnly cookie — solo guardamos datos de display
       localStorage.setItem("gm_user", JSON.stringify(data.user));
 
-      router.push("/dashboard");
+      if (data.user.role === "SUPER_ADMIN") {
+        router.push("/admin/dashboard");
+      } else {
+        router.push("/dashboard");
+      }
     } catch {
       setError("No se pudo conectar con el servidor. ¿Está corriendo la API?");
     } finally {
@@ -146,6 +151,8 @@ export default function LoginPage() {
                   id="remember-me"
                   name="remember-me"
                   type="checkbox"
+                  checked={rememberMe}
+                  onChange={(e) => setRememberMe(e.target.checked)}
                 />
                 <label
                   className="ml-2 block cursor-pointer font-body-md text-body-md text-on-surface"

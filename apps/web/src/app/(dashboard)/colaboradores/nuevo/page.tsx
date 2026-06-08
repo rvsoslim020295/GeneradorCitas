@@ -72,8 +72,13 @@ export default function NuevoColaboradorPage() {
         ...(phone.trim() && { phone: phone.trim() }),
       } as never);
       router.push("/colaboradores");
-    } catch {
-      setError("No se pudo guardar el colaborador.");
+    } catch (err) {
+      try {
+        const body = JSON.parse((err as Error).message);
+        setError(body.error ?? "No se pudo guardar el colaborador.");
+      } catch {
+        setError("No se pudo guardar el colaborador.");
+      }
     }
   }
 

@@ -144,11 +144,15 @@ analytics.get("/", async (c) => {
   const [appointments, prevAppointments] = await Promise.all([
     prisma.appointment.findMany({
       where: { businessId, startTime: { gte: start, lte: end } },
-      include: { collaborator: { select: { id: true, name: true } } },
+      include: {
+        collaborator: { select: { id: true, name: true } },
+        service: { select: { id: true, name: true } },
+        client: { select: { id: true, name: true, lastName: true } },
+      },
     }),
     prisma.appointment.findMany({
       where: { businessId, startTime: { gte: prev.start, lte: prev.end } },
-      select: { status: true, price: true, tipPercent: true, paidAmount: true },
+      select: { status: true, price: true, tipPercent: true, paidAmount: true, clientId: true },
     }),
   ]);
 
@@ -206,6 +210,106 @@ analytics.get("/", async (c) => {
 
   const topCollaborators = allCollaborators.slice(0, 3);
 
+  // ── Top servicios ─────────────────────────────────────────────────────────
+  const serviceMap: Record<string, { name: string; count: number; revenue: number }> = {};
+  for (const apt of completed) {
+    const sid = apt.service.id;
+    if (!serviceMap[sid]) serviceMap[sid] = { name: apt.service.name, count: 0, revenue: 0 };
+    serviceMap[sid].count++;
+    serviceMap[sid].revenue += apt.paidAmount ?? apt.price;
+  }
+  const topServices = Object.values(serviceMap)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5)
+    .map((s) => ({
+      ...s,
+      percentage: totalRevenue > 0 ? Math.round((s.revenue / totalRevenue) * 100) : 0,
+    }));
+
+  // ── Clientes más valiosos ─────────────────────────────────────────────────
+  const clientMap: Record<string, { name: string; visits: number; revenue: number }> = {};
+  for (const apt of completed) {
+    const cid = apt.client.id;
+    const name = [apt.client.name, apt.client.lastName].filter(Boolean).join(" ");
+    if (!clientMap[cid]) clientMap[cid] = { name, visits: 0, revenue: 0 };
+    clientMap[cid].visits++;
+    clientMap[cid].revenue += apt.paidAmount ?? apt.price;
+  }
+  const topClients = Object.values(clientMap)
+    .sort((a, b) => b.revenue - a.revenue)
+    .slice(0, 5);
+
+  // ── Mapa de calor: día × hora ─────────────────────────────────────────────
+  // Solo citas completadas. Resultado: array de { day: 0-6, hour: 0-23, count }
+  const heatmapMap: Record<string, number> = {};
+  for (const apt of appointments.filter((a) => a.status !== "CANCELLED" && a.status !== "NO_SHOW")) {
+    const d = apt.startTime.getDay();   // 0=Dom … 6=Sáb
+    const h = apt.startTime.getHours();
+    const key = `${d}-${h}`;
+    heatmapMap[key] = (heatmapMap[key] ?? 0) + 1;
+  }
+  const heatmap = Object.entries(heatmapMap).map(([key, count]) => {
+    const [day, hour] = key.split("-").map(Number);
+    return { day, hour, count };
+  });
+
+  // ── Tasa de retención ─────────────────────────────────────────────────────
+  // % de clientes del período anterior que volvieron en el actual
+  const currentClientIds  = new Set(completed.map((a) => a.client.id));
+  const prevClientIds     = new Set(prevAppointments
+    .filter((a) => a.status === "COMPLETED")
+    .map((a) => a.clientId));
+  const retained = [...prevClientIds].filter((id) => currentClientIds.has(id)).length;
+  const retentionRate = prevClientIds.size > 0
+    ? Math.round((retained / prevClientIds.size) * 100)
+    : null;
+
+  // ── Cancelaciones por colaborador ─────────────────────────────────────────
+  const cancelMap: Record<string, { name: string; cancelled: number; total: number }> = {};
+  for (const apt of appointments) {
+    const cid = apt.collaborator.id;
+    if (!cancelMap[cid]) cancelMap[cid] = { name: apt.collaborator.name, cancelled: 0, total: 0 };
+    cancelMap[cid].total++;
+    if (apt.status === "CANCELLED" || apt.status === "NO_SHOW") cancelMap[cid].cancelled++;
+  }
+  const cancellationByCollaborator = Object.values(cancelMap)
+    .filter((c) => c.total > 0)
+    .map((c) => ({
+      name: c.name,
+      cancelled: c.cancelled,
+      total: c.total,
+      rate: Math.round((c.cancelled / c.total) * 100),
+    }))
+    .sort((a, b) => b.rate - a.rate);
+
+  // ── Origen de citas ───────────────────────────────────────────────────────
+  const ORIGIN_LABELS: Record<string, string> = {
+    whatsapp:  "WhatsApp",
+    phone:     "Teléfono",
+    instagram: "Instagram",
+    walkin:    "Presencial",
+  };
+  const originMap: Record<string, number> = {};
+  for (const apt of appointments) {
+    const key = apt.origin ?? "walkin";
+    originMap[key] = (originMap[key] ?? 0) + 1;
+  }
+  const originBreakdown = Object.entries(originMap)
+    .sort((a, b) => b[1] - a[1])
+    .map(([id, count]) => ({
+      id,
+      label: ORIGIN_LABELS[id] ?? id,
+      count,
+      percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+    }));
+
+  // ── Mejor mes (solo relevante en this_year) ───────────────────────────────
+  let bestMonth: { month: string; amount: number } | null = null;
+  if (period === "this_year") {
+    const best = [...dailyRevenue].sort((a, b) => b.amount - a.amount)[0];
+    if (best && best.amount > 0) bestMonth = best;
+  }
+
   return c.json({
     kpis: {
       totalAppointments: total,
@@ -225,6 +329,13 @@ analytics.get("/", async (c) => {
     statusDistribution,
     topCollaborators,
     allCollaborators,
+    topServices,
+    topClients,
+    heatmap,
+    retentionRate,
+    cancellationByCollaborator,
+    bestMonth,
+    originBreakdown,
   });
 });
 

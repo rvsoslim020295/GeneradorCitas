@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { getLimits } from "../lib/plan-limits.js";
 
 const collaborators = new Hono();
 
@@ -76,6 +77,20 @@ collaborators.post("/", async (c) => {
 
   if (!parsed.success) {
     return c.json({ error: "Datos inválidos", details: parsed.error.issues }, 400);
+  }
+
+  // ── Verificar límite de colaboradores según plan ──────────────────────────
+  const business = await prisma.business.findUnique({ where: { id: businessId } });
+  const limits = getLimits(business?.plan ?? "BASIC");
+
+  if (limits.maxCollaborators !== -1) {
+    const count = await prisma.collaborator.count({ where: { businessId, isActive: true } });
+    if (count >= limits.maxCollaborators) {
+      return c.json({
+        error: `Tu plan ${business?.plan ?? "actual"} permite máximo ${limits.maxCollaborators} colaborador${limits.maxCollaborators !== 1 ? "es" : ""}. Actualiza tu plan para agregar más.`,
+        code: "PLAN_LIMIT_COLLABORATORS",
+      }, 403);
+    }
   }
 
   const collaborator = await prisma.collaborator.create({
