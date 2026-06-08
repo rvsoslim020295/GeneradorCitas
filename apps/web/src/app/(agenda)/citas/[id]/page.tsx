@@ -80,9 +80,15 @@ export default function CitaDetailPage() {
     }
   }
 
-  function handleUpdateStatus(status: AppointmentStatus, confirmMsg?: string) {
+  function handleUpdateStatus(status: AppointmentStatus, confirmMsg?: string, afterConfirm?: () => void) {
     if (confirmMsg) {
-      setConfirmDialog({ message: confirmMsg, onConfirm: () => executeUpdateStatus(status) });
+      setConfirmDialog({
+        message: confirmMsg,
+        onConfirm: async () => {
+          await executeUpdateStatus(status);
+          afterConfirm?.();
+        },
+      });
     } else {
       executeUpdateStatus(status);
     }
@@ -440,10 +446,13 @@ export default function CitaDetailPage() {
                       <>
                         <div className="grid grid-cols-2 gap-3">
                           <button
-                            onClick={async () => {
+                            onClick={() => {
                               if (!appointment) return;
-                              await handleUpdateStatus("RESCHEDULED", "¿Marcar esta cita como reagendada y crear una nueva?");
-                              router.push(`/nueva-cita?clientId=${appointment.client.id}`);
+                              handleUpdateStatus(
+                                "RESCHEDULED",
+                                "¿Marcar esta cita como reagendada y crear una nueva?",
+                                () => router.push(`/nueva-cita?clientId=${appointment.client.id}`),
+                              );
                             }}
                             disabled={updating}
                             className="w-full bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] text-[var(--color-on-surface)] border border-[var(--color-outline-variant)] text-label-md font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
