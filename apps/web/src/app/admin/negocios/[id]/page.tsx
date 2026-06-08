@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Building2, Users, Calendar, Scissors, ShieldOff, ShieldCheck, Save } from "lucide-react";
+import { ArrowLeft, Building2, Users, Calendar, Scissors, ShieldOff, ShieldCheck, Save, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/components/theme-provider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -37,6 +38,7 @@ export default function AdminNegocioDetailPage() {
   const [saving, setSaving] = useState(false);
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
 
+  const { theme, toggle: toggleTheme } = useTheme();
   const [plan, setPlan] = useState("TRIAL");
   const [expiresAt, setExpiresAt] = useState("");
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
@@ -162,6 +164,15 @@ export default function AdminNegocioDetailPage() {
         </button>
         <h1 className="font-headline-sm font-semibold text-[var(--color-on-surface)]">{business.name || "Sin nombre"}</h1>
         <span className="text-body-md text-[var(--color-on-surface-variant)]">· {business.type || "—"}</span>
+        <div className="ml-auto">
+          <button
+            onClick={toggleTheme}
+            title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            className="p-2 rounded-full hover:bg-[var(--color-surface-container-high)] transition-colors text-[var(--color-on-surface-variant)]"
+          >
+            {theme === "dark" ? <Sun size={20} strokeWidth={1.5} /> : <Moon size={20} strokeWidth={1.5} />}
+          </button>
+        </div>
       </header>
 
       <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
@@ -229,10 +240,18 @@ export default function AdminNegocioDetailPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Vence el</label>
-              <input
-                type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}
-                className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20"
-              />
+              <div className="relative">
+                <input
+                  type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}
+                  className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 pr-10 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 [color-scheme:light] dark:[color-scheme:dark]"
+                />
+                <Calendar size={16} strokeWidth={1.5} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)] pointer-events-none" />
+              </div>
+              {expiresAt && (
+                <p className="text-[11px] text-[var(--color-on-surface-variant)]">
+                  {new Date(expiresAt + "T12:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" })}
+                </p>
+              )}
             </div>
           </div>
 
