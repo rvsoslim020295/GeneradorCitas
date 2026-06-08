@@ -24,6 +24,11 @@ function todayISO() {
   return new Date().toISOString().split("T")[0];
 }
 
+function currentTimeHHMM() {
+  const now = new Date();
+  return `${String(now.getHours()).padStart(2, "0")}:${String(now.getMinutes()).padStart(2, "0")}`;
+}
+
 export function NewAppointmentModal({ preselectedClientId }: { preselectedClientId?: string }) {
   const router = useRouter();
 
@@ -38,7 +43,7 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
   const [origin, setOrigin] = useState<OriginId>("whatsapp");
   const [error, setError] = useState("");
   const [conflictId, setConflictId] = useState<string | null>(null);
-  const [walkinTime, setWalkinTime] = useState(""); // hora exacta ingresada manualmente
+  const [walkinTime, setWalkinTime] = useState(currentTimeHHMM);
 
   const debouncedSearch = useDebounce(clientSearch, 200);
   const debouncedWalkin = useDebounce(walkinTime, 500);
