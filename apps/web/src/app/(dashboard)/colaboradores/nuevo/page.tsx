@@ -72,14 +72,15 @@ export default function NuevoColaboradorPage() {
         performsServices,
         ...(documentNumber.trim() && { documentType, documentNumber: documentNumber.trim() }),
         ...(phone.trim() && { phone: phone.trim() }),
-      } as never);
+      });
       router.push("/colaboradores");
     } catch (err) {
+      const raw = (err as Error).message ?? "";
       try {
-        const body = JSON.parse((err as Error).message);
-        setError(body.error ?? "No se pudo guardar el colaborador.");
+        const body = JSON.parse(raw);
+        setError(`No se pudo guardar el colaborador: ${body.error ?? raw}`);
       } catch {
-        setError("No se pudo guardar el colaborador.");
+        setError(`No se pudo guardar el colaborador: ${raw || "Error desconocido"}`);
       }
     }
   }

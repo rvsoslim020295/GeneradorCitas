@@ -8,6 +8,7 @@ export type Collaborator = {
   role: string;
   specialties: string[];
   isActive: boolean;
+  performsServices: boolean;
   avatarUrl: string | null;
   schedule: Record<string, { active: boolean; start: string; end: string }> | null;
   documentType: string | null;
