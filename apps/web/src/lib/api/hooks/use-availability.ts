@@ -8,10 +8,35 @@ export type SlotsResponse = {
   totalDuration?: number;
 };
 
+export type CheckResponse = {
+  available: boolean;
+  collaboratorId: string | null;
+  reason?: string;
+};
+
 export const availabilityKeys = {
   slots: (collaboratorId: string, serviceId: string, date: string) =>
     ["availability", "slots", collaboratorId, serviceId, date] as const,
+  check: (collaboratorId: string, serviceId: string, date: string, time: string) =>
+    ["availability", "check", collaboratorId, serviceId, date, time] as const,
 };
+
+export function useAvailabilityCheck(
+  collaboratorId: string,
+  serviceId: string,
+  date: string,
+  time: string, // HH:MM — debounced desde el componente
+) {
+  const params = new URLSearchParams({ serviceId, date, time });
+  if (collaboratorId) params.set("collaboratorId", collaboratorId);
+
+  return useQuery({
+    queryKey: availabilityKeys.check(collaboratorId, serviceId, date, time),
+    queryFn: () => apiFetch<CheckResponse>(`/availability/check?${params.toString()}`),
+    enabled: !!serviceId && !!date && /^\d{2}:\d{2}$/.test(time),
+    staleTime: 1000 * 20,
+  });
+}
 
 export function useAvailabilitySlots(
   collaboratorId: string, // puede ser "" para "cualquiera"

@@ -5,12 +5,12 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
   CalendarCheck, X, Search, UserPlus, ChevronDown,
-  Clock, Banknote, CalendarDays, CheckCircle, AlertCircle, Loader2,
+  Clock, Banknote, CalendarDays, CheckCircle, AlertCircle, Loader2, Zap,
 } from "lucide-react";
 import { OriginSelector, type OriginId } from "./origin-selector";
 import {
   useServices, useCollaborators, useClients,
-  useAvailabilitySlots, useCreateAppointment,
+  useAvailabilitySlots, useAvailabilityCheck, useCreateAppointment,
 } from "@/lib/api/hooks";
 import { useDebounce } from "@/lib/hooks/use-debounce";
 
@@ -38,14 +38,17 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
   const [origin, setOrigin] = useState<OriginId>("whatsapp");
   const [error, setError] = useState("");
   const [conflictId, setConflictId] = useState<string | null>(null);
+  const [walkinTime, setWalkinTime] = useState(""); // hora exacta ingresada manualmente
 
   const debouncedSearch = useDebounce(clientSearch, 200);
+  const debouncedWalkin = useDebounce(walkinTime, 500);
   const searchRef = useRef<HTMLDivElement>(null);
 
   const { data: servicesData } = useServices();
   const { data: collabsData } = useCollaborators();
   const { data: clientsData } = useClients(debouncedSearch || undefined);
   const { data: slotsData, isLoading: slotsLoading } = useAvailabilitySlots(collaboratorId, serviceId, date);
+  const { data: checkData, isFetching: checkLoading } = useAvailabilityCheck(collaboratorId, serviceId, date, debouncedWalkin);
   const createAppointment = useCreateAppointment();
 
   const services = servicesData?.services ?? [];
@@ -82,17 +85,23 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
     setConflictId(null);
     if (!selectedClient) { setError("Selecciona un cliente."); return; }
     if (!serviceId) { setError("Selecciona un servicio."); return; }
-    if (!time) { setError("Selecciona una hora."); return; }
+
+    // El walk-in tiene prioridad sobre el slot picker
+    const useWalkin = !!walkinTime && checkData?.available === true;
+    const finalTime = useWalkin ? walkinTime : time;
+    if (!finalTime) { setError("Selecciona una hora o ingresa la hora exacta del cliente."); return; }
+    if (useWalkin && checkData?.available === false) { setError("La hora ingresada no está disponible."); return; }
 
     const svc = services.find((s) => s.id === serviceId)!;
-    const startTime = new Date(`${date}T${time}:00`).toISOString();
-    const endDate = new Date(`${date}T${time}:00`);
+    const startTime = new Date(`${date}T${finalTime}:00`).toISOString();
+    const endDate = new Date(`${date}T${finalTime}:00`);
     endDate.setMinutes(endDate.getMinutes() + svc.durationMin);
     const endTime = endDate.toISOString();
 
     try {
-      // Si es "cualquiera disponible", usar el colaborador asignado al slot elegido
-      const resolvedCollaboratorId = collaboratorId || slotCollaboratorMap[time] || collaborators[0]?.id;
+      const resolvedCollaboratorId = useWalkin
+        ? (checkData?.collaboratorId ?? collaborators[0]?.id)
+        : (collaboratorId || slotCollaboratorMap[finalTime] || collaborators[0]?.id);
 
       await createAppointment.mutateAsync({
         clientId: selectedClient.id,
@@ -294,6 +303,56 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
             </div>
           </div>
         </div>
+
+        {/* Walk-in / hora exacta */}
+        {serviceId && date && (
+          <div className="space-y-2 border border-[var(--color-outline-variant)]/40 rounded-lg p-4 bg-[var(--color-surface-container-low)]/30">
+            <div className="flex items-center gap-2">
+              <Zap size={14} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+              <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">
+                Hora exacta (walk-in)
+              </label>
+            </div>
+            <p className="text-[11px] text-[var(--color-on-surface-variant)]">
+              Si el cliente ya está aquí, ingresa la hora exacta. Tiene prioridad sobre el selector de arriba.
+            </p>
+            <div className="flex items-center gap-3">
+              <input
+                type="time"
+                value={walkinTime}
+                onChange={(e) => { setWalkinTime(e.target.value); setTime(""); }}
+                className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-md px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none transition-all"
+              />
+              {walkinTime && (
+                <button type="button" onClick={() => setWalkinTime("")}
+                  className="text-[var(--color-outline)] hover:text-[var(--color-error)] transition-colors">
+                  <X size={15} strokeWidth={2} />
+                </button>
+              )}
+              {/* Indicador en tiempo real */}
+              {walkinTime && (
+                checkLoading || walkinTime !== debouncedWalkin ? (
+                  <div className="flex items-center gap-1.5 text-[var(--color-on-surface-variant)]">
+                    <Loader2 size={14} className="animate-spin" />
+                    <span className="text-[11px]">Verificando...</span>
+                  </div>
+                ) : checkData?.available ? (
+                  <div className="flex items-center gap-1.5 text-emerald-600">
+                    <CheckCircle size={15} strokeWidth={2} />
+                    <span className="text-[11px] font-semibold">Disponible</span>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-1.5 text-[var(--color-error)]">
+                    <AlertCircle size={15} strokeWidth={2} />
+                    <span className="text-[11px] font-semibold">
+                      {checkData?.reason ?? "No disponible"}
+                    </span>
+                  </div>
+                )
+              )}
+            </div>
+          </div>
+        )}
 
         {/* Notas + Origen */}
         <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4">
