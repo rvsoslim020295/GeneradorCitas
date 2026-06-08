@@ -233,7 +233,7 @@ appointments.patch("/:id/status", async (c) => {
 // ─── POST /appointments/:id/payment ──────────────────────────────────────────
 // Registra el pago de una cita:
 // 1. Calcula el total con propina
-// 2. Marca la cita como COMPLETED con método de pago
+// 2. Guarda paidAmount + paymentMethod (NO cambia el status)
 // 3. Actualiza totalVisits y totalSpent del cliente
 appointments.post("/:id/payment", async (c) => {
   const { businessId } = c.get("user");
@@ -249,8 +249,11 @@ appointments.post("/:id/payment", async (c) => {
     where: { id, businessId },
   });
   if (!existing) return c.json({ error: "Cita no encontrada" }, 404);
-  if (existing.status === "COMPLETED") {
+  if (existing.paidAmount !== null) {
     return c.json({ error: "Esta cita ya fue cobrada" }, 400);
+  }
+  if (["CANCELLED", "NO_SHOW"].includes(existing.status)) {
+    return c.json({ error: "No se puede cobrar una cita cancelada o con inasistencia" }, 400);
   }
 
   const { tipPercent, paymentMethod } = parsed.data;
@@ -261,10 +264,10 @@ appointments.post("/:id/payment", async (c) => {
     const appointment = await tx.appointment.update({
       where: { id },
       data: {
-        status: "COMPLETED",
         tipPercent,
         paymentMethod,
         paidAmount: totalWithTip,
+        // El status NO cambia aquí — cobrar y completar son acciones independientes
       },
       include: appointmentInclude,
     });

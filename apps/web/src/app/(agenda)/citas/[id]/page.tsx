@@ -249,7 +249,7 @@ export default function CitaDetailPage() {
                   </div>
                 </div>
 
-                {!["COMPLETED", "CANCELLED", "NO_SHOW", "RESCHEDULED"].includes(appointment.status) && (
+                {!["CANCELLED", "NO_SHOW", "RESCHEDULED"].includes(appointment.status) && (
                   <div className="space-y-3 pt-1">
                     {actionError && (
                       <div className="text-body-md text-[var(--color-error)] bg-[var(--color-error-container)]/30 border border-[var(--color-error-container)] rounded-lg px-3 py-2">
@@ -257,6 +257,29 @@ export default function CitaDetailPage() {
                       </div>
                     )}
 
+                    {/* Badges de estado pendiente — independientes entre sí */}
+                    <div className="flex flex-wrap gap-2">
+                      {!appointment.paidAmount && (
+                        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-amber-50 border border-amber-200 text-amber-700">
+                          <CreditCard size={11} strokeWidth={2} />
+                          Pago pendiente
+                        </span>
+                      )}
+                      {appointment.status !== "COMPLETED" && (
+                        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-blue-50 border border-blue-200 text-blue-700">
+                          <CheckCircle size={11} strokeWidth={2} />
+                          Servicio pendiente de completar
+                        </span>
+                      )}
+                      {appointment.paidAmount && appointment.status === "COMPLETED" && (
+                        <span className="flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-semibold bg-emerald-50 border border-emerald-200 text-emerald-700">
+                          <CheckCircle size={11} strokeWidth={2} />
+                          Todo listo ✓
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Iniciar servicio */}
                     {appointment.status === "CONFIRMED" && (
                       <button
                         onClick={() => handleUpdateStatus("IN_PROGRESS")}
@@ -268,22 +291,27 @@ export default function CitaDetailPage() {
                       </button>
                     )}
 
+                    {/* Cobrar y Completar — aparecen de forma independiente */}
                     <div className="grid grid-cols-2 gap-3">
-                      <Link
-                        href={`/citas/${appointment.id}/cobrar`}
-                        className="bg-[var(--color-primary)] hover:bg-[var(--color-on-primary-fixed-variant)] text-[var(--color-on-primary)] text-label-lg font-semibold py-3 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
-                      >
-                        <CreditCard size={18} strokeWidth={1.5} />
-                        Cobrar
-                      </Link>
-                      <button
-                        onClick={() => handleUpdateStatus("COMPLETED", "¿Marcar cita como completada sin registrar pago?")}
-                        disabled={updating}
-                        className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-label-lg font-semibold py-3 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-60"
-                      >
-                        <CheckCircle size={18} strokeWidth={1.5} />
-                        {updating ? "..." : "Completar"}
-                      </button>
+                      {!appointment.paidAmount && (
+                        <Link
+                          href={`/citas/${appointment.id}/cobrar`}
+                          className="bg-[var(--color-primary)] hover:bg-[var(--color-on-primary-fixed-variant)] text-[var(--color-on-primary)] text-label-lg font-semibold py-3 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98]"
+                        >
+                          <CreditCard size={18} strokeWidth={1.5} />
+                          Cobrar
+                        </Link>
+                      )}
+                      {appointment.status !== "COMPLETED" && (
+                        <button
+                          onClick={() => handleUpdateStatus("COMPLETED")}
+                          disabled={updating}
+                          className="bg-emerald-50 hover:bg-emerald-100 text-emerald-700 border border-emerald-200 text-label-lg font-semibold py-3 rounded-xl shadow-sm transition-all flex items-center justify-center gap-2 active:scale-[0.98] disabled:opacity-60"
+                        >
+                          <CheckCircle size={18} strokeWidth={1.5} />
+                          {updating ? "..." : "Completar"}
+                        </button>
+                      )}
                     </div>
 
                     {!showDeposit ? (
@@ -370,37 +398,42 @@ export default function CitaDetailPage() {
                       </div>
                     )}
 
-                    <div className="grid grid-cols-2 gap-3">
-                      <button
-                        onClick={async () => {
-                          if (!appointment) return;
-                          await handleUpdateStatus("RESCHEDULED", "¿Marcar esta cita como reagendada y crear una nueva?");
-                          router.push(`/nueva-cita?clientId=${appointment.client.id}`);
-                        }}
-                        disabled={updating}
-                        className="w-full bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] text-[var(--color-on-surface)] border border-[var(--color-outline-variant)] text-label-md font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
-                      >
-                        <CalendarClock size={16} strokeWidth={1.5} />
-                        Reprogramar
-                      </button>
-                      <button
-                        onClick={() => handleUpdateStatus("CANCELLED", "¿Cancelar esta cita? El cliente será notificado.")}
-                        disabled={updating}
-                        className="w-full bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] text-[var(--color-error)] border border-[var(--color-outline-variant)] text-label-md font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
-                      >
-                        <XCircle size={16} strokeWidth={1.5} />
-                        {updating ? "..." : "Cancelar Cita"}
-                      </button>
-                    </div>
+                    {/* Reprogramar / Cancelar / No se presentó — solo si el servicio no terminó */}
+                    {appointment.status !== "COMPLETED" && (
+                      <>
+                        <div className="grid grid-cols-2 gap-3">
+                          <button
+                            onClick={async () => {
+                              if (!appointment) return;
+                              await handleUpdateStatus("RESCHEDULED", "¿Marcar esta cita como reagendada y crear una nueva?");
+                              router.push(`/nueva-cita?clientId=${appointment.client.id}`);
+                            }}
+                            disabled={updating}
+                            className="w-full bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] text-[var(--color-on-surface)] border border-[var(--color-outline-variant)] text-label-md font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                          >
+                            <CalendarClock size={16} strokeWidth={1.5} />
+                            Reprogramar
+                          </button>
+                          <button
+                            onClick={() => handleUpdateStatus("CANCELLED", "¿Cancelar esta cita? El cliente será notificado.")}
+                            disabled={updating}
+                            className="w-full bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] text-[var(--color-error)] border border-[var(--color-outline-variant)] text-label-md font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2 disabled:opacity-60"
+                          >
+                            <XCircle size={16} strokeWidth={1.5} />
+                            {updating ? "..." : "Cancelar Cita"}
+                          </button>
+                        </div>
 
-                    <button
-                      onClick={() => handleUpdateStatus("NO_SHOW", "¿Marcar al cliente como no presentado?")}
-                      disabled={updating}
-                      className="w-full bg-transparent hover:bg-[var(--color-surface-variant)] text-[var(--color-on-surface-variant)] text-label-md font-semibold py-2 rounded-lg transition-colors border border-transparent hover:border-[var(--color-outline-variant)] flex items-center justify-center gap-2 disabled:opacity-60"
-                    >
-                      <UserX size={15} strokeWidth={1.5} />
-                      {updating ? "Actualizando..." : "Cliente no se presentó"}
-                    </button>
+                        <button
+                          onClick={() => handleUpdateStatus("NO_SHOW", "¿Marcar al cliente como no presentado?")}
+                          disabled={updating}
+                          className="w-full bg-transparent hover:bg-[var(--color-surface-variant)] text-[var(--color-on-surface-variant)] text-label-md font-semibold py-2 rounded-lg transition-colors border border-transparent hover:border-[var(--color-outline-variant)] flex items-center justify-center gap-2 disabled:opacity-60"
+                        >
+                          <UserX size={15} strokeWidth={1.5} />
+                          {updating ? "Actualizando..." : "Cliente no se presentó"}
+                        </button>
+                      </>
+                    )}
                   </div>
                 )}
 

@@ -53,7 +53,7 @@ export default function CobrarPage() {
         paymentMethod,
       },
     });
-    router.push("/agenda");
+    router.push(`/citas/${id}`);
   }
 
   if (isLoading || !appointment) {
