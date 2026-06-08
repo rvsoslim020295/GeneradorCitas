@@ -51,7 +51,12 @@ export default function LoginPage() {
       if (data.user.role === "SUPER_ADMIN") {
         router.push("/admin/dashboard");
       } else {
-        router.push("/dashboard");
+        const planStatus = data.user.business?.planStatus;
+        if (planStatus === "EXPIRED" || planStatus === "SUSPENDED") {
+          router.push("/plan-vencido");
+        } else {
+          router.push("/dashboard");
+        }
       }
     } catch {
       setError("No se pudo conectar con el servidor. ¿Está corriendo la API?");

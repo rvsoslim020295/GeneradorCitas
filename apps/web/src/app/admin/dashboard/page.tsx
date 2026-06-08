@@ -2,7 +2,8 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
-import { Flower2, LogOut, Building2, Clock, CheckCircle, XCircle, AlertTriangle, ChevronRight, RefreshCw } from "lucide-react";
+import { Flower2, LogOut, Building2, Clock, CheckCircle, XCircle, AlertTriangle, ChevronRight, RefreshCw, Sun, Moon } from "lucide-react";
+import { useTheme } from "@/components/theme-provider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -36,6 +37,7 @@ type Stats = { total: number; trial: number; active: number; expired: number; su
 
 export default function AdminDashboardPage() {
   const router = useRouter();
+  const { theme, toggle: toggleTheme } = useTheme();
   const [businesses, setBusinesses] = useState<Business[]>([]);
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
@@ -100,6 +102,13 @@ export default function AdminDashboardPage() {
           <span className="text-body-md text-[var(--color-on-surface-variant)]">{adminName}</span>
           <button onClick={fetchData} className="p-2 text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)] rounded-full transition-colors">
             <RefreshCw size={16} strokeWidth={1.5} />
+          </button>
+          <button
+            onClick={toggleTheme}
+            title={theme === "dark" ? "Cambiar a modo claro" : "Cambiar a modo oscuro"}
+            className="p-2 text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)] rounded-full transition-colors"
+          >
+            {theme === "dark" ? <Sun size={18} strokeWidth={1.5} /> : <Moon size={18} strokeWidth={1.5} />}
           </button>
           <button onClick={handleLogout} className="flex items-center gap-1.5 text-label-md font-semibold text-[var(--color-error)] hover:bg-[var(--color-error-container)]/20 px-3 py-1.5 rounded-lg transition-colors">
             <LogOut size={15} strokeWidth={1.5} />

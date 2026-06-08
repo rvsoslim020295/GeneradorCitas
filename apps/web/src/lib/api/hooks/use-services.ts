@@ -8,6 +8,7 @@ export type Service = {
   category: string;
   durationMin: number;
   bufferMinutes: number;
+  maxConcurrent: number | null;
   price: number;
   color: string;
   isActive: boolean;

@@ -73,7 +73,13 @@ auth.post("/login", async (c) => {
         name: user.name,
         email: user.email,
         role: user.role,
-        business: { id: user.business.id, name: user.business.name, type: user.business.type },
+        business: {
+          id: user.business.id,
+          name: user.business.name,
+          type: user.business.type,
+          plan: user.business.plan,
+          planStatus: user.business.planStatus,
+        },
       },
     });
   }

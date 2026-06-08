@@ -253,15 +253,35 @@ analytics.get("/", async (c) => {
     return { day, hour, count };
   });
 
-  // ── Tasa de retención ─────────────────────────────────────────────────────
-  // % de clientes del período anterior que volvieron en el actual
-  const currentClientIds  = new Set(completed.map((a) => a.client.id));
-  const prevClientIds     = new Set(prevAppointments
-    .filter((a) => a.status === "COMPLETED")
-    .map((a) => a.clientId));
-  const retained = [...prevClientIds].filter((id) => currentClientIds.has(id)).length;
-  const retentionRate = prevClientIds.size > 0
-    ? Math.round((retained / prevClientIds.size) * 100)
+  // ── Nuevos vs Recurrentes ──────────────────────────────────────────────────
+  // Para cada cliente único del período actual, verificar si tuvo citas antes del período
+  const currentPeriodClientIds = [...new Set(completed.map((a) => a.client.id))];
+  let newClients = 0;
+  let recurringClients = 0;
+  if (currentPeriodClientIds.length > 0) {
+    const priorCounts = await prisma.appointment.groupBy({
+      by: ["clientId"],
+      where: {
+        businessId,
+        clientId: { in: currentPeriodClientIds },
+        startTime: { lt: start },
+      },
+      _count: { id: true },
+    });
+    const clientsWithPrior = new Set(priorCounts.map((r) => r.clientId));
+    for (const id of currentPeriodClientIds) {
+      if (clientsWithPrior.has(id)) recurringClients++;
+      else newClients++;
+    }
+  }
+  const newVsRecurring = currentPeriodClientIds.length > 0
+    ? {
+        new: newClients,
+        recurring: recurringClients,
+        total: currentPeriodClientIds.length,
+        newPct: Math.round((newClients / currentPeriodClientIds.length) * 100),
+        recurringPct: Math.round((recurringClients / currentPeriodClientIds.length) * 100),
+      }
     : null;
 
   // ── Cancelaciones por colaborador ─────────────────────────────────────────
@@ -332,7 +352,7 @@ analytics.get("/", async (c) => {
     topServices,
     topClients,
     heatmap,
-    retentionRate,
+    newVsRecurring,
     cancellationByCollaborator,
     bestMonth,
     originBreakdown,

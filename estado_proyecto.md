@@ -1,8 +1,8 @@
 # Estado del Proyecto — GlowManager
 **Fecha:** 8 de Junio 2026
-**Versión:** 6.0
+**Versión:** 7.0
 **Repositorio:** https://github.com/rvsoslim020295/GeneradorCitas
-**Rama activa:** `main` + `feat/super-admin` (pendiente de merge)
+**Rama activa:** `feat/super-admin` (pendiente de merge a `main`)
 
 ---
 
@@ -10,97 +10,127 @@
 
 GlowManager es un panel administrativo B2B para negocios de belleza (salones, barberías, spas, nail bars). Permite gestionar citas, clientes, colaboradores, servicios, paquetes, pagos y reportes desde una interfaz web orientada a dueños y recepcionistas en desktop.
 
-**Estado actual:** MVP 100% funcional, production-ready en seguridad, con panel de super administrador, sistema de planes de suscripción manual, módulo de paquetes/combos de servicios, y sistema de métricas avanzadas en reportes.
+**Estado actual:** MVP 100% funcional con todas las funcionalidades core implementadas. Sistema de agendamiento avanzado con capacidad por servicio, slots dinámicos, walk-in en tiempo real, cobro y completado desacoplados, panel de super admin completo.
 
 ---
 
-## 2. Lo implementado en esta sesión (v6.0)
+## 2. Lo implementado en sesiones anteriores (v6.0)
 
-### 2.1 Login unificado (Super Admin + Negocios)
-- El mismo `/login` detecta si las credenciales son de `User` o `SuperAdmin`
-- Si es super admin emite cookie `gm_admin_token` y redirige a `/admin/dashboard`
-- Si ya tiene `gm_admin_token` activo y va a `/login`, el middleware lo redirige directo al panel admin
-- Ruta `/admin/login` eliminada — ya no existe ni es necesaria
-- Todas las redirecciones internas del panel admin actualizadas de `/admin/login` → `/login`
+### Login unificado + Remember Me
+- `/login` detecta super admin vs negocio automáticamente
+- Cookie con `Max-Age` dinámico: sesión o 30 días según checkbox
 
-### 2.2 Remember Me en el login
-- Checkbox "Remember me" ahora funciona realmente
-- **Sin marcar:** cookie sin `Max-Age` → se borra al cerrar el navegador
-- **Marcado:** cookie dura 30 días
-- Aplica tanto para usuarios de negocio (`gm_token`) como para super admin (`gm_admin_token`)
+### Planes de suscripción
+- Página `/planes` con cards BASIC (S/15), PRO (S/30), ENTERPRISE (S/45)
+- Modal de pago con QR Plin
+- Restricciones de plan en backend (`plan-limits.ts`)
 
-### 2.3 Página de Planes de Suscripción (`/planes`)
-- Cards para BASIC (S/15), PRO (S/30), ENTERPRISE (S/45)
-- Estrategia de price anchoring: la diferencia PRO→ENTERPRISE es pequeña para empujar al cliente al plan más alto
-- Badge "Plan actual" en la card del plan activo (TRIAL y BASIC comparten card)
-- Botón "Plan activo" deshabilitado para el plan en uso
-- Modal de pago con QR de Plin al seleccionar un plan
-- Flecha para retroceder + barra de título fija
-- Botón "Actualizar Plan" del sidebar conectado a `/planes`
-- Plan actual consumido desde `GET /auth/me` (se agregó `plan` y `planStatus` a la respuesta)
+### Módulo de Paquetes/Combos
+- CRUD completo en `/paquetes`
+- Mínimo 2 servicios, límite por plan
+- Precio especial vs precio individual tachado
 
-### 2.4 Restricciones de plan implementadas (backend)
-Archivo central: `apps/api/src/lib/plan-limits.ts`
+### Métricas en Reportes (v6.0)
+- Top servicios por ingreso
+- Mapa de calor horas pico (día × hora)
+- Clientes más valiosos
+- Cancelaciones por colaborador
+- Origen de citas (WhatsApp / Teléfono / Instagram / Presencial)
+- Mejor mes del año
 
-| Límite | TRIAL/BASIC | PRO | ENTERPRISE |
-|---|---|---|---|
-| Colaboradores | 2 | 4 | Ilimitados |
-| Citas/mes | 50 | 200 | Ilimitadas |
-| Anticipación | 7 días | 30 días | Sin límite |
-| Historial clientes | 30 días | 6 meses | Completo |
-| Depósitos/anticipos | ❌ | ✅ | ✅ |
-| Exportar Excel | ❌ | ✅ | ✅ |
-| Paquetes | 0 | 5 | Ilimitados |
+### Origen de citas
+- Campo `origin` en `Appointment` (`whatsapp | phone | instagram | walkin`)
+- `OriginSelector` conectado a BD
 
-- `POST /collaborators` → verifica máx. colaboradores activos
-- `POST /appointments` → verifica citas del mes + días de anticipación
-- `POST /appointments/:id/deposit` → verifica `canUseDeposits`
-- `GET /clients` → filtra por última visita según `clientHistoryDays`
-- `POST /packages` → verifica máx. paquetes activos
-- Errores devueltos con `code` específico y mensaje legible para mostrar al usuario
-
-### 2.5 Módulo de Paquetes/Combos (`/paquetes`)
-- Nuevo modelo `Package` + tabla de unión `PackageService` (N:M con `Service`)
-- CRUD completo: listar, crear, editar, eliminar
-- Validación: mínimo 2 servicios por paquete
-- Vista de listado muestra precio original tachado, precio especial, ahorro en verde, duración total, chips de servicios con colores
-- Formulario de creación/edición con selección visual de servicios
-- Resumen automático de duración + precio individual al seleccionar servicios
-- Advertencia si el precio del paquete es mayor que los servicios por separado
-- Restricción por plan aplicada en backend
-- Entrada en el sidebar entre "Servicios" y "Reportes" (solo OWNER)
-
-### 2.6 Origen de citas
-- Nuevo campo `origin` en `Appointment` (`whatsapp` | `phone` | `instagram` | `walkin`)
-- `OriginSelector` ahora es controlado — el canal seleccionado se envía y guarda en BD
-- Default: `whatsapp`
-- Citas anteriores quedan como `walkin` (valor por defecto del schema)
-
-### 2.7 Métricas avanzadas en Reportes
-Nuevas métricas añadidas al endpoint `GET /analytics` y visualizadas en `/reportes`:
-
-| Métrica | Descripción |
-|---|---|
-| 🏆 Mejor mes del año | Solo en "Este Año" — tarjeta destacada con el mes de mayor ingreso |
-| ✂️ Top servicios | Top 5 por ingreso con barra de porcentaje |
-| 🗺️ Mapa de calor horas pico | Tabla día × hora con gradiente de intensidad (8h–20h) |
-| ⭐ Clientes más valiosos | Top 5 por gasto en el período |
-| ❌ Cancelaciones por colaborador | Barra rojo/amarillo según severidad (≥30% = crítico) |
-| 📣 Origen de citas | Distribución por canal: WhatsApp, Teléfono, Instagram, Presencial |
-| 👥 Retención de clientes | % clientes del período anterior que volvieron (con estados de color) |
-
-### 2.8 Nueva Cita — "Cualquiera disponible" funciona
-- Endpoint `/availability/slots` ahora acepta `collaboratorId` como opcional
-- Sin colaborador → busca slots en todos los activos, devuelve `slotCollaboratorMap`
-- Al guardar, asigna automáticamente el primer colaborador libre para el slot elegido
-- Garantiza que no haya cruces: cada slot solo aparece si al menos un colaborador está libre
-
-### 2.9 Logo del panel admin clickeable
-- El logo "GlowManager / Admin" en el dashboard del super admin redirige a `/admin/dashboard`
+### Panel Super Admin
+- `/admin/dashboard`: stats globales + listado negocios
+- `/admin/negocios/:id`: gestión de plan, fecha de vencimiento, suspender/reactivar
+- Login unificado detecta super admin automáticamente
 
 ---
 
-## 3. Stack Tecnológico
+## 3. Lo implementado en esta sesión (v7.0)
+
+### 3.1 Bloqueo por plan vencido/suspendido
+- `POST /auth/login` devuelve `plan` y `planStatus` del negocio
+- Al login: si `planStatus` es `EXPIRED` o `SUSPENDED` → redirige a `/plan-vencido`
+- Dashboard layout: guard que llama `/auth/me` en cada navegación y redirige si el plan venció
+- Nueva página `/plan-vencido`: mensaje contextual distinto para EXPIRED vs SUSPENDED + CTA a `/planes` + botón cerrar sesión
+- Rutas `/planes` y `/plan-vencido` exentas del guard
+
+### 3.2 Métrica Nuevos vs Recurrentes (reemplaza Retención)
+- Backend: `groupBy` para detectar clientes con citas previas al período
+- Devuelve `newVsRecurring { new, recurring, total, newPct, recurringPct }`
+- Frontend: card con barra de proporción verde/primario + conteos + porcentajes + total de clientes únicos
+
+### 3.3 Campo `performsServices` en colaboradores
+- Schema: `performsServices Boolean @default(true)` en `Collaborator`
+- Todos los existentes heredan `true` automáticamente
+- Backend: aceptado en create/update; availability filtra por `performsServices: true`
+- Nueva cita: selector excluye colaboradores con `performsServices = false`
+- Formularios crear/editar colaborador: toggle "Realiza servicios" con descripción
+- **Caso de uso:** Recepcionistas, cajeros, administradores no aparecen al agendar citas
+
+### 3.4 Capacidad máxima simultánea por servicio (`maxConcurrent`)
+- Schema: `maxConcurrent Int?` en `Service` — `null` = sin límite
+- Backend: `POST/PATCH /services` acepta `maxConcurrent`
+- Availability: al buscar slots, verifica que las citas `PENDING+CONFIRMED+IN_PROGRESS` para ese servicio no superen `maxConcurrent`
+- Las citas `COMPLETED` liberan el cupo (quien terminó antes ya no bloquea)
+- Formularios nuevo/editar servicio: campo numérico en sección Logística con placeholder "Sin límite"
+- **Caso de uso:** 3 sillas de corte → máximo 3 cortes simultáneos aunque haya más colaboradores libres
+
+### 3.5 Slots dinámicos por fin de cita real
+- Antes: slots solo en intervalos fijos (ej. 4:00, 4:30, 5:00)
+- Ahora: también se añade el momento exacto en que termina cada cita activa del colaborador
+- Si un corte de 40 min empieza a las 4:00 → termina a las 4:40 → **4:40 aparece como slot disponible**
+- Candidatos = grilla fija ∪ fin de cada cita activa del colaborador
+
+### 3.6 Walk-in con validación en tiempo real
+- Nueva sección "⚡ Hora exacta (walk-in)" en el formulario de nueva cita
+- Aparece solo cuando servicio y fecha están seleccionados
+- El usuario escribe cualquier hora (ej. 4:47) — debounce 500ms
+- Indicador en tiempo real: ✅ verde "Disponible" / ❌ rojo con motivo específico
+- Motivos: "Fuera del horario del negocio" / "Capacidad máxima alcanzada" / "Sin colaboradores disponibles"
+- Nuevo endpoint `GET /availability/check?serviceId&date&time&collaboratorId`
+- Si walk-in está válido, **tiene prioridad** sobre el slot picker
+- Limpiable con botón ✕
+
+### 3.7 Cobrar y Completar desacoplados
+- **Antes:** cobrar forzaba `status = COMPLETED`; si estaba COMPLETED desaparecían todos los botones
+- **Ahora:** son acciones completamente independientes
+
+| Situación | Badges | Botones |
+|---|---|---|
+| Sin cobrar + sin completar | 🟡 Pago pendiente · 🔵 Servicio pendiente | Cobrar + Completar |
+| Sin cobrar + completado | 🟡 Pago pendiente | Cobrar |
+| Cobrado + sin completar | 🔵 Servicio pendiente | Completar |
+| Cobrado + completado | ✅ Todo listo | — |
+
+- Reprogramar / Cancelar / No-show: solo visibles si el servicio no está completado
+- Página de cobro redirige al detalle de cita (no a la agenda)
+- Backend: `POST /appointments/:id/payment` ya no cambia el status; verifica `paidAmount !== null` para evitar cobro doble
+
+### 3.8 Modal de confirmación en página (reemplaza `confirm()` nativo)
+- Eliminado el diálogo `confirm()` del browser en toda la app
+- Reemplazado por modal centrado con fondo oscuro translúcido
+- Implementado en: detalle de cita, panel admin (suspender/reactivar)
+- Botones "Cancelar" / "Confirmar" con estilo del sistema
+- Clic fuera del modal también lo cierra
+
+### 3.9 Panel Admin — mejoras
+- **Fecha de vencimiento editable:** schema Zod ahora acepta `YYYY-MM-DD` además de ISO datetime
+- Muestra la fecha en texto legible ("12 de junio de 2026") debajo del input
+- Mejor manejo de errores: mensaje del servidor visible en pantalla
+- **Toggle modo oscuro/claro** en header del dashboard admin y detalle de negocio
+- `confirm()` de Suspender/Reactivar reemplazado por modal en página
+
+### 3.10 Mensaje de error descriptivo en colaboradores
+- Al fallar el guardado, el error muestra el motivo específico del servidor
+- Ej: "No se pudo guardar el colaborador: Tu plan TRIAL permite máximo 2 colaboradores"
+
+---
+
+## 4. Stack Tecnológico
 
 ### Frontend (`apps/web`)
 | Capa | Tecnología | Versión |
@@ -136,7 +166,7 @@ Nuevas métricas añadidas al endpoint `GET /analytics` y visualizadas en `/repo
 
 ---
 
-## 4. Arquitectura del Frontend
+## 5. Arquitectura del Frontend
 
 ### Estructura de rutas (`apps/web/src/app/`)
 
@@ -154,26 +184,26 @@ Nuevas métricas añadidas al endpoint `GET /analytics` y visualizadas en `/repo
 
 (agenda)/
   agenda/                   CAL-01
-  nueva-cita/               CAL-03
-  citas/[id]/               CAL-02
+  nueva-cita/               CAL-03 — Walk-in + slots dinámicos ✨ v7.0
+  citas/[id]/               CAL-02 — Cobrar/Completar desacoplados ✨ v7.0
   citas/[id]/cobrar/        CAL-04
 
 (dashboard)/
   dashboard/                DASH-01
+  plan-vencido/             PLAN-02 — Pantalla plan vencido/suspendido ✨ v7.0
   clientes/                 CLI-01
   clientes/[id]/            CLI-02
-  clientes/nuevo/
   colaboradores/            STAFF-01
-  colaboradores/[id]/       STAFF-02
-  colaboradores/nuevo/
+  colaboradores/[id]/       STAFF-02 — Toggle performsServices ✨ v7.0
+  colaboradores/nuevo/      STAFF-03 — Toggle performsServices ✨ v7.0
   servicios/                SRV-01
-  servicios/[id]/           SRV-02
-  servicios/nuevo/
-  paquetes/                 PKG-01 — Listado de paquetes ✨ NUEVO
-  paquetes/nuevo/           PKG-02 — Crear paquete ✨ NUEVO
-  paquetes/[id]/            PKG-03 — Editar paquete ✨ NUEVO
-  planes/                   PLAN-01 — Planes de suscripción ✨ NUEVO
-  reportes/                 RPT-01 — Métricas avanzadas ✨ MEJORADO
+  servicios/[id]/           SRV-02 — Campo maxConcurrent ✨ v7.0
+  servicios/nuevo/          SRV-03 — Campo maxConcurrent ✨ v7.0
+  paquetes/                 PKG-01
+  paquetes/nuevo/           PKG-02
+  paquetes/[id]/            PKG-03
+  planes/                   PLAN-01
+  reportes/                 RPT-01 — Nuevos vs Recurrentes ✨ v7.0
   configuracion/            CFG hub
   configuracion/negocio/    CFG-01
   configuracion/agenda/     CFG-02
@@ -181,95 +211,76 @@ Nuevas métricas añadidas al endpoint `GET /analytics` y visualizadas en `/repo
   configuracion/whatsapp/   CFG-04
 
 admin/
-  dashboard/                ADMIN-02 — Logo clickeable
-  negocios/[id]/            ADMIN-03
+  dashboard/                ADMIN-02 — Toggle tema ✨ v7.0
+  negocios/[id]/            ADMIN-03 — Fecha editable + toggle tema ✨ v7.0
 ```
 
 ### Hooks disponibles (`apps/web/src/lib/api/hooks/`)
 ```
 use-clients.ts
-use-collaborators.ts
-use-services.ts
+use-collaborators.ts         → tipo incluye performsServices ✨ v7.0
+use-services.ts              → tipo incluye maxConcurrent ✨ v7.0
 use-appointments.ts
 use-analytics.ts
 use-notifications.ts
 use-settings.ts
-use-availability.ts      → colaboradorId ahora opcional
-use-packages.ts          ✨ NUEVO — usePackages, usePackage, useCreatePackage,
-                                    useUpdatePackage, useDeletePackage
+use-availability.ts          → useAvailabilitySlots + useAvailabilityCheck ✨ v7.0
+use-packages.ts
 ```
 
 ---
 
-## 5. Arquitectura del Backend
+## 6. Arquitectura del Backend
 
 ### Endpoints (`apps/api/src/routes/`)
 
 | Archivo | Rutas principales |
 |---|---|
-| `auth.ts` | POST /auth/login (unificado), POST /auth/logout, GET /auth/me (incluye plan+planStatus) |
+| `auth.ts` | POST /auth/login (devuelve plan+planStatus), GET /auth/me |
 | `users.ts` | CRUD /users |
 | `clients.ts` | GET /clients (filtrado por historial según plan) |
-| `collaborators.ts` | CRUD /collaborators + límite por plan |
-| `services.ts` | CRUD /services |
-| `packages.ts` | CRUD /packages + límite por plan ✨ NUEVO |
-| `appointments.ts` | CRUD + status + payment + deposit (con límites de plan) |
-| `availability.ts` | GET /availability/slots (collaboratorId opcional) |
-| `analytics.ts` | GET /analytics?period= (6 métricas nuevas) |
+| `collaborators.ts` | CRUD + límite plan + performsServices |
+| `services.ts` | CRUD + maxConcurrent |
+| `packages.ts` | CRUD + límite plan |
+| `appointments.ts` | CRUD + status + payment (desacoplado de status) + deposit |
+| `availability.ts` | GET /slots (slots dinámicos) + GET /check (walk-in) |
+| `analytics.ts` | GET /analytics (newVsRecurring reemplaza retentionRate) |
 | `settings.ts` | GET/PATCH /settings, POST /settings/logo |
-| `admin.ts` | Panel super admin |
-
-### Archivos de lógica compartida
-```
-apps/api/src/lib/
-  plan-limits.ts    ✨ NUEVO — tabla central de límites por plan
-  prisma.ts
-  mailer.ts
-```
+| `admin.ts` | Panel super admin (plan acepta YYYY-MM-DD) |
 
 ---
 
-## 6. Schema Prisma (estado actual)
+## 7. Schema Prisma (estado actual)
 
 ```prisma
-model Appointment {
+model Collaborator {
   ...
-  origin         String?  @default("walkin")  ← ✨ NUEVO
-}
-
-model Package {                               ← ✨ NUEVO
-  id          String
-  name        String
-  description String?
-  price       Float
-  isActive    Boolean
-  businessId  String
-  services    PackageService[]
-}
-
-model PackageService {                        ← ✨ NUEVO
-  id        String
-  packageId String
-  serviceId String
-  @@unique([packageId, serviceId])
+  isActive         Boolean  @default(true)
+  performsServices Boolean  @default(true)   ← ✨ v7.0
 }
 
 model Service {
   ...
-  packages  PackageService[]                  ← ✨ NUEVO (relación inversa)
+  bufferMinutes  Int      @default(0)
+  maxConcurrent  Int?                         ← ✨ v7.0
+  price          Float
 }
 
-model Business {
+model Appointment {
   ...
-  packages  Package[]                         ← ✨ NUEVO (relación inversa)
+  origin         String?  @default("walkin")
+  paidAmount     Float?                       ← independiente del status
+  paymentMethod  String?
 }
+
+model Package { ... }
+model PackageService { ... }
+model SuperAdmin { ... }
 ```
 
 ---
 
-## 7. Planes de Suscripción
-
-### Precios y features
+## 8. Planes de Suscripción
 
 | | BASIC | PRO | ENTERPRISE |
 |---|---|---|---|
@@ -285,35 +296,34 @@ model Business {
 | Soporte prioritario | ❌ | ❌ | ✅ |
 
 ### Flujo de pago manual
-1. Cliente llega al trial de 7 días
-2. Al vencer → `planStatus: EXPIRED`
+1. Cliente en trial de 7 días → al vencer: `planStatus: EXPIRED`
+2. Login con plan vencido → redirige a `/plan-vencido`
 3. Cliente va a `/planes`, selecciona plan, escanea QR Plin
 4. Envía comprobante al admin
-5. Admin activa desde `/admin/negocios/:id`
-
-### QR de pago
-- Archivo: `apps/web/public/qr-plin.jpeg`
-- Titular: Edgar Russbel Huaman Ramos (Plin)
+5. Super admin activa desde `/admin/negocios/:id`
 
 ---
 
-## 8. Panel Super Admin
+## 9. Lógica de Disponibilidad (v7.0)
 
-| Ruta | Descripción |
-|---|---|
-| `/login` | Login unificado (detecta super admin automáticamente) |
-| `/admin/dashboard` | Stats globales + listado de negocios |
-| `/admin/negocios/:id` | Gestión de plan, fecha de vencimiento, suspender/reactivar |
+```
+Para cada colaborador activo con performsServices=true:
+  1. Generar candidatos = grilla fija (cada slotMinutes) ∪ fin de cada cita activa
+  2. Para cada candidato:
+     a. ¿Colaborador libre? (no PENDING/CONFIRMED/IN_PROGRESS en ese rango)
+     b. ¿Capacidad del servicio no superada? (si maxConcurrent != null)
+  3. Si pasa ambos checks → slot disponible
 
-**Crear cuenta super admin:**
-```bash
-cd apps/api
-npx tsx src/scripts/create-super-admin.ts
+COMPLETED libera tanto al colaborador como el cupo de capacidad.
+
+Endpoint /availability/check:
+  Valida una hora exacta arbitraria (walk-in)
+  Retorna { available, collaboratorId, reason? }
 ```
 
 ---
 
-## 9. Variables de Entorno
+## 10. Variables de Entorno
 
 ### Backend (`apps/api/.env`)
 ```
@@ -341,97 +351,103 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 
 ---
 
-## 10. Pantallas — Estado Final
+## 11. Pantallas — Estado Final
 
 | ID | Pantalla | Estado |
 |---|---|---|
-| AUTH-01 | Login unificado | ✅ Mejorado v6 |
+| AUTH-01 | Login unificado | ✅ |
 | AUTH-00 a AUTH-05 | Flujo completo auth | ✅ |
 | SETUP-01 | Onboarding | ✅ |
 | DASH-01 | Dashboard KPIs | ✅ |
-| CAL-01 a CAL-04 | Agenda, nueva cita, detalle, cobro | ✅ |
+| PLAN-02 | Plan vencido/suspendido | ✅ Nuevo v7.0 |
+| CAL-01 a CAL-04 | Agenda, nueva cita (walk-in), detalle (cobrar/completar desacoplado), cobro | ✅ Mejorado v7.0 |
 | CLI-01, CLI-02 | Clientes | ✅ |
-| STAFF-01, STAFF-02 | Colaboradores | ✅ |
-| SRV-01, SRV-02 | Servicios | ✅ |
-| PKG-01 a PKG-03 | Paquetes | ✅ Nuevo v6 |
-| PLAN-01 | Planes de suscripción | ✅ Nuevo v6 |
-| RPT-01 | Reportes con 6 métricas nuevas | ✅ Mejorado v6 |
+| STAFF-01 a STAFF-03 | Colaboradores (performsServices) | ✅ Mejorado v7.0 |
+| SRV-01 a SRV-03 | Servicios (maxConcurrent) | ✅ Mejorado v7.0 |
+| PKG-01 a PKG-03 | Paquetes | ✅ |
+| PLAN-01 | Planes de suscripción | ✅ |
+| RPT-01 | Reportes (nuevos vs recurrentes) | ✅ Mejorado v7.0 |
 | CFG-01 a CFG-04 | Configuración completa | ✅ |
-| ADMIN-02, ADMIN-03 | Panel super admin | ✅ |
+| ADMIN-02, ADMIN-03 | Panel super admin (fecha editable, toggle tema) | ✅ Mejorado v7.0 |
 
-**Total pantallas clientes: 32/32 · Panel admin: 2/2**
+**Total pantallas clientes: 33/33 · Panel admin: 2/2**
 
 ---
 
-## 11. Bugs Resueltos en esta Sesión
+## 12. Bugs Resueltos en esta Sesión (v7.0)
 
 | Bug | Descripción | Estado |
 |---|---|---|
-| Login super admin | `/admin/login` era ruta separada | ✅ Fusionado al login normal |
-| Remember me | Checkbox no hacía nada | ✅ Cookie con Max-Age dinámico |
-| Plan actual en /planes | Badge no aparecía (API no devolvía `plan`) | ✅ Resuelto |
-| Retención de clientes | Card sin color ni contexto | ✅ 4 estados visuales |
-| Historial clientes | Filtraba por `createdAt` en vez de última visita | ✅ Filtro por citas recientes |
-| Colaboradores inactivos | Se contaban para el límite del plan | ✅ Solo cuenta activos |
-| "Cualquiera disponible" | No mostraba horarios disponibles | ✅ `collaboratorId` opcional |
-| OriginSelector | Solo decorativo, no guardaba datos | ✅ Conectado a BD |
-| Flecha en /planes | No existía, no había forma de retroceder | ✅ Barra de título fija |
+| Guardado de colaborador sin motivo | Solo mostraba "No se pudo guardar", sin razón | ✅ Resuelto |
+| `performsServices` no en tipo TS | `as never` en mutación | ✅ Resuelto |
+| `confirm()` nativo del browser | Diálogo feo fuera de la app | ✅ Modal en página |
+| Cobrar forzaba COMPLETED | Pagado ≠ completado | ✅ Desacoplado |
+| COMPLETED ocultaba botón Cobrar | Si terminó sin cobrar, no había forma de cobrar | ✅ Resuelto |
+| Fecha vencimiento no editable (admin) | Zod `datetime()` muy estricto | ✅ Acepta `YYYY-MM-DD` |
+| Ícono calendario tapado (modo claro) | Lucide icon con `pointer-events-none` encima | ✅ Eliminado |
+| Import `Calendar` eliminado por error | Crash en página admin | ✅ Restaurado |
+| Toggle tema ausente en panel admin | Solo el panel cliente lo tenía | ✅ Agregado |
 
 ---
 
-## 12. Deuda Técnica Pendiente
+## 13. Deuda Técnica Pendiente
 
 ### Alta prioridad
 | Item | Descripción |
 |---|---|
-| Bloqueo por plan vencido | Al hacer login, verificar `planStatus` y redirigir si EXPIRED/SUSPENDED |
-| Retención de clientes | Reemplazar la métrica actual por "Clientes nuevos vs recurrentes" (acordado, pendiente de implementar) |
+| Exportar Excel | Flag `canExportExcel` listo en plan-limits, falta endpoint y botón en reportes |
+| Deploy a producción | Vercel (frontend) + Railway (backend) + Supabase (BD) |
 
 ### Media prioridad
 | Item | Descripción |
 |---|---|
-| Exportar Excel | Flag `canExportExcel` en plan-limits listo, falta implementar el endpoint y botón |
 | WhatsApp real | CFG-04 tiene UI pero sin integración (BuilderBot o Meta Cloud API) |
 | Foto de resultado por cita | Portafolio del negocio — sugerida, no implementada |
+| Comisiones por colaborador | % sobre servicios atendidos |
+| Ficha técnica por cliente | Historial de coloraciones, tratamientos, alergias |
 
 ### Baja prioridad
 | Item | Descripción |
 |---|---|
-| Culqi / pagos automáticos | Actualmente el plan se activa manualmente |
+| Culqi / pagos automáticos | Plan se activa manualmente hoy |
 | Drag & drop en calendario | Evaluar FullCalendar |
 | `payments` tabla separada | El pago está inline en `Appointment` |
 | Responsividad móvil | Solo desktop |
 | `audit_log` | Trazabilidad de acciones críticas |
-| Comisiones por colaborador | % sobre servicios atendidos |
-| Ficha técnica por cliente | Historial de coloraciones, tratamientos, alergias |
 
 ---
 
-## 13. PRs
+## 14. PRs
 
 | PR | Título | Estado |
 |---|---|---|
-| #23–#30 | Sesiones anteriores | ✅ Mergeados |
-| #31 (pendiente) | Panel super admin + planes de suscripción | 🔄 Pendiente de merge |
+| #1–#30 | Sesiones anteriores | ✅ Mergeados |
+| #32 | v6.0 + v7.0 — feat/super-admin | 🔄 Pendiente de merge |
 
 ---
 
-## 14. Próximos Pasos Sugeridos
+## 15. Próximos Pasos Sugeridos
 
-1. **Merge PR #31** — panel super admin
-2. **Bloqueo por plan vencido** — verificar `planStatus` al login y mostrar pantalla de plan vencido
-3. **Reemplazar "Retención" por "Nuevos vs Recurrentes"** — acordado en esta sesión
-4. **Exportar a Excel** — implementar endpoint y botón en reportes
-5. **Deploy a producción** — Vercel (frontend) + Railway (backend) + Supabase (BD)
-6. **Foto de resultado por cita** — portafolio del negocio
-7. **BuilderBot / WhatsApp** — notificaciones reales
+1. **Merge PR #32** — mergear `feat/super-admin` a `main`
+2. **Exportar a Excel** — implementar endpoint y botón en reportes
+3. **Deploy a producción** — Vercel + Railway + Supabase
+4. **Foto de resultado por cita** — portafolio del negocio
+5. **BuilderBot / WhatsApp** — notificaciones reales
+6. **Comisiones por colaborador**
 
 ---
 
-## 15. Nota importante para producción
+## 16. Nota importante para producción
 
 ```
 TZ=America/Lima          ← en Railway, para cálculos de horarios correctos
 FRONTEND_URL=https://tu-dominio.vercel.app
 NODE_ENV=production      ← activa flag Secure en las cookies httpOnly
+```
+
+## 17. Crear cuenta super admin
+
+```bash
+cd apps/api
+npx tsx src/scripts/create-super-admin.ts
 ```

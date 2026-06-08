@@ -31,6 +31,7 @@ export default function NuevoColaboradorPage() {
   const [phone, setPhone] = useState("");
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [isActive, setIsActive] = useState(true);
+  const [performsServices, setPerformsServices] = useState(true);
 
   const [panelOpen, setPanelOpen] = useState(false);
   const [specialtySearch, setSpecialtySearch] = useState("");
@@ -68,16 +69,18 @@ export default function NuevoColaboradorPage() {
         role: role.trim(),
         specialties,
         isActive,
+        performsServices,
         ...(documentNumber.trim() && { documentType, documentNumber: documentNumber.trim() }),
         ...(phone.trim() && { phone: phone.trim() }),
-      } as never);
+      });
       router.push("/colaboradores");
     } catch (err) {
+      const raw = (err as Error).message ?? "";
       try {
-        const body = JSON.parse((err as Error).message);
-        setError(body.error ?? "No se pudo guardar el colaborador.");
+        const body = JSON.parse(raw);
+        setError(`No se pudo guardar el colaborador: ${body.error ?? raw}`);
       } catch {
-        setError("No se pudo guardar el colaborador.");
+        setError(`No se pudo guardar el colaborador: ${raw || "Error desconocido"}`);
       }
     }
   }
@@ -227,13 +230,24 @@ export default function NuevoColaboradorPage() {
                 <RoleSelector value={role} onChange={setRole} />
               </div>
 
-              <div>
-                <label className={labelClass}>Estado</label>
-                <button type="button" onClick={() => setIsActive(v => !v)}
-                  className={`flex items-center gap-3 px-4 py-2.5 rounded-lg border transition-all ${isActive ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-[var(--color-surface-container-high)] border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)]"}`}>
-                  {isActive ? <ToggleRight size={20} strokeWidth={1.5} className="text-emerald-500" /> : <ToggleLeft size={20} strokeWidth={1.5} />}
-                  <span className="text-label-md font-semibold">{isActive ? "Activo" : "Inactivo"}</span>
-                </button>
+              <div className="flex gap-3">
+                <div className="flex-1">
+                  <label className={labelClass}>Estado</label>
+                  <button type="button" onClick={() => setIsActive(v => !v)}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg border transition-all ${isActive ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-[var(--color-surface-container-high)] border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)]"}`}>
+                    {isActive ? <ToggleRight size={20} strokeWidth={1.5} className="text-emerald-500" /> : <ToggleLeft size={20} strokeWidth={1.5} />}
+                    <span className="text-label-md font-semibold">{isActive ? "Activo" : "Inactivo"}</span>
+                  </button>
+                </div>
+                <div className="flex-1">
+                  <label className={labelClass}>Realiza servicios</label>
+                  <button type="button" onClick={() => setPerformsServices(v => !v)}
+                    className={`w-full flex items-center gap-3 px-4 py-2.5 rounded-lg border transition-all ${performsServices ? "bg-[var(--color-primary-container)]/20 border-[var(--color-primary)]/30 text-[var(--color-primary)]" : "bg-[var(--color-surface-container-high)] border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)]"}`}>
+                    {performsServices ? <ToggleRight size={20} strokeWidth={1.5} className="text-[var(--color-primary)]" /> : <ToggleLeft size={20} strokeWidth={1.5} />}
+                    <span className="text-label-md font-semibold">{performsServices ? "Sí" : "No"}</span>
+                  </button>
+                  <p className="text-[10px] text-[var(--color-on-surface-variant)] mt-1">Aparece en agenda y citas</p>
+                </div>
               </div>
             </section>
 

@@ -163,49 +163,39 @@ export default function ReportesPage() {
                     )}
                   </div>
 
-                  <div className={`rounded-xl p-4 border ambient-shadow flex items-center justify-between ${
-                    data.retentionRate === null
-                      ? "bg-[var(--color-surface-container-lowest)] border-[var(--color-outline-variant)]"
-                      : data.retentionRate >= 60
-                      ? "bg-emerald-50 border-emerald-200"
-                      : data.retentionRate >= 30
-                      ? "bg-amber-50 border-amber-200"
-                      : "bg-[var(--color-error-container)]/20 border-[var(--color-error-container)]"
-                  }`}>
-                    <div>
-                      <span className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase block mb-1">Retención de Clientes</span>
-                      <span className={`text-headline-md font-semibold ${
-                        data.retentionRate === null ? "text-[var(--color-on-surface)]"
-                        : data.retentionRate >= 60 ? "text-emerald-700"
-                        : data.retentionRate >= 30 ? "text-amber-700"
-                        : "text-[var(--color-error)]"
-                      }`}>
-                        {data.retentionRate !== null ? `${data.retentionRate}%` : "—"}
-                      </span>
-                      <p className="text-[10px] text-[var(--color-on-surface-variant)] mt-1">
-                        {data.retentionRate === null
-                          ? "Sin datos del período anterior"
-                          : data.retentionRate >= 60
-                          ? "Clientes leales — muy bien 👏"
-                          : data.retentionRate >= 30
-                          ? "Retención media — hay margen de mejora"
-                          : "Baja retención — muchos clientes no vuelven"
-                        }
-                      </p>
+                  <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[var(--color-outline-variant)] ambient-shadow">
+                    <div className="flex items-center justify-between mb-3">
+                      <span className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase">Nuevos vs Recurrentes</span>
+                      <div className="p-2 rounded-xl bg-[var(--color-primary-container)]/20">
+                        <Users size={18} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+                      </div>
                     </div>
-                    <div className={`p-2.5 rounded-xl ${
-                      data.retentionRate === null ? "bg-[var(--color-primary-container)]/20"
-                      : data.retentionRate >= 60 ? "bg-emerald-100"
-                      : data.retentionRate >= 30 ? "bg-amber-100"
-                      : "bg-[var(--color-error-container)]/30"
-                    }`}>
-                      <Users size={20} className={
-                        data.retentionRate === null ? "text-[var(--color-primary)]"
-                        : data.retentionRate >= 60 ? "text-emerald-600"
-                        : data.retentionRate >= 30 ? "text-amber-600"
-                        : "text-[var(--color-error)]"
-                      } strokeWidth={1.5} />
-                    </div>
+                    {data.newVsRecurring === null ? (
+                      <p className="text-body-md text-[var(--color-on-surface-variant)]">Sin citas completadas en este período</p>
+                    ) : (
+                      <>
+                        <div className="flex items-end gap-3 mb-2">
+                          <div>
+                            <span className="text-headline-md font-bold text-emerald-600">{data.newVsRecurring.new}</span>
+                            <span className="text-[11px] text-[var(--color-on-surface-variant)] ml-1">nuevos ({data.newVsRecurring.newPct}%)</span>
+                          </div>
+                          <span className="text-[var(--color-outline)] mb-1">·</span>
+                          <div>
+                            <span className="text-headline-md font-bold text-[var(--color-primary)]">{data.newVsRecurring.recurring}</span>
+                            <span className="text-[11px] text-[var(--color-on-surface-variant)] ml-1">recurrentes ({data.newVsRecurring.recurringPct}%)</span>
+                          </div>
+                        </div>
+                        <div className="h-2 rounded-full bg-[var(--color-surface-container-high)] overflow-hidden">
+                          <div
+                            className="h-full rounded-full bg-emerald-500"
+                            style={{ width: `${data.newVsRecurring.newPct}%` }}
+                          />
+                        </div>
+                        <p className="text-[10px] text-[var(--color-on-surface-variant)] mt-1.5">
+                          {data.newVsRecurring.total} clientes únicos atendidos
+                        </p>
+                      </>
+                    )}
                   </div>
                 </div>
 
