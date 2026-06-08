@@ -156,11 +156,12 @@ analytics.get("/", async (c) => {
     }),
   ]);
 
-  const total     = appointments.length;
-  const completed = appointments.filter((a) => a.status === "COMPLETED");
-  const cancelled = appointments.filter((a) => a.status === "CANCELLED");
-  const noShow    = appointments.filter((a) => a.status === "NO_SHOW");
-  const pending   = appointments.filter((a) => a.status === "PENDING" || a.status === "CONFIRMED");
+  const total       = appointments.length;
+  const completed   = appointments.filter((a) => a.status === "COMPLETED");
+  const cancelled   = appointments.filter((a) => a.status === "CANCELLED");
+  const noShow      = appointments.filter((a) => a.status === "NO_SHOW");
+  const rescheduled = appointments.filter((a) => a.status === "RESCHEDULED");
+  const pending     = appointments.filter((a) => a.status === "PENDING" || a.status === "CONFIRMED");
 
   // price = precio base del servicio (inmutable)
   // paidAmount = lo que realmente se cobró (base + propina), null si aún no se cobró
@@ -336,6 +337,9 @@ analytics.get("/", async (c) => {
       totalAppointmentsPrev: prevTotal,
       completedAppointments: completed.length,
       completedAppointmentsPrev: prevCompleted.length,
+      cancelledCount: cancelled.length,
+      noShowCount: noShow.length,
+      rescheduledCount: rescheduled.length,
       serviceRevenue,
       tipRevenue,
       totalRevenue,

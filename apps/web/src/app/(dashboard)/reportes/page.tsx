@@ -105,6 +105,25 @@ export default function ReportesPage() {
                     </div>
                     <span className="text-display-lg font-bold text-[var(--color-on-surface)]">{data.kpis.totalAppointments}</span>
                     <KpiDelta current={data.kpis.totalAppointments} prev={data.kpis.totalAppointmentsPrev} isCount />
+                    {((data.kpis.cancelledCount ?? 0) > 0 || (data.kpis.noShowCount ?? 0) > 0 || (data.kpis.rescheduledCount ?? 0) > 0) && (
+                      <div className="mt-2 flex flex-col gap-0.5 border-t border-[var(--color-outline-variant)]/40 pt-2">
+                        {(data.kpis.cancelledCount ?? 0) > 0 && (
+                          <span className="text-[10px] text-[var(--color-error)]">
+                            · {data.kpis.cancelledCount} cancelada{data.kpis.cancelledCount !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                        {(data.kpis.noShowCount ?? 0) > 0 && (
+                          <span className="text-[10px] text-orange-500">
+                            · {data.kpis.noShowCount} no se presentó{data.kpis.noShowCount !== 1 ? "n" : ""}
+                          </span>
+                        )}
+                        {(data.kpis.rescheduledCount ?? 0) > 0 && (
+                          <span className="text-[10px] text-[var(--color-on-surface-variant)]">
+                            · {data.kpis.rescheduledCount} reagendada{data.kpis.rescheduledCount !== 1 ? "s" : ""}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
                   <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[var(--color-outline-variant)] ambient-shadow">
