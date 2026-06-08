@@ -39,6 +39,7 @@ export default function AdminNegocioDetailPage() {
 
   const [plan, setPlan] = useState("TRIAL");
   const [expiresAt, setExpiresAt] = useState("");
+  const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   const fetchBusiness = useCallback(async () => {
     setLoading(true);
@@ -74,27 +75,35 @@ export default function AdminNegocioDetailPage() {
         body: JSON.stringify({
           plan,
           planStatus: "ACTIVE",
-          planExpiresAt: expiresAt ? new Date(expiresAt).toISOString() : null,
+          planExpiresAt: expiresAt || null,
         }),
       });
-      if (!res.ok) throw new Error();
+      if (!res.ok) {
+        const data = await res.json().catch(() => ({}));
+        throw new Error(data.error ?? "Error al actualizar el plan.");
+      }
       showMsg("success", "Plan actualizado correctamente.");
       fetchBusiness();
-    } catch {
-      showMsg("error", "Error al actualizar el plan.");
+    } catch (err) {
+      showMsg("error", err instanceof Error ? err.message : "Error al actualizar el plan.");
     } finally {
       setSaving(false);
     }
   }
 
-  async function handleToggleSuspend() {
+  function handleToggleSuspend() {
     if (!business) return;
     const suspending = business.planStatus !== "SUSPENDED";
-    const confirmMsg = suspending
+    const message = suspending
       ? `¿Suspender el acceso de "${business.name}"? No podrán iniciar sesión.`
       : `¿Reactivar el acceso de "${business.name}"?`;
-    if (!confirm(confirmMsg)) return;
+    setConfirmDialog({
+      message,
+      onConfirm: () => executeSuspend(suspending),
+    });
+  }
 
+  async function executeSuspend(suspending: boolean) {
     try {
       const res = await fetch(`${API_URL}/admin/businesses/${id}/suspend`, {
         method: "PATCH",
@@ -121,6 +130,31 @@ export default function AdminNegocioDetailPage() {
   const isSuspended = business.planStatus === "SUSPENDED";
 
   return (
+    <>
+    {confirmDialog && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+        <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setConfirmDialog(null)} />
+        <div className="relative bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+          <p className="font-body-md text-body-md text-[var(--color-on-surface)] text-center leading-relaxed">
+            {confirmDialog.message}
+          </p>
+          <div className="flex gap-3 pt-1">
+            <button
+              onClick={() => setConfirmDialog(null)}
+              className="flex-1 py-2.5 rounded-xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container)] text-[var(--color-on-surface)] font-label-md text-label-md hover:bg-[var(--color-surface-container-high)] transition-colors"
+            >
+              Cancelar
+            </button>
+            <button
+              onClick={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }}
+              className="flex-1 py-2.5 rounded-xl bg-[var(--color-primary)] text-[var(--color-on-primary)] font-label-md text-label-md hover:opacity-90 transition-opacity"
+            >
+              Confirmar
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
     <main className="min-h-screen bg-[var(--color-surface-container-low)]">
       <header className="bg-[var(--color-surface)] border-b border-[var(--color-outline-variant)] px-6 py-3 flex items-center gap-3">
         <button onClick={() => router.push("/admin/dashboard")} className="p-2 rounded-full hover:bg-[var(--color-surface-container-high)] transition-colors text-[var(--color-on-surface-variant)]">
@@ -235,5 +269,6 @@ export default function AdminNegocioDetailPage() {
 
       </div>
     </main>
+    </>
   );
 }

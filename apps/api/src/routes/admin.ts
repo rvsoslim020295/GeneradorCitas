@@ -114,18 +114,26 @@ admin.patch("/businesses/:id/plan", async (c) => {
   const schema = z.object({
     plan: z.enum(["TRIAL", "BASIC", "PRO", "ENTERPRISE"]),
     planStatus: z.enum(["ACTIVE", "EXPIRED", "SUSPENDED"]).optional(),
-    planExpiresAt: z.string().datetime().nullable().optional(),
+    planExpiresAt: z.string().nullable().optional(), // acepta YYYY-MM-DD o ISO datetime
   });
 
   const parsed = schema.safeParse(body);
-  if (!parsed.success) return c.json({ error: "Datos inválidos" }, 400);
+  if (!parsed.success) return c.json({ error: "Datos inválidos", details: parsed.error.issues }, 400);
+
+  let expiresDate: Date | null = null;
+  if (parsed.data.planExpiresAt) {
+    expiresDate = new Date(parsed.data.planExpiresAt);
+    if (isNaN(expiresDate.getTime())) {
+      return c.json({ error: "Fecha de vencimiento inválida" }, 400);
+    }
+  }
 
   const business = await prisma.business.update({
     where: { id },
     data: {
       plan: parsed.data.plan,
       planStatus: parsed.data.planStatus ?? "ACTIVE",
-      planExpiresAt: parsed.data.planExpiresAt ? new Date(parsed.data.planExpiresAt) : null,
+      planExpiresAt: expiresDate,
     },
   });
 
