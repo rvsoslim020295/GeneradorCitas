@@ -43,6 +43,7 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
   const [origin, setOrigin] = useState<OriginId>("whatsapp");
   const [error, setError] = useState("");
   const [conflictId, setConflictId] = useState<string | null>(null);
+  const [timeMode, setTimeMode] = useState<"slot" | "exact">("exact");
   const [walkinTime, setWalkinTime] = useState(currentTimeHHMM);
 
   const debouncedSearch = useDebounce(clientSearch, 200);
@@ -91,11 +92,16 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
     if (!selectedClient) { setError("Selecciona un cliente."); return; }
     if (!serviceId) { setError("Selecciona un servicio."); return; }
 
-    // El walk-in tiene prioridad sobre el slot picker
-    const useWalkin = !!walkinTime && checkData?.available === true;
+    const useWalkin = timeMode === "exact";
     const finalTime = useWalkin ? walkinTime : time;
-    if (!finalTime) { setError("Selecciona una hora o ingresa la hora exacta del cliente."); return; }
-    if (useWalkin && checkData?.available === false) { setError("La hora ingresada no está disponible."); return; }
+    if (!finalTime) {
+      setError(useWalkin ? "Ingresa la hora exacta del cliente." : "Selecciona un slot de hora.");
+      return;
+    }
+    if (useWalkin && checkData?.available === false) {
+      setError(`Hora no disponible: ${checkData.reason ?? "verifica el horario."}`);
+      return;
+    }
 
     const svc = services.find((s) => s.id === serviceId)!;
     const startTime = new Date(`${date}T${finalTime}:00`).toISOString();
@@ -254,6 +260,7 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
         {/* Fecha + Hora */}
         <div className="space-y-3 bg-[var(--color-surface-container-low)]/50 p-4 rounded-lg border border-[var(--color-outline-variant)]/30">
           <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            {/* Fecha */}
             <div className="space-y-2">
               <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Fecha</label>
               <div className="relative">
@@ -268,96 +275,94 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
               </div>
             </div>
 
+            {/* Hora — toggle modo */}
             <div className="space-y-2">
-              <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider flex items-center justify-between">
-                Hora
-                {slotsReady && (
-                  <span className="text-[10px] font-normal text-[var(--color-outline)] normal-case tracking-normal">
-                    {availableSlots.length} slots disponibles
-                  </span>
-                )}
-              </label>
-
-              {!serviceId ? (
-                <p className="text-[11px] text-[var(--color-on-surface-variant)] py-1">
-                  Selecciona un servicio para ver disponibilidad
-                </p>
-              ) : slotsLoading ? (
-                <div className="flex items-center gap-2 py-1 text-[var(--color-on-surface-variant)]">
-                  <Loader2 size={14} className="animate-spin" />
-                  <span className="text-[11px]">Consultando disponibilidad...</span>
-                </div>
-              ) : slotsReady && availableSlots.length === 0 ? (
-                <p className="text-[11px] text-[var(--color-error)] py-1">
-                  {slotsData?.reason ?? "Sin disponibilidad para esta fecha. Prueba otro día o colaborador."}
-                </p>
-              ) : slotsReady ? (
-                <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
-                  {availableSlots.map((slot) => (
-                    <button key={slot} type="button" onClick={() => setTime(slot)}
-                      className={`px-3 py-1.5 rounded-md border text-label-md font-semibold transition-colors shadow-sm ${
-                        time === slot
-                          ? "border-[var(--color-primary)] bg-[var(--color-primary-container)]/10 text-[var(--color-primary)]"
-                          : "border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
-                      }`}>
-                      {slot}
+              <div className="flex items-center justify-between">
+                <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Hora</label>
+                {serviceId && (
+                  <div className="flex rounded-lg border border-[var(--color-outline-variant)] overflow-hidden text-[11px] font-semibold">
+                    <button type="button" onClick={() => { setTimeMode("exact"); setTime(""); }}
+                      className={`px-3 py-1 transition-colors ${timeMode === "exact" ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]" : "bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)]"}`}>
+                      <span className="flex items-center gap-1"><Zap size={11} strokeWidth={2} />Exacta</span>
                     </button>
-                  ))}
+                    <button type="button" onClick={() => { setTimeMode("slot"); setWalkinTime(""); }}
+                      className={`px-3 py-1 border-l border-[var(--color-outline-variant)] transition-colors ${timeMode === "slot" ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]" : "bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-low)]"}`}>
+                      <span className="flex items-center gap-1"><Clock size={11} strokeWidth={2} />Slots</span>
+                    </button>
+                  </div>
+                )}
+              </div>
+
+              {/* Modo: hora exacta (walk-in) */}
+              {timeMode === "exact" && serviceId && (
+                <div className="flex items-center gap-3">
+                  <input
+                    type="time"
+                    value={walkinTime}
+                    onChange={(e) => { setWalkinTime(e.target.value); setTime(""); }}
+                    className="flex-1 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-md px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none transition-all shadow-sm"
+                  />
+                  {walkinTime && (
+                    <button type="button" onClick={() => setWalkinTime("")}
+                      className="text-[var(--color-outline)] hover:text-[var(--color-error)] transition-colors shrink-0">
+                      <X size={15} strokeWidth={2} />
+                    </button>
+                  )}
+                  {walkinTime && (
+                    checkLoading || walkinTime !== debouncedWalkin ? (
+                      <div className="flex items-center gap-1 text-[var(--color-on-surface-variant)] shrink-0">
+                        <Loader2 size={13} className="animate-spin" />
+                        <span className="text-[11px]">Verificando...</span>
+                      </div>
+                    ) : checkData?.available ? (
+                      <div className="flex items-center gap-1 text-emerald-600 shrink-0">
+                        <CheckCircle size={14} strokeWidth={2} />
+                        <span className="text-[11px] font-semibold">Disponible</span>
+                      </div>
+                    ) : (
+                      <div className="flex items-center gap-1 text-[var(--color-error)] shrink-0">
+                        <AlertCircle size={14} strokeWidth={2} />
+                        <span className="text-[11px] font-semibold">{checkData?.reason ?? "No disponible"}</span>
+                      </div>
+                    )
+                  )}
                 </div>
-              ) : null}
+              )}
+
+              {/* Modo: slots predefinidos */}
+              {timeMode === "slot" && (
+                !serviceId ? (
+                  <p className="text-[11px] text-[var(--color-on-surface-variant)] py-1">Selecciona un servicio para ver disponibilidad</p>
+                ) : slotsLoading ? (
+                  <div className="flex items-center gap-2 py-1 text-[var(--color-on-surface-variant)]">
+                    <Loader2 size={14} className="animate-spin" />
+                    <span className="text-[11px]">Consultando disponibilidad...</span>
+                  </div>
+                ) : slotsReady && availableSlots.length === 0 ? (
+                  <p className="text-[11px] text-[var(--color-error)] py-1">
+                    {slotsData?.reason ?? "Sin disponibilidad para esta fecha."}
+                  </p>
+                ) : slotsReady ? (
+                  <>
+                    <p className="text-[10px] text-[var(--color-outline)]">{availableSlots.length} slots disponibles</p>
+                    <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
+                      {availableSlots.map((slot) => (
+                        <button key={slot} type="button" onClick={() => setTime(slot)}
+                          className={`px-3 py-1.5 rounded-md border text-label-md font-semibold transition-colors shadow-sm ${
+                            time === slot
+                              ? "border-[var(--color-primary)] bg-[var(--color-primary-container)]/10 text-[var(--color-primary)]"
+                              : "border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] hover:border-[var(--color-primary)] hover:text-[var(--color-primary)]"
+                          }`}>
+                          {slot}
+                        </button>
+                      ))}
+                    </div>
+                  </>
+                ) : null
+              )}
             </div>
           </div>
         </div>
-
-        {/* Walk-in / hora exacta */}
-        {serviceId && date && (
-          <div className="space-y-2 border border-[var(--color-outline-variant)]/40 rounded-lg p-4 bg-[var(--color-surface-container-low)]/30">
-            <div className="flex items-center gap-2">
-              <Zap size={14} className="text-[var(--color-primary)]" strokeWidth={1.5} />
-              <label className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">
-                Hora exacta (walk-in)
-              </label>
-            </div>
-            <p className="text-[11px] text-[var(--color-on-surface-variant)]">
-              Si el cliente ya está aquí, ingresa la hora exacta. Tiene prioridad sobre el selector de arriba.
-            </p>
-            <div className="flex items-center gap-3">
-              <input
-                type="time"
-                value={walkinTime}
-                onChange={(e) => { setWalkinTime(e.target.value); setTime(""); }}
-                className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-md px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 focus:outline-none transition-all"
-              />
-              {walkinTime && (
-                <button type="button" onClick={() => setWalkinTime("")}
-                  className="text-[var(--color-outline)] hover:text-[var(--color-error)] transition-colors">
-                  <X size={15} strokeWidth={2} />
-                </button>
-              )}
-              {/* Indicador en tiempo real */}
-              {walkinTime && (
-                checkLoading || walkinTime !== debouncedWalkin ? (
-                  <div className="flex items-center gap-1.5 text-[var(--color-on-surface-variant)]">
-                    <Loader2 size={14} className="animate-spin" />
-                    <span className="text-[11px]">Verificando...</span>
-                  </div>
-                ) : checkData?.available ? (
-                  <div className="flex items-center gap-1.5 text-emerald-600">
-                    <CheckCircle size={15} strokeWidth={2} />
-                    <span className="text-[11px] font-semibold">Disponible</span>
-                  </div>
-                ) : (
-                  <div className="flex items-center gap-1.5 text-[var(--color-error)]">
-                    <AlertCircle size={15} strokeWidth={2} />
-                    <span className="text-[11px] font-semibold">
-                      {checkData?.reason ?? "No disponible"}
-                    </span>
-                  </div>
-                )
-              )}
-            </div>
-          </div>
-        )}
 
         {/* Notas + Origen */}
         <div className="grid grid-cols-1 md:grid-cols-[2fr_1fr] gap-4">

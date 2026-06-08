@@ -145,12 +145,12 @@ appointments.post("/", async (c) => {
     }
   }
 
-  // Verificar cruce de horario del colaborador (excluye canceladas y no-shows)
+  // Verificar cruce de horario del colaborador (excluye canceladas, no-shows, reagendadas y completadas)
   const conflict = await prisma.appointment.findFirst({
     where: {
       collaboratorId,
       businessId,
-      status: { notIn: ["CANCELLED", "NO_SHOW"] },
+      status: { notIn: ["CANCELLED", "NO_SHOW", "RESCHEDULED", "COMPLETED"] },
       OR: [
         // Nueva cita empieza dentro de una existente
         { startTime: { lt: end }, endTime: { gt: start } },
@@ -177,7 +177,7 @@ appointments.post("/", async (c) => {
     where: {
       clientId: parsed.data.clientId,
       businessId,
-      status: { notIn: ["CANCELLED", "NO_SHOW"] },
+      status: { notIn: ["CANCELLED", "NO_SHOW", "RESCHEDULED", "COMPLETED"] },
       startTime: { lt: end },
       endTime:   { gt: start },
     },

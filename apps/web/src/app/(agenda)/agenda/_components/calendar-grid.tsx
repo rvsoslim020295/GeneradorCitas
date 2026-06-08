@@ -155,7 +155,7 @@ function DayView({ appointments, currentDate, collabColors, gridHeight }: {
   appointments: AppointmentData[]; currentDate: Date; collabColors: Map<string, number>; gridHeight: number;
 }) {
   const dayApts = appointments.filter(a => isSameDay(new Date(a.startTime), currentDate)
-    && !["CANCELLED", "NO_SHOW"].includes(a.status));
+    && !["CANCELLED", "NO_SHOW", "RESCHEDULED"].includes(a.status));
 
   // Group by collaborator
   const collabMap = new Map<string, { name: string; appointments: AppointmentData[] }>();
@@ -298,7 +298,7 @@ function WeekView({ appointments, currentDate, collabColors, gridHeight }: {
             })()}
             {days.map((day, i) => {
               const dayApts = appointments.filter(a =>
-                isSameDay(new Date(a.startTime), day) && !["CANCELLED","NO_SHOW"].includes(a.status));
+                isSameDay(new Date(a.startTime), day) && !["CANCELLED","NO_SHOW","RESCHEDULED"].includes(a.status));
               const isToday = isSameDay(day, today);
               return (
                 <div key={i} className={`flex-1 relative z-10 border-r border-[var(--color-outline-variant)]/50 last:border-0 ${isToday ? "bg-[var(--color-primary)]/3" : ""}`} style={{ height: gridHeight }}>
@@ -371,7 +371,7 @@ function MonthView({ appointments, currentDate, collabColors }: {
             if (!day) return <div key={i} className="border-r border-b border-[var(--color-outline-variant)]/40 bg-[var(--color-surface-container-low)]/50 last:border-r-0" />;
 
             const dayApts = appointments.filter(a =>
-              isSameDay(new Date(a.startTime), day) && !["CANCELLED","NO_SHOW"].includes(a.status));
+              isSameDay(new Date(a.startTime), day) && !["CANCELLED","NO_SHOW","RESCHEDULED"].includes(a.status));
             const isToday = isSameDay(day, today);
             const isCurrentMonth = day.getMonth() === month;
 

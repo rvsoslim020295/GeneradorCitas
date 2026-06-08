@@ -16,6 +16,9 @@ export type AnalyticsData = {
     totalAppointmentsPrev: number;
     completedAppointments: number;
     completedAppointmentsPrev: number;
+    cancelledCount: number;
+    noShowCount: number;
+    rescheduledCount: number;
     serviceRevenue: number;
     tipRevenue: number;
     totalRevenue: number;
