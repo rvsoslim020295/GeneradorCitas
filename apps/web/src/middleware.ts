@@ -16,7 +16,13 @@ export function middleware(req: NextRequest) {
   if (pathname.startsWith("/admin")) return NextResponse.next();
 
   const token = req.cookies.get("gm_token")?.value;
+  const adminToken = req.cookies.get("gm_admin_token")?.value;
   const isPublic = PUBLIC_ROUTES.some((r) => pathname.startsWith(r));
+
+  // Super admin autenticado intenta acceder a una ruta pública → panel admin
+  if (adminToken && isPublic) {
+    return NextResponse.redirect(new URL("/admin/dashboard", req.url));
+  }
 
   // Usuario autenticado intenta acceder a una ruta pública → dashboard
   if (token && isPublic) {

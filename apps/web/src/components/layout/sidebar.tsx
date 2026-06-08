@@ -2,7 +2,7 @@
 
 import {
   LayoutDashboard, Calendar, Users, BadgeCheck,
-  Scissors, BarChart2, Settings, Plus, Sparkles, Zap,
+  Scissors, BarChart2, Settings, Plus, Sparkles, Zap, Package,
 } from "lucide-react";
 import Link from "next/link";
 import { useEffect, useState } from "react";
@@ -16,6 +16,7 @@ const allNavItems = [
   { label: "Clientes", href: "/clientes", icon: Users, ownerOnly: false },
   { label: "Colaboradores", href: "/colaboradores", icon: BadgeCheck, ownerOnly: false },
   { label: "Servicios", href: "/servicios", icon: Scissors, ownerOnly: false },
+  { label: "Paquetes", href: "/paquetes", icon: Package, ownerOnly: true },
   { label: "Reportes", href: "/reportes", icon: BarChart2, ownerOnly: true },
   { label: "Configuración", href: "/configuracion", icon: Settings, ownerOnly: true },
 ];
@@ -138,9 +139,9 @@ export function Sidebar({ activePath }: SidebarProps) {
             }
           </p>
 
-          <button className="w-full text-[10px] font-semibold bg-[var(--color-primary)] text-[var(--color-on-primary)] py-1.5 rounded-lg hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors">
+          <Link href="/planes" className="block w-full text-center text-[10px] font-semibold bg-[var(--color-primary)] text-[var(--color-on-primary)] py-1.5 rounded-lg hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors">
             Actualizar Plan
-          </button>
+          </Link>
         </div>
       )}
 

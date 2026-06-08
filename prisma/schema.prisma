@@ -46,6 +46,7 @@ model Business {
   clients        Client[]
   collaborators  Collaborator[]
   services       Service[]
+  packages       Package[]
   appointments   Appointment[]
 }
 
@@ -104,6 +105,7 @@ model Appointment {
   paidAmount     Float?
   paymentMethod  String?
   depositAmount  Float?
+  origin         String?  @default("walkin")
   businessId     String
   clientId       String
   collaboratorId String
@@ -114,6 +116,31 @@ model Appointment {
   service        Service           @relation(fields: [serviceId], references: [id])
   createdAt      DateTime          @default(now())
   updatedAt      DateTime          @updatedAt
+}
+
+// Un paquete agrupa varios servicios con precio especial
+model Package {
+  id          String           @id @default(cuid())
+  name        String
+  description String?
+  price       Float
+  isActive    Boolean          @default(true)
+  businessId  String
+  business    Business         @relation(fields: [businessId], references: [id])
+  services    PackageService[]
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+}
+
+// Tabla de unión Package ↔ Service (N:M)
+model PackageService {
+  id        String  @id @default(cuid())
+  packageId String
+  serviceId String
+  package   Package @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  service   Service @relation(fields: [serviceId], references: [id])
+
+  @@unique([packageId, serviceId])
 }
 
 // Un servicio es una prestación del catálogo del negocio
@@ -128,10 +155,11 @@ model Service {
   color         String   @default("#3B82F6")
   isActive      Boolean  @default(true)
   businessId    String
-  business     Business      @relation(fields: [businessId], references: [id])
+  business     Business         @relation(fields: [businessId], references: [id])
   appointments Appointment[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  packages     PackageService[]
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
 }
 
 // Un colaborador es miembro del equipo del negocio

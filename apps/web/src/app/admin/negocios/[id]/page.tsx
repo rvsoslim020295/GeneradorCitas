@@ -44,7 +44,7 @@ export default function AdminNegocioDetailPage() {
     setLoading(true);
     try {
       const res = await fetch(`${API_URL}/admin/businesses/${id}`, { credentials: "include" });
-      if (res.status === 401) { router.push("/admin/login"); return; }
+      if (res.status === 401) { router.push("/login"); return; }
       const data = await res.json();
       setBusiness(data);
       setPlan(data.plan);

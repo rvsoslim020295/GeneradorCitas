@@ -50,7 +50,7 @@ export default function AdminDashboardPage() {
       ]);
 
       if (bRes.status === 401 || sRes.status === 401) {
-        router.push("/admin/login");
+        router.push("/login");
         return;
       }
 
@@ -58,7 +58,7 @@ export default function AdminDashboardPage() {
       setBusinesses(bData);
       setStats(sData);
     } catch {
-      router.push("/admin/login");
+      router.push("/login");
     } finally {
       setLoading(false);
     }
@@ -75,7 +75,7 @@ export default function AdminDashboardPage() {
   async function handleLogout() {
     await fetch(`${API_URL}/admin/auth/logout`, { method: "POST", credentials: "include" });
     localStorage.removeItem("gm_admin");
-    router.push("/admin/login");
+    router.push("/login");
   }
 
   const expiresLabel = (b: Business) => {
@@ -91,11 +91,11 @@ export default function AdminDashboardPage() {
     <main className="min-h-screen bg-[var(--color-surface-container-low)]">
       {/* Topbar */}
       <header className="bg-[var(--color-surface)] border-b border-[var(--color-outline-variant)] px-6 py-3 flex items-center justify-between">
-        <div className="flex items-center gap-2 text-[var(--color-primary)]">
+        <button onClick={() => router.push("/admin/dashboard")} className="flex items-center gap-2 text-[var(--color-primary)] hover:opacity-80 transition-opacity">
           <Flower2 size={22} fill="currentColor" strokeWidth={1.8} />
           <span className="font-headline-sm font-bold">GlowManager</span>
           <span className="text-[var(--color-outline)] text-body-md font-normal ml-1">/ Admin</span>
-        </div>
+        </button>
         <div className="flex items-center gap-4">
           <span className="text-body-md text-[var(--color-on-surface-variant)]">{adminName}</span>
           <button onClick={fetchData} className="p-2 text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)] rounded-full transition-colors">

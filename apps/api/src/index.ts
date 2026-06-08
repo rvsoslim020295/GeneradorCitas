@@ -12,6 +12,7 @@ import settings from "./routes/settings.js";
 import notifications from "./routes/notifications.js";
 import availability from "./routes/availability.js";
 import users from "./routes/users.js";
+import packages from "./routes/packages.js";
 import admin from "./routes/admin.js";
 
 const app = new Hono();
@@ -43,6 +44,7 @@ app.route("/settings", settings);
 app.route("/notifications", notifications);
 app.route("/availability", availability);
 app.route("/users", users);
+app.route("/packages", packages);
 app.route("/admin", admin);
 
 const PORT = Number(process.env.PORT) || 3001;

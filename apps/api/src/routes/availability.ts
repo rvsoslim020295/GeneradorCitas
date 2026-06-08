@@ -29,99 +29,98 @@ function timeToMinutes(t: string): number {
 availability.get("/slots", async (c) => {
   const { businessId } = c.get("user");
 
-  const collaboratorId = c.req.query("collaboratorId");
+  const collaboratorId = c.req.query("collaboratorId") || null; // opcional
   const serviceId      = c.req.query("serviceId");
   const date           = c.req.query("date"); // YYYY-MM-DD
 
-  if (!collaboratorId || !serviceId || !date) {
-    return c.json({ error: "Se requieren collaboratorId, serviceId y date" }, 400);
+  if (!serviceId || !date) {
+    return c.json({ error: "Se requieren serviceId y date" }, 400);
   }
 
-  // Validar formato de fecha
   if (!/^\d{4}-\d{2}-\d{2}$/.test(date)) {
     return c.json({ error: "Formato de fecha inválido. Usa YYYY-MM-DD" }, 400);
   }
 
-  // Cargar colaborador, servicio y config del negocio en paralelo
-  const [collaborator, service, business] = await Promise.all([
-    prisma.collaborator.findFirst({ where: { id: collaboratorId, businessId } }),
+  const [service, business] = await Promise.all([
     prisma.service.findFirst({ where: { id: serviceId, businessId } }),
     prisma.business.findUnique({ where: { id: businessId } }),
   ]);
 
-  if (!collaborator) return c.json({ error: "Colaborador no encontrado" }, 404);
-  if (!service)      return c.json({ error: "Servicio no encontrado" }, 404);
-  if (!business)     return c.json({ error: "Negocio no encontrado" }, 404);
+  if (!service)  return c.json({ error: "Servicio no encontrado" }, 404);
+  if (!business) return c.json({ error: "Negocio no encontrado" }, 404);
 
-  // ── 1. Verificar que el colaborador trabaja ese día ──
-  const dateObj = new Date(`${date}T12:00:00`); // noon to avoid DST issues
-  const dayKey  = DAY_KEYS[dateObj.getDay()];   // "Mon", "Tue", ...
+  // Si no se especificó colaborador, usar todos los activos
+  const collaborators = collaboratorId
+    ? await prisma.collaborator.findMany({ where: { id: collaboratorId, businessId, isActive: true } })
+    : await prisma.collaborator.findMany({ where: { businessId, isActive: true } });
 
-  const schedule = (collaborator.schedule ?? null) as WeekSchedule | null;
-  const daySchedule: DaySchedule | undefined = schedule?.[dayKey];
-
-  if (!daySchedule?.enabled) {
-    return c.json({ slots: [], slotDuration: business.slotMinutes, reason: "El colaborador no trabaja ese día" });
+  if (collaborators.length === 0) {
+    return c.json({ slots: [], slotDuration: business.slotMinutes, reason: "Sin colaboradores disponibles" });
   }
 
-  // ── 2. Calcular duración total (servicio + buffer) ──
-  const totalMinutes = service.durationMin + (service.bufferMinutes ?? 0);
-  const slotStep     = business.slotMinutes; // granularidad del calendario
-
-  // Intersección entre horario del colaborador y horario del negocio
-  const businessOpen  = timeToMinutes(business.openTime  ?? "00:00");
-  const businessClose = timeToMinutes(business.closeTime ?? "23:59");
-
-  const workStart = Math.max(timeToMinutes(daySchedule.start), businessOpen);
-  const workEnd   = Math.min(timeToMinutes(daySchedule.end),   businessClose);
-
-  // ── 3. Obtener citas existentes ese día ──
+  const dateObj  = new Date(`${date}T12:00:00`);
+  const dayKey   = DAY_KEYS[dateObj.getDay()];
   const dayStart = new Date(`${date}T00:00:00.000Z`);
   const dayEnd   = new Date(`${date}T23:59:59.999Z`);
 
-  const existingApts = await prisma.appointment.findMany({
-    where: {
-      collaboratorId,
-      businessId,
-      status: { notIn: ["CANCELLED", "NO_SHOW"] },
-      startTime: { gte: dayStart, lte: dayEnd },
-    },
-    select: { startTime: true, endTime: true },
-  });
+  const totalMinutes  = service.durationMin + (service.bufferMinutes ?? 0);
+  const slotStep      = business.slotMinutes;
+  const businessOpen  = timeToMinutes(business.openTime  ?? "00:00");
+  const businessClose = timeToMinutes(business.closeTime ?? "23:59");
 
-  // Convertir citas a rangos en minutos desde medianoche
-  const busyRanges = existingApts.map(apt => ({
-    start: apt.startTime.getHours() * 60 + apt.startTime.getMinutes(),
-    end:   apt.endTime.getHours()   * 60 + apt.endTime.getMinutes(),
-  }));
-
-  // ── 4. Calcular el mínimo en minutos desde medianoche permitido para hoy ──
   const now = new Date();
-  const isToday = date === now.toISOString().split("T")[0];
-  const nowMinutes = isToday
-    ? now.getHours() * 60 + now.getMinutes()
-    : 0;
+  const isToday    = date === now.toISOString().split("T")[0];
+  const nowMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : 0;
 
-  // ── 5. Generar slots candidatos y filtrar los ocupados y pasados ──
-  const availableSlots: string[] = [];
+  // Para cada slot, guardar qué colaborador lo tiene libre (el primero encontrado)
+  const slotCollaboratorMap: Record<string, string> = {};
 
-  for (let slotStart = workStart; slotStart + totalMinutes <= workEnd; slotStart += slotStep) {
-    if (slotStart < nowMinutes) continue;
+  for (const collab of collaborators) {
+    const schedule    = (collab.schedule ?? null) as WeekSchedule | null;
+    const daySchedule = schedule?.[dayKey];
+    if (!daySchedule?.enabled) continue;
 
-    const slotEnd = slotStart + totalMinutes;
+    const workStart = Math.max(timeToMinutes(daySchedule.start), businessOpen);
+    const workEnd   = Math.min(timeToMinutes(daySchedule.end),   businessClose);
 
-    const hasConflict = busyRanges.some(range =>
-      slotStart < range.end && slotEnd > range.start
-    );
+    const existingApts = await prisma.appointment.findMany({
+      where: {
+        collaboratorId: collab.id,
+        businessId,
+        status: { notIn: ["CANCELLED", "NO_SHOW"] },
+        startTime: { gte: dayStart, lte: dayEnd },
+      },
+      select: { startTime: true, endTime: true },
+    });
 
-    if (!hasConflict) {
-      const hh = String(Math.floor(slotStart / 60)).padStart(2, "0");
-      const mm = String(slotStart % 60).padStart(2, "0");
-      availableSlots.push(`${hh}:${mm}`);
+    const busyRanges = existingApts.map(apt => ({
+      start: apt.startTime.getHours() * 60 + apt.startTime.getMinutes(),
+      end:   apt.endTime.getHours()   * 60 + apt.endTime.getMinutes(),
+    }));
+
+    for (let slotStart = workStart; slotStart + totalMinutes <= workEnd; slotStart += slotStep) {
+      if (slotStart < nowMinutes) continue;
+      const slotEnd = slotStart + totalMinutes;
+      const hasConflict = busyRanges.some(r => slotStart < r.end && slotEnd > r.start);
+      if (!hasConflict) {
+        const hh  = String(Math.floor(slotStart / 60)).padStart(2, "0");
+        const mm  = String(slotStart % 60).padStart(2, "0");
+        const key = `${hh}:${mm}`;
+        // Solo registrar el primer colaborador disponible para ese slot
+        if (!slotCollaboratorMap[key]) slotCollaboratorMap[key] = collab.id;
+      }
     }
   }
 
-  return c.json({ slots: availableSlots, slotDuration: slotStep, totalDuration: totalMinutes });
+  // Ordenar los slots cronológicamente
+  const availableSlots = Object.keys(slotCollaboratorMap).sort();
+
+  return c.json({
+    slots: availableSlots,
+    slotCollaboratorMap, // mapa slot → colaboradorId (útil cuando es "cualquiera")
+    slotDuration: slotStep,
+    totalDuration: totalMinutes,
+  });
 });
 
 export default availability;

@@ -2,6 +2,7 @@ import { Hono } from "hono";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { getLimits } from "../lib/plan-limits.js";
 
 const clients = new Hono();
 
@@ -24,9 +25,26 @@ clients.get("/", async (c) => {
   const { businessId } = c.get("user");
   const search = c.req.query("search")?.trim() ?? "";
 
+  const business = await prisma.business.findUnique({ where: { id: businessId } });
+  const limits = getLimits(business?.plan ?? "BASIC");
+
+  // Si el plan tiene límite de historial, solo mostrar clientes que hayan
+  // tenido al menos una cita dentro del período permitido
+  const historyFilter = limits.clientHistoryDays !== -1
+    ? {
+        appointments: {
+          some: {
+            businessId,
+            startTime: { gte: new Date(Date.now() - limits.clientHistoryDays * 24 * 60 * 60 * 1000) },
+          },
+        },
+      }
+    : undefined;
+
   const data = await prisma.client.findMany({
     where: {
       businessId,
+      ...historyFilter,
       ...(search && {
         OR: [
           { name: { contains: search, mode: "insensitive" } },
