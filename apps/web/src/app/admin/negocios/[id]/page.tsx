@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Building2, Users, Calendar, Scissors, ShieldOff, ShieldCheck, Save, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Building2, Users, Scissors, ShieldOff, ShieldCheck, Save, Sun, Moon } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -240,13 +240,10 @@ export default function AdminNegocioDetailPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Vence el</label>
-              <div className="relative">
-                <input
-                  type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}
-                  className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 pr-10 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 [color-scheme:light] dark:[color-scheme:dark]"
-                />
-                <Calendar size={16} strokeWidth={1.5} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)] pointer-events-none" />
-              </div>
+              <input
+                type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}
+                className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 [color-scheme:light] dark:[color-scheme:dark]"
+              />
               {expiresAt && (
                 <p className="text-[11px] text-[var(--color-on-surface-variant)]">
                   {new Date(expiresAt + "T12:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" })}
