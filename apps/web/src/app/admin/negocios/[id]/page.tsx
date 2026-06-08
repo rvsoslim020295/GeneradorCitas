@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Building2, Users, Scissors, ShieldOff, ShieldCheck, Save, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Building2, Users, Calendar, Scissors, ShieldOff, ShieldCheck, Save, Sun, Moon } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
