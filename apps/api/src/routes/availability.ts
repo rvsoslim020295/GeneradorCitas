@@ -17,6 +17,13 @@ function timeToMinutes(t: string): number {
   return h * 60 + m;
 }
 
+// Extrae minutos desde medianoche de un Date usando la zona horaria del negocio.
+// Evita depender de TZ del proceso Node (puede no estar activo en ESM antes de dotenv).
+function dateToMinutes(d: Date, tz: string): number {
+  const [h, m] = d.toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit" }).split(":").map(Number);
+  return h * 60 + m;
+}
+
 // ─── GET /availability/slots ──────────────────────────────────────────────────
 // Devuelve los slots de tiempo disponibles para un colaborador + servicio + fecha.
 //
@@ -60,17 +67,22 @@ availability.get("/slots", async (c) => {
 
   const dateObj  = new Date(`${date}T12:00:00`);
   const dayKey   = DAY_KEYS[dateObj.getDay()];
-  const dayStart = new Date(`${date}T00:00:00.000Z`);
-  const dayEnd   = new Date(`${date}T23:59:59.999Z`);
+  const dayStart = new Date(`${date}T00:00:00.000`);
+  const dayEnd   = new Date(`${date}T23:59:59.999`);
 
   const totalMinutes  = service.durationMin + (service.bufferMinutes ?? 0);
   const slotStep      = business.slotMinutes;
   const businessOpen  = timeToMinutes(business.openTime  ?? "00:00");
   const businessClose = timeToMinutes(business.closeTime ?? "23:59");
 
+  // Usamos toLocaleDateString/toLocaleTimeString con zona horaria explícita para
+  // evitar depender de TZ del proceso (puede no estar cargado al iniciar ESM).
+  const TZ = process.env.TZ || "America/Lima";
   const now = new Date();
-  const isToday    = date === now.toISOString().split("T")[0];
-  const nowMinutes = isToday ? now.getHours() * 60 + now.getMinutes() : 0;
+  const localDateStr = now.toLocaleDateString("en-CA", { timeZone: TZ }); // "YYYY-MM-DD"
+  const isToday = date === localDateStr;
+  const [nowH, nowM] = now.toLocaleTimeString("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit" }).split(":").map(Number);
+  const nowMinutes = isToday ? nowH * 60 + nowM : 0;
 
   // ── Citas activas del servicio en el día (para chequeo de capacidad) ─────────
   // Solo cuenta PENDING, CONFIRMED e IN_PROGRESS — COMPLETED libera el cupo
@@ -89,10 +101,16 @@ availability.get("/slots", async (c) => {
   // Para cada slot, guardar qué colaborador lo tiene libre (el primero encontrado)
   const slotCollaboratorMap: Record<string, string> = {};
 
+  // Rastrear motivo cuando no hay slots
+  let noScheduleCount = 0;
+  let allPastCount    = 0;
+  let allBusyCount    = 0;
+  let capacityCount   = 0;
+
   for (const collab of collaborators) {
     const schedule    = (collab.schedule ?? null) as WeekSchedule | null;
     const daySchedule = schedule?.[dayKey];
-    if (!daySchedule?.enabled) continue;
+    if (!daySchedule?.enabled) { noScheduleCount++; continue; }
 
     const workStart = Math.max(timeToMinutes(daySchedule.start), businessOpen);
     const workEnd   = Math.min(timeToMinutes(daySchedule.end),   businessClose);
@@ -109,8 +127,8 @@ availability.get("/slots", async (c) => {
     });
 
     const busyRanges = existingApts.map(apt => ({
-      start: apt.startTime.getHours() * 60 + apt.startTime.getMinutes(),
-      end:   apt.endTime.getHours()   * 60 + apt.endTime.getMinutes(),
+      start: dateToMinutes(apt.startTime, TZ),
+      end:   dateToMinutes(apt.endTime,   TZ),
     }));
 
     // ── Candidatos: grilla fija + fin de cada cita activa ────────────────────
@@ -120,28 +138,28 @@ availability.get("/slots", async (c) => {
     }
     // Cuando una cita termina, ese momento es un nuevo slot candidato
     for (const apt of existingApts) {
-      const aptEnd = apt.endTime.getHours() * 60 + apt.endTime.getMinutes();
+      const aptEnd = dateToMinutes(apt.endTime, TZ);
       if (aptEnd >= workStart && aptEnd + totalMinutes <= workEnd) {
         candidates.add(aptEnd);
       }
     }
 
     for (const slotStart of [...candidates].sort((a, b) => a - b)) {
-      if (slotStart < nowMinutes) continue;
+      if (slotStart < nowMinutes) { allPastCount++; continue; }
       const slotEnd = slotStart + totalMinutes;
 
       // ── Chequeo 1: colaborador libre ──────────────────────────────────────
       const hasConflict = busyRanges.some(r => slotStart < r.end && slotEnd > r.start);
-      if (hasConflict) continue;
+      if (hasConflict) { allBusyCount++; continue; }
 
       // ── Chequeo 2: capacidad del servicio no superada ─────────────────────
       if (service.maxConcurrent) {
         const concurrent = serviceDayApts.filter(apt => {
-          const aptStart = apt.startTime.getHours() * 60 + apt.startTime.getMinutes();
-          const aptEnd   = apt.endTime.getHours()   * 60 + apt.endTime.getMinutes();
+          const aptStart = dateToMinutes(apt.startTime, TZ);
+          const aptEnd   = dateToMinutes(apt.endTime,   TZ);
           return slotStart < aptEnd && slotEnd > aptStart;
         }).length;
-        if (concurrent >= service.maxConcurrent) continue;
+        if (concurrent >= service.maxConcurrent) { capacityCount++; continue; }
       }
 
       const hh  = String(Math.floor(slotStart / 60)).padStart(2, "0");
@@ -154,11 +172,28 @@ availability.get("/slots", async (c) => {
   // Ordenar los slots cronológicamente
   const availableSlots = Object.keys(slotCollaboratorMap).sort();
 
+  // Determinar motivo cuando no hay slots disponibles
+  let reason: string | undefined;
+  if (availableSlots.length === 0) {
+    if (noScheduleCount === collaborators.length) {
+      reason = `Ningún colaborador trabaja este día (${dayKey}).`;
+    } else if (allPastCount > 0 && allBusyCount === 0 && capacityCount === 0) {
+      reason = `Todos los horarios disponibles ya pasaron. Usa la sección Walk-in o elige otra fecha.`;
+    } else if (capacityCount > 0 && allBusyCount === 0) {
+      reason = `Capacidad máxima del servicio alcanzada (${service.maxConcurrent} simultáneos). Espera a que terminen citas actuales.`;
+    } else if (allBusyCount > 0) {
+      reason = `El colaborador no tiene horario libre en esta fecha. Prueba otro colaborador o fecha.`;
+    } else {
+      reason = `Sin disponibilidad para esta fecha. Prueba otro día o colaborador.`;
+    }
+  }
+
   return c.json({
     slots: availableSlots,
-    slotCollaboratorMap, // mapa slot → colaboradorId (útil cuando es "cualquiera")
+    slotCollaboratorMap,
     slotDuration: slotStep,
     totalDuration: totalMinutes,
+    ...(reason ? { reason } : {}),
   });
 });
 
@@ -195,9 +230,10 @@ availability.get("/check", async (c) => {
 
   if (collaborators.length === 0) return c.json({ available: false, collaboratorId: null });
 
-  const dayKey   = DAY_KEYS[new Date(`${date}T12:00:00`).getDay()];
-  const dayStart = new Date(`${date}T00:00:00.000Z`);
-  const dayEnd   = new Date(`${date}T23:59:59.999Z`);
+  const TZ2    = process.env.TZ || "America/Lima";
+  const dayKey = DAY_KEYS[new Date(`${date}T12:00:00`).getDay()];
+  const dayStart = new Date(`${date}T00:00:00.000`);
+  const dayEnd   = new Date(`${date}T23:59:59.999`);
 
   const slotStart     = timeToMinutes(time);
   const totalMinutes  = service.durationMin + (service.bufferMinutes ?? 0);
@@ -222,8 +258,8 @@ availability.get("/check", async (c) => {
       select: { startTime: true, endTime: true },
     });
     const concurrent = serviceDayApts.filter(apt => {
-      const aptStart = apt.startTime.getHours() * 60 + apt.startTime.getMinutes();
-      const aptEnd   = apt.endTime.getHours()   * 60 + apt.endTime.getMinutes();
+      const aptStart = dateToMinutes(apt.startTime, TZ2);
+      const aptEnd   = dateToMinutes(apt.endTime,   TZ2);
       return slotStart < aptEnd && slotEnd > aptStart;
     }).length;
     if (concurrent >= service.maxConcurrent) {
@@ -253,8 +289,8 @@ availability.get("/check", async (c) => {
     });
 
     const isBusy = existingApts.some(apt => {
-      const aptStart = apt.startTime.getHours() * 60 + apt.startTime.getMinutes();
-      const aptEnd   = apt.endTime.getHours()   * 60 + apt.endTime.getMinutes();
+      const aptStart = dateToMinutes(apt.startTime, TZ2);
+      const aptEnd   = dateToMinutes(apt.endTime,   TZ2);
       return slotStart < aptEnd && slotEnd > aptStart;
     });
 

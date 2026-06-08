@@ -284,7 +284,7 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
                 </div>
               ) : slotsReady && availableSlots.length === 0 ? (
                 <p className="text-[11px] text-[var(--color-error)] py-1">
-                  Sin disponibilidad para esta fecha. Prueba otro día o colaborador.
+                  {slotsData?.reason ?? "Sin disponibilidad para esta fecha. Prueba otro día o colaborador."}
                 </p>
               ) : slotsReady ? (
                 <div className="flex flex-wrap gap-2 max-h-28 overflow-y-auto" style={{ scrollbarWidth: "thin" }}>
