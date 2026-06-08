@@ -49,10 +49,10 @@ availability.get("/slots", async (c) => {
   if (!service)  return c.json({ error: "Servicio no encontrado" }, 404);
   if (!business) return c.json({ error: "Negocio no encontrado" }, 404);
 
-  // Si no se especificó colaborador, usar todos los activos
+  // Si no se especificó colaborador, usar todos los activos que realizan servicios
   const collaborators = collaboratorId
-    ? await prisma.collaborator.findMany({ where: { id: collaboratorId, businessId, isActive: true } })
-    : await prisma.collaborator.findMany({ where: { businessId, isActive: true } });
+    ? await prisma.collaborator.findMany({ where: { id: collaboratorId, businessId, isActive: true, performsServices: true } })
+    : await prisma.collaborator.findMany({ where: { businessId, isActive: true, performsServices: true } });
 
   if (collaborators.length === 0) {
     return c.json({ slots: [], slotDuration: business.slotMinutes, reason: "Sin colaboradores disponibles" });

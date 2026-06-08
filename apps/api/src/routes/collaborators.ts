@@ -20,6 +20,7 @@ const collaboratorSchema = z.object({
   role: z.string().min(2),
   specialties: z.array(z.string()).optional().default([]),
   isActive: z.boolean().optional().default(true),
+  performsServices: z.boolean().optional().default(true),
   avatarUrl: z.string().optional(),
   schedule: z.record(z.string(), dayScheduleSchema).optional(),
   documentType: z.enum(["DNI", "CE"]).optional(),

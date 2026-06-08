@@ -169,7 +169,8 @@ model Collaborator {
   lastName       String?
   role           String
   specialties    String[]
-  isActive       Boolean  @default(true)
+  isActive         Boolean  @default(true)
+  performsServices Boolean  @default(true)
   avatarUrl      String?
   schedule       Json?
   documentType   String?

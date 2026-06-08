@@ -50,6 +50,7 @@ export default function CollaboratorProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [role, setRole] = useState("");
   const [isActive, setIsActive] = useState(true);
+  const [performsServices, setPerformsServices] = useState(true);
   const [specialties, setSpecialties] = useState<string[]>([]);
   const [schedule, setSchedule] = useState<Schedule>(defaultSchedule());
   const [documentType, setDocumentType] = useState<"DNI" | "CE">("DNI");
@@ -87,6 +88,7 @@ export default function CollaboratorProfilePage() {
       }
       setRole(collaborator.role);
       setIsActive(collaborator.isActive);
+      setPerformsServices(collaborator.performsServices ?? true);
       setAvatarUrl(collaborator.avatarUrl ?? "");
       setSpecialties(collaborator.specialties ?? []);
       if (collaborator.documentType) setDocumentType(collaborator.documentType as "DNI" | "CE");
@@ -150,6 +152,7 @@ export default function CollaboratorProfilePage() {
         lastName: lastName.trim() || undefined,
         role,
         isActive,
+        performsServices,
         specialties,
         schedule,
         avatarUrl: avatarUrl || undefined,
@@ -311,6 +314,19 @@ export default function CollaboratorProfilePage() {
                 <span className={`text-body-md font-medium ${isActive ? "text-[var(--color-primary)]" : "text-[var(--color-on-surface-variant)]"}`}>Estado activo</span>
                 <div className={`w-12 h-7 rounded-full transition-colors relative shrink-0 ${isActive ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-variant)]"}`}>
                   <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${isActive ? "translate-x-6" : "translate-x-1"}`} />
+                </div>
+              </div>
+
+              <div onClick={() => setPerformsServices(v => !v)}
+                className={`flex items-center justify-between gap-4 p-3 rounded-lg border cursor-pointer transition-all select-none ${
+                  performsServices ? "bg-emerald-50 border-emerald-200" : "bg-[var(--color-surface-container-lowest)] border-[var(--color-outline-variant)] hover:bg-[var(--color-surface-container-low)]"
+                }`}>
+                <div>
+                  <span className={`text-body-md font-medium ${performsServices ? "text-emerald-700" : "text-[var(--color-on-surface-variant)]"}`}>Realiza servicios</span>
+                  <p className="text-[10px] text-[var(--color-on-surface-variant)] mt-0.5">Aparece como opción al crear citas</p>
+                </div>
+                <div className={`w-12 h-7 rounded-full transition-colors relative shrink-0 ${performsServices ? "bg-emerald-500" : "bg-[var(--color-surface-variant)]"}`}>
+                  <span className={`absolute top-1 w-5 h-5 bg-white rounded-full shadow-sm transition-transform ${performsServices ? "translate-x-6" : "translate-x-1"}`} />
                 </div>
               </div>
             </div>
