@@ -56,6 +56,10 @@ export default function CitaDetailPage() {
 
   const [actionError, setActionError] = useState("");
   const [showDeposit, setShowDeposit] = useState(false);
+  const [confirmDialog, setConfirmDialog] = useState<{
+    message: string;
+    onConfirm: () => void;
+  } | null>(null);
   const [depositMode, setDepositMode] = useState<"percent" | "amount">("percent");
   const [depositPercent, setDepositPercent] = useState(30);
   const [depositCustom, setDepositCustom] = useState("");
@@ -64,8 +68,7 @@ export default function CitaDetailPage() {
   const updateStatus = useUpdateAppointmentStatus();
   const registerDeposit = useRegisterDeposit();
 
-  async function handleUpdateStatus(status: AppointmentStatus, confirmMsg?: string) {
-    if (confirmMsg && !confirm(confirmMsg)) return;
+  async function executeUpdateStatus(status: AppointmentStatus) {
     setActionError("");
     try {
       await updateStatus.mutateAsync({ id, status });
@@ -74,6 +77,14 @@ export default function CitaDetailPage() {
       }
     } catch (err: unknown) {
       setActionError(err instanceof Error ? err.message : "No se pudo actualizar la cita.");
+    }
+  }
+
+  function handleUpdateStatus(status: AppointmentStatus, confirmMsg?: string) {
+    if (confirmMsg) {
+      setConfirmDialog({ message: confirmMsg, onConfirm: () => executeUpdateStatus(status) });
+    } else {
+      executeUpdateStatus(status);
     }
   }
 
@@ -110,6 +121,32 @@ export default function CitaDetailPage() {
 
   return (
     <>
+      {/* Modal de confirmación en página */}
+      {confirmDialog && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+          <div className="absolute inset-0 bg-black/40 backdrop-blur-sm" onClick={() => setConfirmDialog(null)} />
+          <div className="relative bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-2xl shadow-2xl w-full max-w-sm p-6 space-y-4">
+            <p className="font-body-md text-body-md text-[var(--color-on-surface)] text-center leading-relaxed">
+              {confirmDialog.message}
+            </p>
+            <div className="flex gap-3 pt-1">
+              <button
+                onClick={() => setConfirmDialog(null)}
+                className="flex-1 py-2.5 rounded-xl border border-[var(--color-outline-variant)] bg-[var(--color-surface-container)] text-[var(--color-on-surface)] font-label-md text-label-md hover:bg-[var(--color-surface-container-high)] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => { confirmDialog.onConfirm(); setConfirmDialog(null); }}
+                className="flex-1 py-2.5 rounded-xl bg-[var(--color-primary)] text-[var(--color-on-primary)] font-label-md text-label-md hover:opacity-90 transition-opacity"
+              >
+                Confirmar
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       <Sidebar activePath="/agenda" />
 
       <main className="flex-1 ml-64 flex flex-col h-full bg-[var(--color-surface-bright)] relative overflow-hidden">
