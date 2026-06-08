@@ -3,9 +3,10 @@ import { apiFetch } from "../client";
 
 export type SlotsResponse = {
   slots: string[];
-  slotCollaboratorMap: Record<string, string>; // slot → collaboratorId
+  slotCollaboratorMap: Record<string, string>;
   slotDuration: number;
   totalDuration?: number;
+  reason?: string;
 };
 
 export type CheckResponse = {

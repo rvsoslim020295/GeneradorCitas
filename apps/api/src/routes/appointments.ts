@@ -126,12 +126,17 @@ appointments.post("/", async (c) => {
 
   // ── Validar que la cita esté dentro del horario del negocio ──
   if (business?.openTime && business?.closeTime) {
+    const tz = process.env.TZ || "America/Lima";
     const [oh, om] = (business.openTime).split(":").map(Number);
     const [ch, cm] = (business.closeTime).split(":").map(Number);
     const openMins  = oh * 60 + om;
     const closeMins = ch * 60 + cm;
-    const startMins = start.getHours() * 60 + start.getMinutes();
-    const endMins   = end.getHours()   * 60 + end.getMinutes();
+    const toMins = (d: Date) => {
+      const [h, m] = d.toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit" }).split(":").map(Number);
+      return h * 60 + m;
+    };
+    const startMins = toMins(start);
+    const endMins   = toMins(end);
 
     if (startMins < openMins || endMins > closeMins) {
       return c.json({
