@@ -35,6 +35,7 @@ export default function EditarServicioPage() {
   const [price, setPrice] = useState("");
   const [selectedCollabs, setSelectedCollabs] = useState<string[]>([]);
   const [initialized, setInitialized] = useState(false);
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { data: service, isLoading } = useService(id);
   const { data: collabsData } = useCollaborators();
@@ -76,12 +77,12 @@ export default function EditarServicioPage() {
   }
 
   async function handleDelete() {
-    if (!confirm("¿Eliminar este servicio? Esta acción no se puede deshacer.")) return;
     try {
       await deleteService.mutateAsync(id);
       router.push("/servicios");
     } catch {
       setFeedback({ type: "error", msg: "No se pudo eliminar el servicio." });
+      setShowDeleteModal(false);
     }
   }
 
@@ -108,10 +109,10 @@ export default function EditarServicioPage() {
               <h1 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Editar Servicio</h1>
             </div>
             <div className="flex items-center gap-2">
-              <button onClick={handleDelete} disabled={deleteService.isPending}
-                className="flex items-center gap-2 border border-[var(--color-error)] text-[var(--color-error)] text-label-md font-semibold uppercase tracking-wider px-4 py-2.5 rounded-lg hover:bg-[var(--color-error-container)]/20 transition-colors disabled:opacity-60">
+              <button onClick={() => setShowDeleteModal(true)}
+                className="flex items-center gap-2 border border-[var(--color-error)] text-[var(--color-error)] text-label-md font-semibold uppercase tracking-wider px-4 py-2.5 rounded-lg hover:bg-[var(--color-error-container)]/20 transition-colors">
                 <Trash2 size={14} strokeWidth={2} />
-                {deleteService.isPending ? "Eliminando..." : "Eliminar"}
+                Eliminar
               </button>
               <button onClick={handleSave} disabled={updateService.isPending}
                 className="flex items-center gap-2 bg-[var(--color-primary)] text-[var(--color-on-primary)] text-label-md font-semibold uppercase tracking-wider px-4 py-2.5 rounded-lg hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors disabled:opacity-60">
@@ -264,6 +265,34 @@ export default function EditarServicioPage() {
           </div>
         </div>
       </main>
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-[var(--color-surface-container-lowest)] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-[var(--color-error-container)]/30 flex items-center justify-center shrink-0">
+                <Trash2 size={18} className="text-[var(--color-error)]" strokeWidth={1.5} />
+              </div>
+              <div>
+                <h3 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Eliminar servicio</h3>
+                <p className="text-body-md text-[var(--color-on-surface-variant)] mt-1">
+                  ¿Eliminar <span className="font-semibold text-[var(--color-on-surface)]">{name}</span>? Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-2.5 rounded-lg border border-[var(--color-outline-variant)] text-body-md font-semibold text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)] transition-colors">
+                Cancelar
+              </button>
+              <button onClick={handleDelete} disabled={deleteService.isPending}
+                className="flex-1 py-2.5 rounded-lg bg-[var(--color-error)] text-white text-body-md font-semibold hover:bg-[var(--color-error)]/90 transition-colors disabled:opacity-60">
+                {deleteService.isPending ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

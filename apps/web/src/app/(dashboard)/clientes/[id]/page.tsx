@@ -68,6 +68,7 @@ export default function ClientProfilePage() {
   const [editingNotes, setEditingNotes] = useState(false);
   const [notesValue, setNotesValue] = useState("");
   const [deleteError, setDeleteError] = useState("");
+  const [showDeleteModal, setShowDeleteModal] = useState(false);
 
   const { data: client, isLoading } = useQuery<ClientProfile>({
     queryKey: ["clients", "detail", id],
@@ -93,13 +94,13 @@ export default function ClientProfilePage() {
   }, [client]);
 
   async function handleDelete() {
-    if (!confirm("¿Eliminar este cliente? Esta acción no se puede deshacer.")) return;
     setDeleteError("");
     try {
       await deleteClient.mutateAsync(id);
       router.push("/clientes");
     } catch {
       setDeleteError("No se pudo eliminar.");
+      setShowDeleteModal(false);
     }
   }
 
@@ -258,10 +259,10 @@ export default function ClientProfilePage() {
                           WhatsApp
                         </button>
                       )}
-                      <button onClick={handleDelete} disabled={deleteClient.isPending}
-                        className="flex items-center gap-2 bg-[var(--color-error-container)]/20 border border-[var(--color-error-container)] text-[var(--color-error)] text-label-md font-semibold uppercase tracking-wider px-4 py-3 rounded-lg hover:bg-[var(--color-error-container)]/40 transition-all active:scale-95 disabled:opacity-60">
+                      <button onClick={() => setShowDeleteModal(true)}
+                        className="flex items-center gap-2 bg-[var(--color-error-container)]/20 border border-[var(--color-error-container)] text-[var(--color-error)] text-label-md font-semibold uppercase tracking-wider px-4 py-3 rounded-lg hover:bg-[var(--color-error-container)]/40 transition-all active:scale-95">
                         <Trash2 size={16} strokeWidth={1.5} />
-                        {deleteClient.isPending ? "Eliminando..." : "Eliminar"}
+                        Eliminar
                       </button>
                       {deleteError && <p className="w-full text-body-md text-[var(--color-error)] mt-1">{deleteError}</p>}
                     </div>
@@ -379,6 +380,35 @@ export default function ClientProfilePage() {
           </div>
         </div>
       </main>
+
+      {showDeleteModal && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-[var(--color-surface-container-lowest)] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-[var(--color-error-container)]/30 flex items-center justify-center shrink-0">
+                <Trash2 size={18} className="text-[var(--color-error)]" strokeWidth={1.5} />
+              </div>
+              <div>
+                <h3 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Eliminar cliente</h3>
+                <p className="text-body-md text-[var(--color-on-surface-variant)] mt-1">
+                  ¿Eliminar a <span className="font-semibold text-[var(--color-on-surface)]">{client?.name} {client?.lastName}</span>? Esta acción no se puede deshacer.
+                </p>
+                {deleteError && <p className="text-body-md text-[var(--color-error)] mt-2">{deleteError}</p>}
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => setShowDeleteModal(false)}
+                className="flex-1 py-2.5 rounded-lg border border-[var(--color-outline-variant)] text-body-md font-semibold text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)] transition-colors">
+                Cancelar
+              </button>
+              <button onClick={handleDelete} disabled={deleteClient.isPending}
+                className="flex-1 py-2.5 rounded-lg bg-[var(--color-error)] text-white text-body-md font-semibold hover:bg-[var(--color-error)]/90 transition-colors disabled:opacity-60">
+                {deleteClient.isPending ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
