@@ -1,10 +1,10 @@
-import { Hono } from "hono";
+import { createRouter } from "../lib/hono.js";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getLimits } from "../lib/plan-limits.js";
 
-const appointments = new Hono();
+const appointments = createRouter();
 
 appointments.use("*", requireAuth);
 

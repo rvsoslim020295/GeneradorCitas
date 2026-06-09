@@ -1,8 +1,8 @@
-import { Hono } from "hono";
+import { createRouter } from "../lib/hono.js";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 
-const notifications = new Hono();
+const notifications = createRouter();
 
 notifications.use("*", requireAuth);
 
@@ -18,14 +18,15 @@ notifications.get("/", async (c) => {
   const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
   const todayEnd   = new Date(now); todayEnd.setHours(23, 59, 59, 999);
   const twoHoursLater = new Date(now.getTime() + 2 * 60 * 60 * 1000);
+  const next7Days = new Date(todayStart); next7Days.setDate(next7Days.getDate() + 7);
 
   const yesterdayStart = new Date(todayStart); yesterdayStart.setDate(yesterdayStart.getDate() - 1);
   const yesterdayEnd   = new Date(todayStart); yesterdayEnd.setMilliseconds(-1);
 
   const [pendingToday, soonConfirmed, unclosed] = await Promise.all([
-    // Citas de hoy sin confirmar
+    // Citas PENDING de hoy y los próximos 7 días (acción requerida: confirmar)
     prisma.appointment.findMany({
-      where: { businessId, status: "PENDING", startTime: { gte: todayStart, lte: todayEnd } },
+      where: { businessId, status: "PENDING", startTime: { gte: todayStart, lte: next7Days } },
       include: { client: { select: { name: true } }, service: { select: { name: true } } },
       orderBy: { startTime: "asc" },
     }),
@@ -53,12 +54,16 @@ notifications.get("/", async (c) => {
   }[] = [];
 
   for (const apt of pendingToday) {
+    const isToday = apt.startTime >= todayStart && apt.startTime <= todayEnd;
     const time = apt.startTime.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
+    const dateLabel = isToday
+      ? `a las ${time}`
+      : `${apt.startTime.toLocaleDateString("es-MX", { weekday: "short", day: "numeric", month: "short" })} ${time}`;
     items.push({
       id: `pending-${apt.id}`,
       type: "pending_confirmation",
       title: "Cita sin confirmar",
-      body: `${apt.client.name} · ${apt.service.name} a las ${time}`,
+      body: `${apt.client.name} · ${apt.service.name} · ${dateLabel}`,
       appointmentId: apt.id,
       createdAt: now.toISOString(),
     });

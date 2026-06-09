@@ -63,11 +63,11 @@ export default function DashboardPage() {
   const completed = appointments.filter(a => a.status === "COMPLETED").length;
   const cancelled = appointments.filter(a => a.status === "CANCELLED").length;
 
-  const in2Days = new Date(now);
-  in2Days.setDate(in2Days.getDate() + 2);
+  const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
+  const in7Days = new Date(todayStart); in7Days.setDate(in7Days.getDate() + 7);
   const pendingUpcoming = appointments.filter(a => {
     const d = new Date(a.startTime);
-    return d > now && d <= in2Days && a.status === "PENDING";
+    return d >= todayStart && d <= in7Days && a.status === "PENDING";
   });
 
   async function confirmAll() {

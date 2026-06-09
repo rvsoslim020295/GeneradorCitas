@@ -1,16 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
-import { usePackages, useDeletePackage } from "@/lib/api/hooks";
-import { Plus, Package, Clock, Banknote, Pencil, Trash2, ChevronRight } from "lucide-react";
+import { usePackages, useDeletePackage, type Package } from "@/lib/api/hooks";
+import { Plus, Package as PackageIcon, Clock, Banknote, Pencil, Trash2, ChevronRight } from "lucide-react";
 
-function totalDuration(pkg: ReturnType<typeof usePackages>["data"][0]) {
+function totalDuration(pkg: Package) {
   return pkg.services.reduce((sum, ps) => sum + ps.service.durationMin, 0);
 }
 
-function totalOriginalPrice(pkg: ReturnType<typeof usePackages>["data"][0]) {
+function totalOriginalPrice(pkg: Package) {
   return pkg.services.reduce((sum, ps) => sum + ps.service.price, 0);
 }
 
@@ -18,10 +19,12 @@ export default function PaquetesPage() {
   const router = useRouter();
   const { data: packages = [], isLoading } = usePackages();
   const deletePackage = useDeletePackage();
+  const [deleteTarget, setDeleteTarget] = useState<{ id: string; name: string } | null>(null);
 
-  async function handleDelete(id: string, name: string) {
-    if (!confirm(`¿Eliminar el paquete "${name}"? Esta acción no se puede deshacer.`)) return;
-    await deletePackage.mutateAsync(id);
+  async function handleDelete() {
+    if (!deleteTarget) return;
+    await deletePackage.mutateAsync(deleteTarget.id);
+    setDeleteTarget(null);
   }
 
   return (
@@ -56,7 +59,7 @@ export default function PaquetesPage() {
             ) : packages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-[var(--color-primary-container)]/20 flex items-center justify-center">
-                  <Package size={28} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+                  <PackageIcon size={28} className="text-[var(--color-primary)]" strokeWidth={1.5} />
                 </div>
                 <div>
                   <p className="font-headline-sm text-[var(--color-on-surface)]">Sin paquetes todavía</p>
@@ -85,7 +88,7 @@ export default function PaquetesPage() {
                     >
                       {/* Icono */}
                       <div className="w-11 h-11 rounded-xl bg-[var(--color-primary-container)]/20 flex items-center justify-center shrink-0 mt-0.5">
-                        <Package size={20} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+                        <PackageIcon size={20} className="text-[var(--color-primary)]" strokeWidth={1.5} />
                       </div>
 
                       {/* Info */}
@@ -144,7 +147,7 @@ export default function PaquetesPage() {
                           <Pencil size={16} strokeWidth={1.5} />
                         </button>
                         <button
-                          onClick={() => handleDelete(pkg.id, pkg.name)}
+                          onClick={() => setDeleteTarget({ id: pkg.id, name: pkg.name })}
                           className="p-2 rounded-lg text-[var(--color-on-surface-variant)] hover:bg-[var(--color-error-container)]/20 hover:text-[var(--color-error)] transition-colors"
                         >
                           <Trash2 size={16} strokeWidth={1.5} />
@@ -164,6 +167,29 @@ export default function PaquetesPage() {
           </div>
         </main>
       </div>
+
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-[var(--color-surface-container-lowest)] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-[var(--color-error-container)]/30 flex items-center justify-center shrink-0">
+                <Trash2 size={18} className="text-[var(--color-error)]" strokeWidth={1.5} />
+              </div>
+              <div>
+                <h3 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Eliminar paquete</h3>
+                <p className="text-body-md text-[var(--color-on-surface-variant)] mt-1">¿Seguro que deseas eliminar <strong>"{deleteTarget.name}"</strong>? Esta acción no se puede deshacer.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => setDeleteTarget(null)} className="flex-1 py-2.5 rounded-lg border border-[var(--color-outline-variant)] text-body-md font-semibold text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)] transition-colors">Cancelar</button>
+              <button onClick={handleDelete} disabled={deletePackage.isPending}
+                className="flex-1 py-2.5 rounded-lg bg-[var(--color-error)] text-white text-body-md font-semibold hover:bg-[var(--color-error)]/90 transition-colors disabled:opacity-60">
+                {deletePackage.isPending ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

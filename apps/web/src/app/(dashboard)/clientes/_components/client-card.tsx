@@ -1,4 +1,5 @@
-import Link from "next/link";
+"use client";
+import { useRouter } from "next/navigation";
 import { MessageSquare, CalendarCheck, Banknote, Copy } from "lucide-react";
 
 type Client = {
@@ -38,8 +39,9 @@ function formatCurrency(amount: number) {
 }
 
 export function ClientCard({ client, isDuplicate = false }: { client: Client; isDuplicate?: boolean }) {
+  const router = useRouter();
   return (
-    <Link href={`/clientes/${client.id}`} className={`bg-[var(--color-surface-container-lowest)] rounded-xl border shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer group block ${isDuplicate ? "border-amber-400/60" : "border-[var(--color-outline-variant)]"}`}>
+    <div onClick={() => router.push(`/clientes/${client.id}`)} className={`bg-[var(--color-surface-container-lowest)] rounded-xl border shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer group block ${isDuplicate ? "border-amber-400/60" : "border-[var(--color-outline-variant)]"}`}>
       {/* Header: avatar + nombre + botón chat */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -111,6 +113,6 @@ export function ClientCard({ client, isDuplicate = false }: { client: Client; is
           </span>
         </div>
       </div>
-    </Link>
+    </div>
   );
 }

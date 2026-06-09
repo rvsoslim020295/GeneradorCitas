@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { createRouter } from "../lib/hono.js";
 import { z } from "zod";
 import { StorageClient } from "@supabase/storage-js";
 import prisma from "../lib/prisma.js";
@@ -15,7 +15,7 @@ function getStorage() {
   });
 }
 
-const settings = new Hono();
+const settings = createRouter();
 
 settings.use("*", requireAuth);
 

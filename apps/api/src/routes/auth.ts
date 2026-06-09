@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { createRouter } from "../lib/hono.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { randomBytes } from "crypto";
@@ -8,7 +8,7 @@ import { requireAuth, JWT_SECRET } from "../middleware/auth.js";
 import { ADMIN_JWT_SECRET } from "../middleware/admin-auth.js";
 import { sendVerificationEmail } from "../lib/mailer.js";
 
-const auth = new Hono();
+const auth = createRouter();
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 const loginSchema = z.object({

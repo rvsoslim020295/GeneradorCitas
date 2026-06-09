@@ -1,11 +1,11 @@
-import { Hono } from "hono";
+import { createRouter } from "../lib/hono.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireSuperAdmin, ADMIN_JWT_SECRET } from "../middleware/admin-auth.js";
 
-const admin = new Hono();
+const admin = createRouter();
 
 // ─── POST /admin/auth/login ───────────────────────────────────────────────────
 admin.post("/auth/login", async (c) => {

@@ -1,10 +1,10 @@
-import { Hono } from "hono";
+import { createRouter } from "../lib/hono.js";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getLimits } from "../lib/plan-limits.js";
 import * as XLSX from "xlsx";
 
-const analytics = new Hono();
+const analytics = createRouter();
 
 analytics.use("*", requireAuth);
 
@@ -330,10 +330,10 @@ analytics.get("/", async (c) => {
     }));
 
   // ── Mejor mes (solo relevante en this_year) ───────────────────────────────
-  let bestMonth: { month: string; amount: number } | null = null;
+  let bestMonth: { month: string; amount: number; appointments: number } | null = null;
   if (period === "this_year") {
     const best = [...dailyRevenue].sort((a, b) => b.amount - a.amount)[0];
-    if (best && best.amount > 0) bestMonth = best;
+    if (best && best.amount > 0) bestMonth = { month: best.day, amount: best.amount, appointments: 0 };
   }
 
   return c.json({

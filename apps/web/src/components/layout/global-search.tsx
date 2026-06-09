@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useRef, useState, useCallback } from "react";
-import { useRouter } from "next/navigation";
+import { useRouter, useSearchParams } from "next/navigation";
 import { Search, User, Scissors, CalendarCheck, X, Loader2 } from "lucide-react";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -29,7 +29,8 @@ function useDebounce(value: string, ms: number) {
 
 export function GlobalSearch({ placeholder = "Buscar cliente, servicio o cita..." }: { placeholder?: string }) {
   const router = useRouter();
-  const [query, setQuery] = useState("");
+  const searchParams = useSearchParams();
+  const [query, setQuery] = useState(() => searchParams.get("search") ?? "");
   const [results, setResults] = useState<Results>(EMPTY);
   const [loading, setLoading] = useState(false);
   const [open, setOpen] = useState(false);

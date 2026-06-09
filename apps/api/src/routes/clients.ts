@@ -1,10 +1,10 @@
-import { Hono } from "hono";
+import { createRouter } from "../lib/hono.js";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { getLimits } from "../lib/plan-limits.js";
 
-const clients = new Hono();
+const clients = createRouter();
 
 // Todas las rutas de clientes requieren autenticación
 clients.use("*", requireAuth);

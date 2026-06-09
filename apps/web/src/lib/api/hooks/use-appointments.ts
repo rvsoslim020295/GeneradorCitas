@@ -53,9 +53,13 @@ export function useCreateAppointment() {
       endTime: string;
       price: number;
       notes?: string;
+      origin?: string;
     }) =>
       apiFetch<Appointment>("/appointments", { method: "POST", body: JSON.stringify(body) }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: appointmentKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: appointmentKeys.all });
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
   });
 }
 
@@ -67,7 +71,10 @@ export function useUpdateAppointmentStatus() {
         method: "PATCH",
         body: JSON.stringify({ status }),
       }),
-    onSuccess: () => qc.invalidateQueries({ queryKey: appointmentKeys.all }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: appointmentKeys.all });
+      qc.invalidateQueries({ queryKey: ["notifications"] });
+    },
   });
 }
 
