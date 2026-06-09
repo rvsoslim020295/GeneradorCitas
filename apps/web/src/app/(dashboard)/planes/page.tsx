@@ -245,7 +245,7 @@ export default function PlanesPage() {
                 <li className="flex gap-2"><span className="text-[var(--color-primary)] font-semibold">1.</span> Abre la app de tu banco</li>
                 <li className="flex gap-2"><span className="text-[var(--color-primary)] font-semibold">2.</span> Elige <strong>Pago con QR</strong> o <strong>Plin</strong></li>
                 <li className="flex gap-2"><span className="text-[var(--color-primary)] font-semibold">3.</span> Escanea el código e ingresa <strong>S/ {selectedPlan.price}</strong></li>
-                <li className="flex gap-2"><span className="text-[var(--color-primary)] font-semibold">4.</span> Envíanos el comprobante</li>
+                <li className="flex gap-2"><span className="text-[var(--color-primary)] font-semibold">4.</span> <a href="https://wa.me/51922358205?text=Hola%2C%20adjunto%20mi%20comprobante%20de%20pago%20del%20plan%20GlowManager" target="_blank" rel="noopener noreferrer" className="text-emerald-600 font-semibold underline underline-offset-2 hover:text-emerald-700 transition-colors">Envíanos el comprobante por WhatsApp</a></li>
               </ol>
             </div>
 
