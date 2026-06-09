@@ -12,8 +12,8 @@ build/
 .env.local
 .env.*.local
 
-# Prisma generated (regenerar con: npx prisma generate)
-generated/
+# Prisma generated
+node_modules/.prisma/
 apps/api/generated/
 
 # OS
