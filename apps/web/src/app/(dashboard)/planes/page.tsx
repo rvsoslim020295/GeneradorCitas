@@ -98,7 +98,7 @@ export default function PlanesPage() {
 
         <main className="flex-1 overflow-y-auto pt-16">
           {/* Barra de título con flecha */}
-          <div className="flex items-center gap-3 px-8 py-4 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface)]">
+          <div className="sticky top-0 z-10 flex items-center gap-3 px-8 py-4 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface)]">
             <button
               onClick={() => router.back()}
               className="p-2 rounded-full hover:bg-[var(--color-surface-container-high)] transition-colors text-[var(--color-on-surface-variant)] shrink-0"
@@ -203,16 +203,14 @@ export default function PlanesPage() {
       {/* Modal de pago */}
       {selectedPlan && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-[var(--color-surface-container-lowest)] rounded-2xl p-6 w-full max-w-sm mx-4 shadow-xl space-y-5">
+          <div className="bg-[var(--color-surface-container-lowest)] rounded-2xl p-4 w-full max-w-sm mx-4 shadow-xl space-y-3">
             {/* Header modal */}
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="font-headline-sm text-headline-sm text-[var(--color-on-surface)]">
                   Pagar plan {selectedPlan.label}
                 </h2>
-                <p className="text-body-md text-[var(--color-on-surface-variant)]">
-                  S/ {selectedPlan.price} / mes
-                </p>
+                <p className="text-body-md text-[var(--color-on-surface-variant)]">S/ {selectedPlan.price} / mes</p>
               </div>
               <button
                 onClick={() => setSelectedPlan(null)}
@@ -223,13 +221,13 @@ export default function PlanesPage() {
             </div>
 
             {/* QR */}
-            <div className="flex flex-col items-center gap-3">
-              <div className="bg-white rounded-xl p-5 shadow-sm border border-[var(--color-outline-variant)]">
+            <div className="flex flex-col items-center gap-2">
+              <div className="bg-white rounded-xl p-3 shadow-sm border border-[var(--color-outline-variant)]">
                 <Image
                   src="/qr-plin.jpeg"
                   alt="QR Plin - Edgar Russbel Huaman Ramos"
-                  width={260}
-                  height={260}
+                  width={240}
+                  height={240}
                   className="rounded-lg"
                 />
               </div>
@@ -240,11 +238,9 @@ export default function PlanesPage() {
             </div>
 
             {/* Instrucciones */}
-            <div className="bg-[var(--color-surface-container-low)] rounded-xl p-4 space-y-2">
-              <p className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">
-                ¿Cómo pagar?
-              </p>
-              <ol className="space-y-1.5 text-body-md text-[var(--color-on-surface-variant)]">
+            <div className="bg-[var(--color-surface-container-low)] rounded-xl p-3 space-y-1.5">
+              <p className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">¿Cómo pagar?</p>
+              <ol className="space-y-1 text-body-md text-[var(--color-on-surface-variant)]">
                 <li className="flex gap-2"><span className="text-[var(--color-primary)] font-semibold">1.</span> Abre la app de tu banco</li>
                 <li className="flex gap-2"><span className="text-[var(--color-primary)] font-semibold">2.</span> Elige <strong>Pago con QR</strong> o <strong>Plin</strong></li>
                 <li className="flex gap-2"><span className="text-[var(--color-primary)] font-semibold">3.</span> Escanea el código e ingresa <strong>S/ {selectedPlan.price}</strong></li>
