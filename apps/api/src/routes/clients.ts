@@ -288,4 +288,56 @@ clients.delete("/:id/records/:recordId", async (c) => {
   return c.json({ ok: true });
 });
 
+// ─── POST /clients/merge ──────────────────────────────────────────────────────
+// Fusiona dos clientes: mueve todas las citas del duplicado al cliente a conservar,
+// suma sus métricas y elimina el duplicado
+clients.post("/merge", async (c) => {
+  const { businessId } = c.get("user");
+  const body = await c.req.json().catch(() => null);
+
+  const parsed = z.object({
+    keepId:   z.string(),
+    deleteId: z.string(),
+  }).safeParse(body);
+
+  if (!parsed.success) return c.json({ error: "Datos inválidos" }, 400);
+  const { keepId, deleteId } = parsed.data;
+  if (keepId === deleteId) return c.json({ error: "Los clientes deben ser distintos" }, 400);
+
+  const [keep, del] = await Promise.all([
+    prisma.client.findFirst({ where: { id: keepId,   businessId } }),
+    prisma.client.findFirst({ where: { id: deleteId, businessId } }),
+  ]);
+  if (!keep)  return c.json({ error: "Cliente a conservar no encontrado" }, 404);
+  if (!del)   return c.json({ error: "Cliente a eliminar no encontrado"  }, 404);
+
+  await prisma.$transaction(async (tx) => {
+    // Mover todas las citas del duplicado al cliente conservado
+    await tx.appointment.updateMany({
+      where: { clientId: deleteId },
+      data:  { clientId: keepId },
+    });
+
+    // Sumar métricas
+    await tx.client.update({
+      where: { id: keepId },
+      data: {
+        totalVisits: { increment: del.totalVisits },
+        totalSpent:  { increment: del.totalSpent  },
+        // Conservar teléfono/email/dni del keep; si está vacío tomar del duplicado
+        phone: keep.phone ?? del.phone,
+        email: keep.email ?? del.email,
+        dni:   keep.dni   ?? del.dni,
+        notes: [keep.notes, del.notes].filter(Boolean).join("\n") || null,
+      },
+    });
+
+    // Eliminar el duplicado
+    await tx.client.delete({ where: { id: deleteId } });
+  });
+
+  const updated = await prisma.client.findUnique({ where: { id: keepId } });
+  return c.json(updated);
+});
+
 export default clients;
