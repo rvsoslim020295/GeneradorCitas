@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState, useCallback } from "react";
+import { Suspense, useEffect, useRef, useState, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { Bell, HelpCircle, LogOut, Settings, X, Sun, Moon, CalendarClock, CalendarCheck, CalendarX } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
@@ -96,7 +96,7 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
   return (
     <header className="bg-[var(--color-surface)]/80 backdrop-blur-md fixed top-0 right-0 w-[calc(100%-16rem)] h-16 border-b border-[var(--color-outline-variant)] flex justify-between items-center px-6 z-30">
       {/* Búsqueda global */}
-      {hideSearch ? <div /> : <GlobalSearch placeholder={searchPlaceholder} />}
+      {hideSearch ? <div /> : <Suspense fallback={<div className="w-80 h-9" />}><GlobalSearch placeholder={searchPlaceholder} /></Suspense>}
 
       {/* Acciones */}
       <div className="flex items-center gap-3">

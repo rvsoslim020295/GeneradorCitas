@@ -395,7 +395,7 @@ export default function ClientProfilePage() {
                       Historial de Citas
                     </h3>
                     <button
-                      onClick={() => router.push("/agenda")}
+                      onClick={() => router.push(`/agenda?search=${encodeURIComponent([client.name, client.lastName].filter(Boolean).join(" "))}`)}
                       className="text-[var(--color-primary)] text-label-md font-semibold hover:underline flex items-center gap-1">
                       Ver todo <ChevronRight size={14} strokeWidth={2} />
                     </button>
