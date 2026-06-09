@@ -1,6 +1,8 @@
 import { Hono } from "hono";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { getLimits } from "../lib/plan-limits.js";
+import * as XLSX from "xlsx";
 
 const analytics = new Hono();
 
@@ -364,6 +366,91 @@ analytics.get("/", async (c) => {
     bestMonth,
     originBreakdown,
   });
+});
+
+// ─── GET /analytics/export?period= ───────────────────────────────────────────
+// Genera y descarga un archivo Excel con el reporte del período
+analytics.get("/export", async (c) => {
+  const { businessId } = c.get("user") as any;
+
+  // Verificar que el plan permite exportar
+  const business = await prisma.business.findUnique({ where: { id: businessId } });
+  const limits = getLimits(business?.plan ?? "BASIC");
+  if (!limits.canExportExcel) {
+    return c.json({ error: "Tu plan no incluye exportación a Excel. Actualiza a PRO o ENTERPRISE." }, 403);
+  }
+
+  const rawPeriod = c.req.query("period") ?? "this_month";
+  const period: Period = (["this_week", "last_week", "this_month", "this_year"] as const)
+    .includes(rawPeriod as Period) ? rawPeriod as Period : "this_month";
+
+  const { start, end } = getDateRange(period);
+
+  const appointments = await prisma.appointment.findMany({
+    where: { businessId, startTime: { gte: start, lte: end } },
+    include: {
+      client:      { select: { name: true, lastName: true, phone: true } },
+      collaborator:{ select: { name: true } },
+      service:     { select: { name: true } },
+    },
+    orderBy: { startTime: "asc" },
+  });
+
+  const PERIOD_LABELS: Record<string, string> = {
+    this_week: "Esta semana", last_week: "Semana pasada",
+    this_month: "Este mes",  this_year: "Este año",
+  };
+
+  const STATUS_ES: Record<string, string> = {
+    PENDING: "Pendiente", CONFIRMED: "Confirmada", IN_PROGRESS: "En progreso",
+    COMPLETED: "Completada", CANCELLED: "Cancelada", NO_SHOW: "No se presentó", RESCHEDULED: "Reagendada",
+  };
+
+  const PAYMENT_ES: Record<string, string> = {
+    cash: "Efectivo", card: "Tarjeta", transfer: "Transferencia", app: "App",
+  };
+
+  // ── Hoja 1: Detalle de citas ──────────────────────────────────────────────
+  const rows = appointments.map((a) => ({
+    Fecha:        new Date(a.startTime).toLocaleDateString("es-PE"),
+    Hora:         new Date(a.startTime).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: false }),
+    Cliente:      `${a.client.name}${a.client.lastName ? " " + a.client.lastName : ""}`,
+    Teléfono:     a.client.phone ?? "",
+    Servicio:     a.service.name,
+    Colaborador:  a.collaborator.name,
+    Estado:       STATUS_ES[a.status] ?? a.status,
+    "Precio (S/)":a.price,
+    "Pagado (S/)":a.paidAmount ?? "",
+    "Anticipo (S/)": a.depositAmount ?? "",
+    "Método de pago": a.paymentMethod ? (PAYMENT_ES[a.paymentMethod] ?? a.paymentMethod) : "",
+  }));
+
+  // ── Hoja 2: Resumen del período ───────────────────────────────────────────
+  const completed   = appointments.filter((a) => a.status === "COMPLETED");
+  const cancelled   = appointments.filter((a) => a.status === "CANCELLED");
+  const noShow      = appointments.filter((a) => a.status === "NO_SHOW");
+  const totalRevenue = completed.reduce((s, a) => s + (a.paidAmount ?? a.price), 0);
+
+  const summary = [
+    { Métrica: "Período",               Valor: PERIOD_LABELS[period] },
+    { Métrica: "Total de citas",         Valor: appointments.length },
+    { Métrica: "Completadas",            Valor: completed.length },
+    { Métrica: "Canceladas",             Valor: cancelled.length },
+    { Métrica: "No se presentaron",      Valor: noShow.length },
+    { Métrica: "Ingresos totales (S/)",  Valor: totalRevenue.toFixed(2) },
+    { Métrica: "Promedio por cita (S/)", Valor: completed.length ? (totalRevenue / completed.length).toFixed(2) : "0" },
+  ];
+
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(rows),    "Citas");
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(summary), "Resumen");
+
+  const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
+  const filename = `reporte-${period}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+
+  c.header("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  c.header("Content-Disposition", `attachment; filename="${filename}"`);
+  return c.body(buf);
 });
 
 export default analytics;

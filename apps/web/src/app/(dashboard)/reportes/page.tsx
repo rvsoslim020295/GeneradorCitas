@@ -5,10 +5,15 @@ import {
   Calendar, CheckCircle, Banknote, TrendingUp, TrendingDown,
   ChevronDown, AlertCircle, Gift, Trophy, Users, Scissors,
   UserX, Star, Flame, MessageCircle, Phone, Camera, PersonStanding,
+  FileDown,
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { useAnalytics } from "@/lib/api/hooks";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api/client";
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 const DAY_LABELS = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
 const HOURS = [8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 18, 19, 20];
@@ -38,9 +43,35 @@ const collabColors = [
   "bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)]",
 ];
 
+type MeData = { role: string; business: { plan: string } };
+
 export default function ReportesPage() {
   const [period, setPeriod] = useState("this_week");
+  const [exporting, setExporting] = useState(false);
   const { data, isLoading, error } = useAnalytics(period);
+  const { data: me } = useQuery<MeData>({
+    queryKey: ["me"],
+    queryFn: () => apiFetch<MeData>("/auth/me"),
+  });
+
+  const canExport = me?.business?.plan === "PRO" || me?.business?.plan === "ENTERPRISE";
+
+  async function handleExport() {
+    setExporting(true);
+    try {
+      const res = await fetch(`${API_URL}/analytics/export?period=${period}`, { credentials: "include" });
+      if (!res.ok) { const e = await res.json(); alert(e.error); return; }
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = `reporte-${period}-${new Date().toISOString().slice(0, 10)}.xlsx`;
+      a.click();
+      URL.revokeObjectURL(url);
+    } finally {
+      setExporting(false);
+    }
+  }
 
   const maxDailyRevenue = data ? Math.max(...data.dailyRevenue.map((d: { amount: number }) => d.amount), 1) : 1;
   const maxHeatmapCount = data?.heatmap ? Math.max(...data.heatmap.map((h: { count: number }) => h.count), 1) : 1;
@@ -69,15 +100,30 @@ export default function ReportesPage() {
             {/* Header + filtro */}
             <div className="flex items-center justify-between">
               <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Resumen</h2>
-              <div className="relative">
-                <select value={period} onChange={(e) => setPeriod(e.target.value)}
-                  className="appearance-none bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] text-body-md rounded-lg py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] cursor-pointer">
-                  <option value="this_week">Esta Semana</option>
-                  <option value="last_week">Semana Pasada</option>
-                  <option value="this_month">Este Mes (4 semanas)</option>
-                  <option value="this_year">Este Año</option>
-                </select>
-                <ChevronDown size={16} strokeWidth={1.5} className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)] pointer-events-none" />
+              <div className="flex items-center gap-2">
+                <div className="relative">
+                  <select value={period} onChange={(e) => setPeriod(e.target.value)}
+                    className="appearance-none bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] text-body-md rounded-lg py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] cursor-pointer">
+                    <option value="this_week">Esta Semana</option>
+                    <option value="last_week">Semana Pasada</option>
+                    <option value="this_month">Este Mes (4 semanas)</option>
+                    <option value="this_year">Este Año</option>
+                  </select>
+                  <ChevronDown size={16} strokeWidth={1.5} className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)] pointer-events-none" />
+                </div>
+                {canExport ? (
+                  <button onClick={handleExport} disabled={exporting}
+                    className="flex items-center gap-2 bg-emerald-600 hover:bg-emerald-700 text-white text-label-md font-semibold px-4 py-2 rounded-lg transition-colors disabled:opacity-60">
+                    <FileDown size={15} strokeWidth={1.5} />
+                    {exporting ? "Exportando..." : "Exportar Excel"}
+                  </button>
+                ) : (
+                  <button title="Disponible en plan PRO o ENTERPRISE"
+                    className="flex items-center gap-2 bg-[var(--color-surface-container-high)] text-[var(--color-outline)] text-label-md font-semibold px-4 py-2 rounded-lg cursor-not-allowed opacity-60">
+                    <FileDown size={15} strokeWidth={1.5} />
+                    Exportar Excel
+                  </button>
+                )}
               </div>
             </div>
 
