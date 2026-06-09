@@ -221,14 +221,39 @@ appointments.patch("/:id/status", async (c) => {
     return c.json({ error: "Estado inválido" }, 400);
   }
 
-  const existing = await prisma.appointment.findFirst({
-    where: { id, businessId },
-  });
+  const [existing, business] = await Promise.all([
+    prisma.appointment.findFirst({ where: { id, businessId } }),
+    prisma.business.findUnique({ where: { id: businessId }, select: { cancellationHours: true, reschedulingHours: true } }),
+  ]);
   if (!existing) return c.json({ error: "Cita no encontrada" }, 404);
+
+  const newStatus = parsed.data.status;
+
+  // ── Validar política de cancelación ──────────────────────────────────────
+  if (newStatus === "CANCELLED" && business?.cancellationHours) {
+    const hoursUntil = (new Date(existing.startTime).getTime() - Date.now()) / 36e5;
+    if (hoursUntil > 0 && hoursUntil < business.cancellationHours) {
+      return c.json({
+        error: `No se puede cancelar esta cita. La política del local exige al menos ${business.cancellationHours} horas de anticipación (faltan ${Math.round(hoursUntil)} h).`,
+        code: "POLICY_CANCELLATION",
+      }, 422);
+    }
+  }
+
+  // ── Validar política de reagendamiento ────────────────────────────────────
+  if (newStatus === "RESCHEDULED" && business?.reschedulingHours) {
+    const hoursUntil = (new Date(existing.startTime).getTime() - Date.now()) / 36e5;
+    if (hoursUntil > 0 && hoursUntil < business.reschedulingHours) {
+      return c.json({
+        error: `No se puede reagendar esta cita. La política del local exige al menos ${business.reschedulingHours} horas de anticipación (faltan ${Math.round(hoursUntil)} h).`,
+        code: "POLICY_RESCHEDULING",
+      }, 422);
+    }
+  }
 
   const appointment = await prisma.appointment.update({
     where: { id },
-    data: { status: parsed.data.status },
+    data: { status: newStatus },
     include: appointmentInclude,
   });
 

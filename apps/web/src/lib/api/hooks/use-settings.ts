@@ -9,6 +9,7 @@ export type Settings = {
   timezone: string;
   slotMinutes: number;
   cancellationHours: number;
+  reschedulingHours: number;
   operatingDays: string[];
   openTime: string;
   closeTime: string;

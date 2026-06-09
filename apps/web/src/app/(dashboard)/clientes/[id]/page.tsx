@@ -219,10 +219,23 @@ export default function ClientProfilePage() {
                         <CalendarPlus size={16} strokeWidth={1.5} />
                         Agendar Nueva Cita
                       </Link>
-                      <button className="flex items-center gap-2 bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] text-label-md font-semibold uppercase tracking-wider px-4 py-3 rounded-lg hover:bg-[var(--color-surface-container-high)] transition-all active:scale-95">
-                        <MessageSquare size={16} strokeWidth={1.5} className="text-emerald-500" />
-                        WhatsApp
-                      </button>
+                      {client.phone ? (
+                        <a
+                          href={`https://wa.me/${client.phone.replace(/\D/g, "").replace(/^(?!51)/, "51")}`}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="flex items-center gap-2 bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] text-label-md font-semibold uppercase tracking-wider px-4 py-3 rounded-lg hover:bg-[var(--color-surface-container-high)] transition-all active:scale-95">
+                          <MessageSquare size={16} strokeWidth={1.5} className="text-emerald-500" />
+                          WhatsApp
+                        </a>
+                      ) : (
+                        <button disabled
+                          className="flex items-center gap-2 bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface)] text-label-md font-semibold uppercase tracking-wider px-4 py-3 rounded-lg opacity-40 cursor-not-allowed"
+                          title="Este cliente no tiene número de contacto">
+                          <MessageSquare size={16} strokeWidth={1.5} className="text-[var(--color-outline)]" />
+                          WhatsApp
+                        </button>
+                      )}
                       <button onClick={handleDelete} disabled={deleteClient.isPending}
                         className="flex items-center gap-2 bg-[var(--color-error-container)]/20 border border-[var(--color-error-container)] text-[var(--color-error)] text-label-md font-semibold uppercase tracking-wider px-4 py-3 rounded-lg hover:bg-[var(--color-error-container)]/40 transition-all active:scale-95 disabled:opacity-60">
                         <Trash2 size={16} strokeWidth={1.5} />
