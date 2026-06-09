@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
-import { ArrowLeft, ShieldAlert, CalendarCheck, Clock, CheckCircle, AlertCircle, Save } from "lucide-react";
+import { ArrowLeft, ShieldAlert, CalendarCheck, Clock, CheckCircle, AlertCircle, Save, ChevronDown, Minus, Plus } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
@@ -189,11 +189,12 @@ export default function AgendaConfigPage() {
                 <div>
                   <label className={labelClass}>Hora de apertura</label>
                   <div className="relative">
-                    <select value={openTime} onChange={(e) => setOpenTime(e.target.value)} className={inputClass}>
+                    <select value={openTime} onChange={(e) => setOpenTime(e.target.value)} className={inputClass + " pr-9"}>
                       {TIME_OPTIONS.map((t) => (
                         <option key={t} value={t}>{fmt12(t)}</option>
                       ))}
                     </select>
+                    <ChevronDown size={16} strokeWidth={1.5} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)]" />
                   </div>
                 </div>
 
@@ -201,11 +202,12 @@ export default function AgendaConfigPage() {
                 <div>
                   <label className={labelClass}>Hora de cierre</label>
                   <div className="relative">
-                    <select value={closeTime} onChange={(e) => setCloseTime(e.target.value)} className={inputClass}>
+                    <select value={closeTime} onChange={(e) => setCloseTime(e.target.value)} className={inputClass + " pr-9"}>
                       {TIME_OPTIONS.filter((t) => t > openTime).map((t) => (
                         <option key={t} value={t}>{fmt12(t)}</option>
                       ))}
                     </select>
+                    <ChevronDown size={16} strokeWidth={1.5} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)]" />
                   </div>
                 </div>
               </div>
@@ -245,9 +247,19 @@ export default function AgendaConfigPage() {
               <div>
                 <label className={labelClass}>Horas de anticipación para cancelar</label>
                 <div className="flex items-center gap-3">
-                  <input type="number" min={0} max={168} value={cancellationHours}
-                    onChange={(e) => setCancellationHours(Number(e.target.value))}
-                    className="w-32 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                  <div className="flex items-center border border-[var(--color-outline-variant)] rounded-lg overflow-hidden bg-[var(--color-surface-container-lowest)]">
+                    <button type="button" onClick={() => setCancellationHours(h => Math.max(0, h - 1))}
+                      className="px-3 py-2.5 text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)] hover:text-[var(--color-on-surface)] transition-colors border-r border-[var(--color-outline-variant)]">
+                      <Minus size={14} strokeWidth={2} />
+                    </button>
+                    <input type="number" min={0} max={168} value={cancellationHours}
+                      onChange={(e) => setCancellationHours(Math.min(168, Math.max(0, Number(e.target.value))))}
+                      className="w-16 text-center bg-transparent py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                    <button type="button" onClick={() => setCancellationHours(h => Math.min(168, h + 1))}
+                      className="px-3 py-2.5 text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)] hover:text-[var(--color-on-surface)] transition-colors border-l border-[var(--color-outline-variant)]">
+                      <Plus size={14} strokeWidth={2} />
+                    </button>
+                  </div>
                   <span className="text-body-md text-[var(--color-on-surface-variant)]">
                     {cancellationHours === 0 ? "Sin restricción" : `${cancellationHours} h antes de la cita`}
                   </span>
@@ -262,9 +274,19 @@ export default function AgendaConfigPage() {
                 <div>
                   <label className={labelClass}>Horas de anticipación para reagendar</label>
                   <div className="flex items-center gap-3">
-                    <input type="number" min={0} max={168} value={reschedulingHours}
-                      onChange={(e) => setReschedulingHours(Number(e.target.value))}
-                      className="w-32 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                    <div className="flex items-center border border-[var(--color-outline-variant)] rounded-lg overflow-hidden bg-[var(--color-surface-container-lowest)]">
+                      <button type="button" onClick={() => setReschedulingHours(h => Math.max(0, h - 1))}
+                        className="px-3 py-2.5 text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)] hover:text-[var(--color-on-surface)] transition-colors border-r border-[var(--color-outline-variant)]">
+                        <Minus size={14} strokeWidth={2} />
+                      </button>
+                      <input type="number" min={0} max={168} value={reschedulingHours}
+                        onChange={(e) => setReschedulingHours(Math.min(168, Math.max(0, Number(e.target.value))))}
+                        className="w-16 text-center bg-transparent py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
+                      <button type="button" onClick={() => setReschedulingHours(h => Math.min(168, h + 1))}
+                        className="px-3 py-2.5 text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)] hover:text-[var(--color-on-surface)] transition-colors border-l border-[var(--color-outline-variant)]">
+                        <Plus size={14} strokeWidth={2} />
+                      </button>
+                    </div>
                     <span className="text-body-md text-[var(--color-on-surface-variant)]">
                       {reschedulingHours === 0 ? "Sin restricción" : `${reschedulingHours} h antes de la cita`}
                     </span>

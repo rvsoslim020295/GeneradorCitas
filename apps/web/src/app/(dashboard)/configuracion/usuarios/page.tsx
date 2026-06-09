@@ -1,60 +1,116 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Plus, Trash2, ShieldCheck, UserCog,
-  Eye, EyeOff, AlertCircle, CheckCircle, X,
+  Eye, EyeOff, AlertCircle, CheckCircle, X, ChevronDown,
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
+import { apiFetch } from "@/lib/api/client";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
-
-const ROLES = [
-  { value: "OWNER", label: "Dueño", description: "Acceso total al sistema" },
+// Los roles que se pueden asignar al crear/editar usuarios (OWNER no es asignable)
+const ASSIGNABLE_ROLES = [
   { value: "ADMIN", label: "Administrador", description: "Gestión de citas y clientes" },
   { value: "COLLABORATOR", label: "Colaborador", description: "Solo su agenda del día" },
-];
+] as const;
+
+// Todos los roles para mostrar en la guía y los badges
+const ALL_ROLES = [
+  { value: "OWNER", label: "Dueño", description: "Acceso total al sistema" },
+  ...ASSIGNABLE_ROLES,
+] as const;
+
+type SystemRole = "OWNER" | "ADMIN" | "COLLABORATOR";
 
 type SystemUser = {
   id: string;
   name: string;
   email: string;
-  role: "OWNER" | "COLLABORATOR" | "ADMIN";
+  role: SystemRole;
   emailVerified: boolean;
 };
 
 export default function UsuariosSistemaPage() {
   const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [users, setUsers] = useState<SystemUser[]>([]);
+  const qc = useQueryClient();
+
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [showForm, setShowForm] = useState(false);
 
-  // New user form
+  // Form state
   const [newName, setNewName] = useState("");
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
-  const [newRole, setNewRole] = useState<"OWNER" | "COLLABORATOR" | "ADMIN">("ADMIN");
+  const [newRole, setNewRole] = useState<SystemRole>("ADMIN");
   const [showPassword, setShowPassword] = useState(false);
-  const [saving, setSaving] = useState(false);
 
-  useEffect(() => {
-    fetch(`${API_URL}/users`, { credentials: "include" })
-      .then((r) => r.ok ? r.json() : Promise.reject())
-      .then(setUsers)
-      .catch(() => router.push("/configuracion"))
-      .finally(() => setLoading(false));
-  }, [router]);
+  // Delete confirmation modal
+  const [deleteTarget, setDeleteTarget] = useState<SystemUser | null>(null);
+
+  // Role selector dropdown
+  const [roleDropdown, setRoleDropdown] = useState<string | null>(null);
 
   function showMsg(type: "success" | "error", msg: string) {
     setFeedback({ type, msg });
     setTimeout(() => setFeedback(null), 3500);
   }
 
-  async function handleCreate() {
+  // ─── Queries ────────────────────────────────────────────────────────────────
+
+  const { data: users = [], isLoading } = useQuery<SystemUser[]>({
+    queryKey: ["system-users"],
+    queryFn: () => apiFetch<SystemUser[]>("/users"),
+    throwOnError: false,
+    // Si el fetch falla (401 o sin permisos), redirigir
+    // El 401 ya lo maneja apiFetch redirigiendo a /login
+  });
+
+  const createUser = useMutation({
+    mutationFn: (body: { name: string; email: string; password: string; role: SystemRole }) =>
+      apiFetch<SystemUser>("/users", { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: (created) => {
+      qc.setQueryData<SystemUser[]>(["system-users"], (prev = []) => [...prev, created]);
+      setNewName(""); setNewEmail(""); setNewPassword(""); setNewRole("ADMIN");
+      setShowForm(false);
+      showMsg("success", "Usuario creado correctamente.");
+    },
+    onError: (e) => showMsg("error", e.message || "Error al crear usuario."),
+  });
+
+  const updateRole = useMutation({
+    mutationFn: ({ id, role }: { id: string; role: SystemRole }) =>
+      apiFetch<SystemUser>(`/users/${id}`, { method: "PATCH", body: JSON.stringify({ role }) }),
+    onSuccess: (updated) => {
+      qc.setQueryData<SystemUser[]>(["system-users"], (prev = []) =>
+        prev.map((u) => u.id === updated.id ? updated : u)
+      );
+      setRoleDropdown(null);
+    },
+    onError: () => showMsg("error", "No se pudo actualizar el rol."),
+  });
+
+  const deleteUser = useMutation({
+    mutationFn: (id: string) => apiFetch(`/users/${id}`, { method: "DELETE" }),
+    onSuccess: () => {
+      qc.setQueryData<SystemUser[]>(["system-users"], (prev = []) =>
+        prev.filter((u) => u.id !== deleteTarget?.id)
+      );
+      showMsg("success", "Usuario eliminado.");
+      setDeleteTarget(null);
+    },
+    onError: () => {
+      showMsg("error", "No se pudo eliminar el usuario.");
+      setDeleteTarget(null);
+    },
+  });
+
+  // ─── Handlers ────────────────────────────────────────────────────────────────
+
+  function handleCreate() {
     if (!newName.trim() || !newEmail.trim() || !newPassword.trim()) {
       showMsg("error", "Nombre, email y contraseña son obligatorios.");
       return;
@@ -67,60 +123,10 @@ export default function UsuariosSistemaPage() {
       showMsg("error", "La contraseña debe tener al menos 8 caracteres.");
       return;
     }
-    setSaving(true);
-    try {
-      const res = await fetch(`${API_URL}/users`, {
-        method: "POST",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name: newName.trim(), email: newEmail.trim(), password: newPassword, role: newRole }),
-      });
-      if (!res.ok) {
-        const d = await res.json().catch(() => ({}));
-        throw new Error(d.error ?? "Error al crear usuario.");
-      }
-      const created: SystemUser = await res.json();
-      setUsers((prev) => [...prev, created]);
-      setNewName(""); setNewEmail(""); setNewPassword(""); setNewRole("ADMIN");
-      setShowForm(false);
-      showMsg("success", "Usuario creado correctamente.");
-    } catch (e: unknown) {
-      showMsg("error", e instanceof Error ? e.message : "Error al crear usuario.");
-    } finally {
-      setSaving(false);
-    }
+    createUser.mutate({ name: newName.trim(), email: newEmail.trim(), password: newPassword, role: newRole });
   }
 
-  async function toggleRole(user: SystemUser) {
-    const nextRole = user.role === "COLLABORATOR" ? "ADMIN" : "COLLABORATOR";
-    try {
-      const res = await fetch(`${API_URL}/users/${user.id}`, {
-        method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ role: nextRole }),
-      });
-      if (!res.ok) throw new Error();
-      setUsers((prev) => prev.map((u) => u.id === user.id ? { ...u, role: nextRole } : u));
-    } catch {
-      showMsg("error", "No se pudo actualizar el usuario.");
-    }
-  }
-
-  async function handleDelete(user: SystemUser) {
-    if (!confirm(`¿Eliminar el acceso de ${user.name}? Esta acción no se puede deshacer.`)) return;
-    try {
-      const res = await fetch(`${API_URL}/users/${user.id}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!res.ok) throw new Error();
-      setUsers((prev) => prev.filter((u) => u.id !== user.id));
-      showMsg("success", "Usuario eliminado.");
-    } catch {
-      showMsg("error", "No se pudo eliminar el usuario.");
-    }
-  }
+  // ─── UI helpers ─────────────────────────────────────────────────────────────
 
   const roleBadge = (role: string) => {
     const map: Record<string, string> = {
@@ -136,7 +142,7 @@ export default function UsuariosSistemaPage() {
     );
   };
 
-  if (loading) return (
+  if (isLoading) return (
     <>
       <Sidebar activePath="/configuracion" />
       <main className="flex-1 ml-64 flex items-center justify-center bg-[var(--color-background)]">
@@ -150,7 +156,7 @@ export default function UsuariosSistemaPage() {
       <Sidebar activePath="/configuracion" />
       <main className="flex-1 ml-64 flex flex-col h-full bg-[var(--color-background)] overflow-hidden">
         <TopBar />
-        <div className="flex-1 overflow-y-auto pt-16" style={{ scrollbarWidth: "thin" }}>
+        <div className="flex-1 overflow-y-auto overflow-x-visible pt-16" style={{ scrollbarWidth: "thin" }}>
           <div className="max-w-2xl mx-auto px-6 py-6 space-y-6">
 
             {/* Header */}
@@ -187,7 +193,7 @@ export default function UsuariosSistemaPage() {
                 Roles disponibles
               </h2>
               <div className="space-y-2">
-                {ROLES.map((r) => (
+                {ALL_ROLES.map((r) => (
                   <div key={r.value} className="flex items-center gap-3">
                     {roleBadge(r.value)}
                     <span className="text-body-md text-[var(--color-on-surface-variant)]">{r.description}</span>
@@ -212,20 +218,35 @@ export default function UsuariosSistemaPage() {
                 <div className="grid grid-cols-2 gap-3">
                   <div className="col-span-2 space-y-1">
                     <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Nombre completo</label>
-                    <input value={newName} onChange={(e) => setNewName(e.target.value)} placeholder="Ana García"
-                      className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all placeholder:text-[var(--color-outline-variant)]" />
+                    <input
+                      value={newName}
+                      onChange={(e) => setNewName(e.target.value)}
+                      placeholder="Nombre del usuario"
+                      className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all placeholder:text-[var(--color-outline-variant)]"
+                    />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Email</label>
-                    <input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="ana@negocio.com" type="email"
-                      className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all placeholder:text-[var(--color-outline-variant)]" />
+                    <input
+                      value={newEmail}
+                      onChange={(e) => setNewEmail(e.target.value)}
+                      placeholder="correo@ejemplo.com"
+                      type="email"
+                      autoComplete="off"
+                      className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all placeholder:text-[var(--color-outline-variant)]"
+                    />
                   </div>
                   <div className="space-y-1">
                     <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Contraseña temporal</label>
                     <div className="relative">
-                      <input value={newPassword} onChange={(e) => setNewPassword(e.target.value)}
-                        type={showPassword ? "text" : "password"} placeholder="Mín. 8 caracteres"
-                        className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 pr-10 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all placeholder:text-[var(--color-outline-variant)]" />
+                      <input
+                        value={newPassword}
+                        onChange={(e) => setNewPassword(e.target.value)}
+                        type={showPassword ? "text" : "password"}
+                        autoComplete="new-password"
+                        placeholder="Mín. 8 caracteres"
+                        className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 pr-10 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all placeholder:text-[var(--color-outline-variant)]"
+                      />
                       <button type="button" onClick={() => setShowPassword(v => !v)}
                         className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)] hover:text-[var(--color-on-surface)] transition-colors">
                         {showPassword ? <EyeOff size={16} strokeWidth={1.5} /> : <Eye size={16} strokeWidth={1.5} />}
@@ -235,8 +256,8 @@ export default function UsuariosSistemaPage() {
                   <div className="col-span-2 space-y-1">
                     <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Rol</label>
                     <div className="flex gap-2">
-                      {ROLES.map((r) => (
-                        <button key={r.value} type="button" onClick={() => setNewRole(r.value as typeof newRole)}
+                      {ASSIGNABLE_ROLES.map((r) => (
+                        <button key={r.value} type="button" onClick={() => setNewRole(r.value)}
                           className={`flex-1 py-2.5 px-3 rounded-lg border text-body-md font-semibold transition-all text-left ${
                             newRole === r.value
                               ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] border-[var(--color-primary)]"
@@ -250,15 +271,15 @@ export default function UsuariosSistemaPage() {
                   </div>
                 </div>
 
-                <button onClick={handleCreate} disabled={saving}
+                <button onClick={handleCreate} disabled={createUser.isPending}
                   className="w-full bg-[var(--color-primary)] text-[var(--color-on-primary)] text-label-md font-semibold uppercase tracking-wider py-3 rounded-lg hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors disabled:opacity-60">
-                  {saving ? "Creando usuario..." : "Crear Usuario"}
+                  {createUser.isPending ? "Creando usuario..." : "Crear Usuario"}
                 </button>
               </section>
             )}
 
             {/* Lista de usuarios */}
-            <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl overflow-hidden">
+            <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl">
               {users.length === 0 ? (
                 <div className="px-5 py-10 text-center text-body-md text-[var(--color-on-surface-variant)]">
                   No hay usuarios registrados.
@@ -275,9 +296,7 @@ export default function UsuariosSistemaPage() {
                       {/* Info */}
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-body-md font-semibold text-[var(--color-on-surface)]">
-                            {user.name}
-                          </span>
+                          <span className="text-body-md font-semibold text-[var(--color-on-surface)]">{user.name}</span>
                           {roleBadge(user.role)}
                           {!user.emailVerified && (
                             <span className="text-label-md text-amber-600 bg-amber-50 border border-amber-200 px-2 py-0.5 rounded-full">Sin verificar</span>
@@ -287,20 +306,49 @@ export default function UsuariosSistemaPage() {
                       </div>
 
                       {/* Acciones */}
-                      <div className="flex items-center gap-1 shrink-0">
-                        {user.role !== "OWNER" && (
-                          <button onClick={() => toggleRole(user)} title="Cambiar rol"
-                            className="w-9 h-9 rounded-full flex items-center justify-center transition-colors text-[var(--color-primary)] hover:bg-[var(--color-primary-container)]/20">
-                            <ShieldCheck size={18} strokeWidth={1.5} />
-                          </button>
-                        )}
-                        {user.role !== "OWNER" && (
-                          <button onClick={() => handleDelete(user)} title="Eliminar usuario"
-                            className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--color-outline)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-container)]/20 transition-colors">
+                      {user.role !== "OWNER" && (
+                        <div className="flex items-center gap-1 shrink-0">
+                          {/* Selector de rol */}
+                          <div className="relative">
+                            <button
+                              onClick={() => setRoleDropdown(roleDropdown === user.id ? null : user.id)}
+                              title="Cambiar rol"
+                              className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-label-md font-semibold border border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] hover:border-[var(--color-primary)]/50 hover:text-[var(--color-primary)] transition-colors bg-[var(--color-surface-container-lowest)]"
+                            >
+                              <ShieldCheck size={14} strokeWidth={1.5} />
+                              Rol
+                              <ChevronDown size={12} strokeWidth={2} />
+                            </button>
+                            {roleDropdown === user.id && (
+                              <div className="absolute right-0 bottom-full mb-1 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl shadow-lg z-50 min-w-[180px] overflow-hidden">
+                                {ASSIGNABLE_ROLES.map((r) => (
+                                  <button
+                                    key={r.value}
+                                    onClick={() => updateRole.mutate({ id: user.id, role: r.value })}
+                                    disabled={user.role === r.value || updateRole.isPending}
+                                    className={`w-full text-left px-4 py-3 text-body-md transition-colors ${
+                                      user.role === r.value
+                                        ? "bg-[var(--color-primary)]/10 text-[var(--color-primary)] font-semibold cursor-default"
+                                        : "hover:bg-[var(--color-surface-container-high)] text-[var(--color-on-surface)]"
+                                    }`}
+                                  >
+                                    <div className="font-semibold">{r.label}</div>
+                                    <div className="text-[11px] text-[var(--color-on-surface-variant)]">{r.description}</div>
+                                  </button>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          <button
+                            onClick={() => setDeleteTarget(user)}
+                            title="Eliminar usuario"
+                            className="w-9 h-9 rounded-full flex items-center justify-center text-[var(--color-outline)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-container)]/20 transition-colors"
+                          >
                             <Trash2 size={16} strokeWidth={1.5} />
                           </button>
-                        )}
-                      </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
@@ -310,6 +358,45 @@ export default function UsuariosSistemaPage() {
           </div>
         </div>
       </main>
+
+      {/* Modal confirmación eliminar */}
+      {deleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-[var(--color-surface-container-lowest)] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-[var(--color-error-container)]/30 flex items-center justify-center shrink-0">
+                <Trash2 size={18} className="text-[var(--color-error)]" strokeWidth={1.5} />
+              </div>
+              <div>
+                <h3 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Eliminar usuario</h3>
+                <p className="text-body-md text-[var(--color-on-surface-variant)] mt-1">
+                  ¿Eliminar el acceso de <span className="font-semibold text-[var(--color-on-surface)]">{deleteTarget.name}</span>? Esta acción no se puede deshacer.
+                </p>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button
+                onClick={() => setDeleteTarget(null)}
+                className="flex-1 py-2.5 rounded-lg border border-[var(--color-outline-variant)] text-body-md font-semibold text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)] transition-colors"
+              >
+                Cancelar
+              </button>
+              <button
+                onClick={() => deleteUser.mutate(deleteTarget.id)}
+                disabled={deleteUser.isPending}
+                className="flex-1 py-2.5 rounded-lg bg-[var(--color-error)] text-white text-body-md font-semibold hover:bg-[var(--color-error)]/90 transition-colors disabled:opacity-60"
+              >
+                {deleteUser.isPending ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cerrar dropdown al hacer click fuera */}
+      {roleDropdown && (
+        <div className="fixed inset-0 z-10" onClick={() => setRoleDropdown(null)} />
+      )}
     </>
   );
 }

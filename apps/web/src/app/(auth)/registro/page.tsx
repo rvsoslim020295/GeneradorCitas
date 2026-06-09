@@ -65,7 +65,7 @@ export default function RegistroPage() {
   const labelClass = "block font-label-md text-label-md uppercase tracking-wider text-[var(--color-on-surface-variant)] mb-1";
 
   return (
-    <main className="flex min-h-screen w-full items-center justify-center bg-[var(--color-surface-container-low)] p-4 py-10">
+    <main className="flex h-full w-full overflow-y-auto items-start justify-center bg-[var(--color-surface-container-low)] p-4 py-10">
       <div className="ambient-shadow relative w-full max-w-[500px] overflow-hidden rounded-xl border border-[var(--color-outline-variant)]/50 bg-[var(--color-surface-container-lowest)] p-8">
         <div className="absolute left-0 top-0 h-1 w-full bg-[var(--color-primary)]" />
 

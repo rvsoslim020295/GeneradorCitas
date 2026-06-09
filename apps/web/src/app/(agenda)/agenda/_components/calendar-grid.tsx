@@ -171,30 +171,32 @@ function DayView({ appointments, currentDate, collabColors, gridHeight }: {
     <div className="flex-1 overflow-hidden flex flex-col">
       <CollabLegend appointments={appointments} collabColors={collabColors} />
 
-      {/* Header colaboradores */}
-      <div className="flex shrink-0 bg-[var(--color-surface)] border-b border-[var(--color-outline-variant)] h-12">
-        <div className="w-16 shrink-0 border-r border-[var(--color-outline-variant)]" />
-        {collabs.length === 0 ? (
-          <div className="flex-1 flex items-center justify-center text-body-md text-[var(--color-on-surface-variant)]">
-            Sin citas para este día
-          </div>
-        ) : (
-          collabs.map(([cid, collab], i) => {
-            const colorIdx = collabColors.get(cid) ?? 0;
-            const color = COLLAB_PALETTE[colorIdx];
-            return (
-              <div key={cid} className={`flex-1 flex items-center justify-center gap-2 ${i < collabs.length - 1 ? "border-r border-[var(--color-outline-variant)]" : ""}`}>
-                <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0" style={{ backgroundColor: color.border }}>
-                  {getInitials(collab.name)}
-                </div>
-                <span className="text-label-md font-semibold text-[var(--color-on-surface)] truncate">{collab.name}</span>
-              </div>
-            );
-          })
-        )}
-      </div>
-
+      {/* El header y el grid van en el mismo contenedor scrolleable para alinear columnas */}
       <div className="flex-1 overflow-auto" style={{ scrollbarWidth: "thin" }}>
+        {/* Header colaboradores — sticky para mantenerse visible al hacer scroll vertical */}
+        <div className="sticky top-0 z-30 flex bg-[var(--color-surface)] border-b border-[var(--color-outline-variant)] h-12">
+          <div className="w-16 shrink-0 border-r border-[var(--color-outline-variant)]" />
+          {collabs.length === 0 ? (
+            <div className="flex-1 flex items-center justify-center text-body-md text-[var(--color-on-surface-variant)]">
+              Sin citas para este día
+            </div>
+          ) : (
+            collabs.map(([cid, collab], i) => {
+              const colorIdx = collabColors.get(cid) ?? 0;
+              const color = COLLAB_PALETTE[colorIdx];
+              return (
+                <div key={cid} className={`flex-1 flex items-center justify-center gap-2 ${i < collabs.length - 1 ? "border-r border-[var(--color-outline-variant)]" : ""}`}>
+                  <div className="w-7 h-7 rounded-full flex items-center justify-center text-[9px] font-bold text-white shrink-0" style={{ backgroundColor: color.border }}>
+                    {getInitials(collab.name)}
+                  </div>
+                  <span className="text-label-md font-semibold text-[var(--color-on-surface)] truncate">{collab.name}</span>
+                </div>
+              );
+            })
+          )}
+        </div>
+
+        {/* Cuerpo del grid */}
         <div className="flex" style={{ height: gridHeight }}>
           <TimeColumn gridHeight={gridHeight} />
           <div className="flex-1 flex relative">
@@ -260,25 +262,25 @@ function WeekView({ appointments, currentDate, collabColors, gridHeight }: {
     <div className="flex-1 overflow-hidden flex flex-col">
       <CollabLegend appointments={appointments} collabColors={collabColors} />
 
-      {/* Header días */}
-      <div className="flex shrink-0 bg-[var(--color-surface)] border-b border-[var(--color-outline-variant)] h-12">
-        <div className="w-16 shrink-0 border-r border-[var(--color-outline-variant)]" />
-        {days.map((day, i) => {
-          const isToday = isSameDay(day, today);
-          return (
-            <div key={i} className={`flex-1 flex flex-col items-center justify-center border-r border-[var(--color-outline-variant)] last:border-0 ${isToday ? "bg-[var(--color-primary)]/5" : ""}`}>
-              <span className={`text-[10px] font-semibold uppercase tracking-wider ${isToday ? "text-[var(--color-primary)]" : "text-[var(--color-on-surface-variant)]"}`}>
-                {DAYS_ES[day.getDay()]}
-              </span>
-              <span className={`text-label-md font-bold w-7 h-7 flex items-center justify-center rounded-full ${isToday ? "bg-[var(--color-primary)] text-white" : "text-[var(--color-on-surface)]"}`}>
-                {day.getDate()}
-              </span>
-            </div>
-          );
-        })}
-      </div>
-
       <div className="flex-1 overflow-auto" style={{ scrollbarWidth: "thin" }}>
+        {/* Header días — sticky */}
+        <div className="sticky top-0 z-30 flex bg-[var(--color-surface)] border-b border-[var(--color-outline-variant)] h-12">
+          <div className="w-16 shrink-0 border-r border-[var(--color-outline-variant)]" />
+          {days.map((day, i) => {
+            const isToday = isSameDay(day, today);
+            return (
+              <div key={i} className={`flex-1 flex flex-col items-center justify-center border-r border-[var(--color-outline-variant)] last:border-0 ${isToday ? "bg-[var(--color-primary)]/5" : ""}`}>
+                <span className={`text-[10px] font-semibold uppercase tracking-wider ${isToday ? "text-[var(--color-primary)]" : "text-[var(--color-on-surface-variant)]"}`}>
+                  {DAYS_ES[day.getDay()]}
+                </span>
+                <span className={`text-label-md font-bold w-7 h-7 flex items-center justify-center rounded-full ${isToday ? "bg-[var(--color-primary)] text-white" : "text-[var(--color-on-surface)]"}`}>
+                  {day.getDate()}
+                </span>
+              </div>
+            );
+          })}
+        </div>
+
         <div className="flex" style={{ height: gridHeight }}>
           <TimeColumn gridHeight={gridHeight} />
           <div className="flex-1 flex relative">

@@ -1,9 +1,9 @@
 # Estado del Proyecto — GlowManager
-**Fecha:** 8 de Junio 2026
-**Versión:** 8.0
+**Fecha:** 9 de Junio 2026
+**Versión:** 9.0
 **Repositorio:** https://github.com/rvsoslim020295/GeneradorCitas
 **Rama activa:** `feat/super-admin`
-**PRs de esta sesión:** #33 → #37 (todos mergeados a `main` ✅)
+**PRs de esta sesión:** Sin merge — trabajo acumulado en rama activa
 
 ---
 
@@ -11,104 +11,130 @@
 
 GlowManager es un panel administrativo B2B para negocios de belleza (salones, barberías, spas, nail bars). Permite gestionar citas, clientes, colaboradores, servicios, paquetes, pagos y reportes desde una interfaz web orientada a dueños y recepcionistas en desktop.
 
-**Estado actual:** MVP 100% funcional. En esta sesión (v8.0) se resolvieron todos los bugs críticos de disponibilidad y reprogramación, se implementaron notificaciones WhatsApp gratuitas via `wa.me`, y se añadieron políticas de cancelación y reagendamiento independientes con validación real en backend.
+**Estado actual:** MVP 100% funcional. En esta sesión (v9.0) se implementó el sistema completo de roles diferenciados (OWNER / ADMIN / COLLABORATOR) con protección real de rutas en backend y frontend, se corrigieron múltiples bugs de UI, se mejoró la seguridad del módulo de usuarios, y se unificaron mejoras de UX en agenda, clientes y configuración.
 
 ---
 
-## 2. Lo implementado en sesiones anteriores (hasta v7.0)
+## 2. Lo implementado hasta v8.0 (sesiones anteriores)
 
-- Login unificado + Remember Me (sesión o 30 días)
+- Login unificado + Remember Me
 - Planes BASIC / PRO / ENTERPRISE con restricciones en backend
-- Módulo de Paquetes/Combos (mínimo 2 servicios, límite por plan)
-- Métricas avanzadas en Reportes (top servicios, mapa de calor, clientes valiosos, origen de citas)
-- Panel Super Admin completo (gestión de negocios, planes, suspensión)
-- Bloqueo por plan vencido/suspendido → página `/plan-vencido`
-- Campo `performsServices` en colaboradores (recepcionistas no aparecen al agendar)
+- Módulo de Paquetes/Combos
+- Métricas avanzadas en Reportes
+- Panel Super Admin completo
+- Bloqueo por plan vencido/suspendido → `/plan-vencido`
+- Campo `performsServices` en colaboradores
 - Capacidad máxima simultánea por servicio (`maxConcurrent`)
-- Slots dinámicos por fin de cita real
-- Walk-in con validación en tiempo real
-- Cobrar y Completar desacoplados
-- Modal de confirmación en página (reemplaza `confirm()` nativo)
+- Slots dinámicos, Walk-in, Cobrar/Completar desacoplados
+- Modal de confirmación in-page (sin `confirm()` nativo)
+- Fixes críticos de TZ y disponibilidad
+- Notificaciones WhatsApp via `wa.me`
+- Políticas de cancelación y reagendamiento independientes
 
 ---
 
-## 3. Lo implementado en esta sesión (v8.0)
+## 3. Lo implementado en esta sesión (v9.0)
 
-### 3.1 Fixes críticos de disponibilidad y timezone
+### 3.1 Sistema de Roles — Frontend y Backend
 
-| Fix | Descripción |
-|---|---|
-| `dayStart`/`dayEnd` sin `Z` | Las queries de citas usaban UTC, causando que se buscaran citas del día equivocado (offset UTC-5) |
-| `isToday` con fecha local | Usaba `toISOString()` (UTC); después de las 7 PM Lima el UTC rollover mostraba slots pasados |
-| `dateToMinutes()` con TZ explícito | Todos los `getHours()`/`getMinutes()` reemplazados por `toLocaleTimeString` con TZ explícito para no depender del proceso Node en ESM |
-| Validación horario negocio con TZ | `appointments.ts` también usaba `getHours()` para validar si la cita cae dentro del horario |
-| `reason` en slots vacíos | El endpoint `/availability/slots` retorna motivo específico cuando no hay disponibilidad |
-| Schedule dinámico en colaboradores nuevos | Heredan `openTime`/`closeTime`/`operatingDays` del negocio en lugar de horario hardcodeado 09-18 |
+**`use-role.ts`** — tipos corregidos: `RECEPTIONIST`/`STAFF` → `ADMIN`/`COLLABORATOR`
 
-**Motivos específicos devueltos cuando slots = []:**
-- *"Ningún colaborador trabaja este día (Mon)"*
-- *"Todos los horarios disponibles ya pasaron. Usa la sección Walk-in o elige otra fecha"*
-- *"Capacidad máxima del servicio alcanzada (N simultáneos)"*
-- *"El colaborador no tiene horario libre en esta fecha. Prueba otro colaborador o fecha"*
+**Protección de rutas en `(dashboard)/layout.tsx`:**
+| Rol | Rutas permitidas | Redirige a |
+|---|---|---|
+| OWNER | Todo | — |
+| ADMIN | Dashboard, Agenda, Clientes, Colaboradores, Servicios | `/dashboard` si intenta /paquetes /reportes /configuracion |
+| COLLABORATOR | /agenda, /citas/*, /nueva-cita | `/agenda` si intenta cualquier otra ruta |
 
-### 3.2 Flujo de reprogramar cita — corregido completamente
+**`(agenda)/layout.tsx`** — añadida verificación de plan (antes no tenía ninguna).
 
-| Bug | Fix |
-|---|---|
-| Cita original (RESCHEDULED) bloqueaba la nueva | Agregado `"RESCHEDULED"` al `notIn` en chequeo de colaborador y cliente |
-| RESCHEDULED bloqueaba slots en availability | Excluido en los dos `notIn` de availability.ts |
-| `router.push` sin esperar confirmación | Movido al `afterConfirm` callback del modal — navega solo tras confirmar Y actualizar en servidor |
-| Citas reagendadas visibles en calendario | Excluidas en los 3 filtros de `calendar-grid.tsx` |
-| Reagendadas en "Citas de Hoy" y "Próxima Cita" | Excluidas con constante `INACTIVE` en dashboard |
+**Sidebar** — COLLABORATOR solo ve Agenda. ADMIN ve todo excepto Paquetes, Reportes y Configuración.
 
-### 3.3 UX de nueva cita
+**Vista de Agenda para COLLABORATOR:**
+- Banner informativo azul
+- Selector Día/Semana/Mes oculto — siempre en vista Día
+- `AgendaToolbar` acepta props `lockedToDayView` y `onViewChange` opcional
 
-- **Toggle Hora Exacta / Slots** — botón integrado en la sección Hora; modo "Exacta" abre por defecto con la hora actual pre-llenada
-- **Errores descriptivos** — el backend retorna `reason` y el frontend lo muestra en rojo; nunca diálogos nativos
-- **Error JSON parseado en detalle de cita** — el `catch` de `executeUpdateStatus` parsea el body JSON del servidor correctamente
+### 3.2 Seguridad en endpoints `/users`
 
-### 3.4 Notificaciones WhatsApp via wa.me (sin costo, sin API externa)
+Antes: cualquier usuario autenticado podía crear/modificar/eliminar usuarios.
+Ahora:
+- `POST /users` — solo OWNER; rol máximo asignable: ADMIN o COLLABORATOR (no OWNER)
+- `PATCH /users/:id` — solo OWNER; no puede modificar a otro OWNER
+- `DELETE /users/:id` — solo OWNER; no puede eliminar al OWNER
+- Schema Zod actualizado: `z.enum(["COLLABORATOR", "ADMIN"])` (OWNER excluido)
 
-**Flujo:** Admin configura plantilla → en detalle de cita aparece botón → clic abre WhatsApp Web con mensaje pre-llenado → solo presiona Enviar.
+### 3.3 Página Configuración/Usuarios — refactor completo
 
-**Schema:** 3 campos nuevos en `Business`: `waTplConfirmation`, `waTplReminder`, `waTplPayment`
+- **Migrado** de `fetch` directo → `apiFetch` + `useQuery`/`useMutation`
+- **`confirm()` nativo** → modal in-page con botón de confirmación
+- **Toggle de rol** → dropdown con selector completo (ADMIN ↔ COLLABORATOR)
+- **Formulario nuevo usuario**: placeholders neutrales, `autoComplete="off"` / `"new-password"` para evitar autofill del browser
+- **Dropdown de rol** abre hacia arriba (`bottom-full`) para evitar corte por overflow
+- Sección lista sin `overflow-hidden` para que el dropdown sea visible
 
-**Config WhatsApp** (`/configuracion/whatsapp`):
-- Conectada a la BD real (antes era UI estática sin persistencia)
-- 3 plantillas editables con preview
-- Variables copiables al portapapeles: `{cliente}`, `{negocio}`, `{fecha}`, `{hora}`, `{servicio}`, `{colaborador}`, `{precio}`
-- Texto por defecto si el negocio no ha configurado plantillas aún
+### 3.4 Banner de trial — solo para OWNER
 
-**Detalle de cita:** sección "Notificar por WhatsApp" (antes del Historial)
-- Grid de 3 tarjetas: ✅ Confirmación · 🔔 Recordatorio · 💳 Cobro
-- Deshabilitadas si el cliente no tiene teléfono
+El banner "X días restantes / Actualizar Plan" en el sidebar ahora se oculta para ADMIN y COLLABORATOR.
 
-**Perfil de cliente:** botón WhatsApp abre `wa.me/{número}` real; deshabilitado con tooltip si no hay teléfono.
+### 3.5 Fixes de UI — Agenda
 
-### 3.5 Reportes — desglose en Total Citas
+- **Header de colaboradores** movido dentro del contenedor `overflow-auto` como `sticky top-0` — elimina desalineación de columnas causada por la scrollbar
+- Mismo fix aplicado a vista Semana
 
-El KPI "Total Citas" ahora muestra debajo (solo si valor > 0):
-- Canceladas (rojo)
-- No se presentaron (naranja)
-- Reagendadas (gris)
+### 3.6 Fixes de UI — Login
 
-### 3.6 Políticas de cancelación y reagendamiento independientes
+- `min-h-screen` → `h-screen overflow-hidden` en `<main>` (el body tenía `min-height: 884px` que causaba crecimiento)
+- Imagen izquierda ahora ocupa `h-full` completo
+- Eliminado bloque "Contact Support" en inglés
+- Traducidos todos los textos: "Welcome back", "Email Address", "Password", "Remember me", "Forgot password?", "Login"
+- **`globals.css`**: `body { min-height: max(884px, 100dvh) }` → `html, body { height: 100%; overflow: hidden }`
+- `html { color-scheme: light }` / `html.dark { color-scheme: dark }` para inputs de fecha
+- Todas las páginas auth corregidas: `min-h-screen` → `h-full overflow-y-auto`
 
-**Schema:** nuevo campo `reschedulingHours` en `Business` (default 12h)
+### 3.7 Fixes de UI — Admin Panel
 
-**Backend** — valida al cambiar status:
-- `CANCELLED` → verifica `cancellationHours`
-- `RESCHEDULED` → verifica `reschedulingHours`
-- Retorna 422: *"La política del local exige al menos X horas de anticipación (faltan Y h)"*
-- Si el campo es 0 → sin restricción
+- Páginas admin corregidas: `min-h-screen` → `h-full overflow-y-auto`
+- Banner de feedback → `fixed top-4 left-1/2` (no empuja el contenido)
+- Input de fecha "Vence el": ícono nativo oculto, reemplazado por `CalendarDays` de Lucide + `showPicker()` via ref
+- Eliminada la fecha de texto duplicada debajo del input
+- `color-scheme: inherit` en input de fecha (respeta modo claro/oscuro del documento)
 
-**Config/Agenda:** dos secciones separadas con preview en texto ("24 h antes de la cita" / "Sin restricción")
+### 3.8 Fixes de UI — Configuración/Agenda
 
-### 3.7 Fix: cliente Prisma desactualizado
+- Selects de hora: `appearance-none` sin ícono → añadido `ChevronDown` de Lucide
+- Inputs numéricos de horas (cancelación/reagendamiento): flechas nativas invisibles → reemplazadas por botones `−` / `+` explícitos con límites 0-168
 
-Al agregar `reschedulingHours` con `db push`, el cliente Prisma generado en `apps/api/generated/prisma` quedó stale causando crashes en el backend. Fix: `npx prisma generate` + reinicio del servidor.
+### 3.9 Fix — Perfil de Cliente (crash RESCHEDULED/IN_PROGRESS)
 
-**⚠️ Regla para producción:** siempre correr `npx prisma generate && npx prisma db push` al hacer deploy tras cambios de schema.
+`statusBadge` en `/clientes/[id]` solo tenía 5 estados. Si `apt.status` era `RESCHEDULED` o `IN_PROGRESS`, crasheaba con "Cannot read properties of undefined (reading 'className')".
+- Tipo `AppointmentStatus` ampliado: +`RESCHEDULED`, +`IN_PROGRESS`
+- Map `statusBadge` completado con los nuevos estados
+- Fallback defensivo `?? { label: apt.status, ... }` para cualquier futuro status
+
+### 3.10 Fix — Botón WhatsApp en listado de clientes
+
+El ícono de mensaje en `ClientCard` era un `<button>` sin acción (solo frenaba propagación). Ahora:
+- **Con teléfono**: `<a href="https://wa.me/51..." target="_blank">` — ícono verde
+- **Sin teléfono**: `<span>` deshabilitado con tooltip, opacidad reducida
+
+### 3.11 Origen "Redes Sociales" en Nueva Cita
+
+- Botón `Camera` (Instagram) → `Share2` (Redes Sociales), id: `social`
+- Backend `appointments.ts`: `ORIGINS` incluye `"social"` e `"instagram"` (legacy)
+- Backend `analytics.ts`: `instagram` normalizado → `social` en métricas, label "Redes Sociales"
+
+### 3.12 Clientes — duplicados y formato de teléfono
+
+**Detección de duplicados en listado:**
+- Banner ámbar con nombres duplicados detectados (mismo nombre+apellido, case-insensitive)
+- Card con borde ámbar + ícono `Copy` junto al nombre duplicado
+- Se calcula en frontend con `useMemo` sobre la lista completa
+
+**Control de teléfono `+51` en edición de perfil:**
+- `/clientes/nuevo` — ya tenía el control correcto
+- `/clientes/[id]` (edición inline) — ahora mismo control: `+51 ` fijo, solo 9 dígitos numéricos
+- Al cargar el teléfono existente, se normaliza automáticamente (ej: `+51456789123` → `+51 456789123`)
 
 ---
 
@@ -150,61 +176,64 @@ Al agregar `reschedulingHours` con `db push`, el cliente Prisma generado en `app
 
 ## 5. Arquitectura del Frontend
 
-### Estructura de rutas (`apps/web/src/app/`)
+### Grupos de rutas (`apps/web/src/app/`)
 
 ```
 (auth)/
-  login/                    AUTH-01 — Login unificado (negocios + super admin)
-  registro/                 AUTH-00
-  recuperar-contrasena/     AUTH-02
-  resetear-contrasena/      AUTH-03
-  verificar-correo/         AUTH-04
-  verificar-email/          AUTH-05
+  login/                    ✅ v9.0 — traducido, h-screen, sin "Contact Support"
+  registro/
+  recuperar-contrasena/
+  resetear-contrasena/
+  verificar-correo/
+  verificar-email/
 
-(onboarding)/
-  onboarding/               SETUP-01
+(agenda)/                   ✅ v9.0 — layout con verificación de plan
+  agenda/                   ✅ v9.0 — vista diferenciada COLLABORATOR, header sticky
+  nueva-cita/               ✅ v9.0 — origen "social" (Redes Sociales)
+  citas/[id]/
+  citas/[id]/cobrar/
 
-(agenda)/
-  agenda/                   CAL-01 — Sin RESCHEDULED en calendario ✨ v8.0
-  nueva-cita/               CAL-03 — Toggle Exacta/Slots + hora actual pre-llenada ✨ v8.0
-  citas/[id]/               CAL-02 — WhatsApp contextual + políticas cancelación ✨ v8.0
-  citas/[id]/cobrar/        CAL-04
-
-(dashboard)/
-  dashboard/                DASH-01 — Sin RESCHEDULED en métricas ✨ v8.0
-  plan-vencido/             PLAN-02
-  clientes/                 CLI-01
-  clientes/[id]/            CLI-02 — Botón WhatsApp real ✨ v8.0
-  colaboradores/            STAFF-01
-  colaboradores/[id]/       STAFF-02
-  colaboradores/nuevo/      STAFF-03 — Schedule heredado del negocio ✨ v8.0
-  servicios/                SRV-01
-  servicios/[id]/           SRV-02
-  servicios/nuevo/          SRV-03
-  paquetes/                 PKG-01 a PKG-03
-  planes/                   PLAN-01
-  reportes/                 RPT-01 — Desglose canceladas/no-show/reagendadas ✨ v8.0
-  configuracion/negocio/    CFG-01
-  configuracion/agenda/     CFG-02 — Cancelación y reagendamiento separados ✨ v8.0
-  configuracion/usuarios/   CFG-03
-  configuracion/whatsapp/   CFG-04 — Plantillas reales conectadas a BD ✨ v8.0
+(dashboard)/                ✅ v9.0 — layout con protección de rutas por rol
+  dashboard/
+  plan-vencido/
+  clientes/                 ✅ v9.0 — detección de duplicados, WhatsApp fix
+  clientes/[id]/            ✅ v9.0 — crash fix RESCHEDULED, teléfono +51, WhatsApp
+  clientes/nuevo/
+  colaboradores/
+  colaboradores/[id]/
+  colaboradores/nuevo/
+  servicios/
+  servicios/[id]/
+  servicios/nuevo/
+  paquetes/
+  planes/
+  reportes/
+  configuracion/negocio/    ✅ v9.0 — isError guard, staleTime: 0
+  configuracion/agenda/     ✅ v9.0 — ChevronDown en selects, botones +/−
+  configuracion/usuarios/   ✅ v9.0 — roles, seguridad, modal, apiFetch
+  configuracion/whatsapp/
 
 admin/
-  dashboard/                ADMIN-02
-  negocios/[id]/            ADMIN-03
+  dashboard/                ✅ v9.0 — h-full overflow-y-auto
+  negocios/[id]/            ✅ v9.0 — feedback fixed, input fecha con showPicker()
 ```
 
 ### Hooks disponibles (`apps/web/src/lib/api/hooks/`)
 ```
 use-clients.ts
-use-collaborators.ts         → tipo incluye performsServices
-use-services.ts              → tipo incluye maxConcurrent
+use-collaborators.ts
+use-services.ts
 use-appointments.ts
-use-analytics.ts             → kpis incluye cancelledCount / noShowCount / rescheduledCount
+use-analytics.ts
 use-notifications.ts
-use-settings.ts              → incluye waTpl* y reschedulingHours ✨ v8.0
-use-availability.ts          → SlotsResponse incluye reason ✨ v8.0
+use-settings.ts
+use-availability.ts
 use-packages.ts
+```
+
+### Hook de rol (`apps/web/src/hooks/use-role.ts`)
+```ts
+export type UserRole = "OWNER" | "ADMIN" | "COLLABORATOR" | null;
 ```
 
 ---
@@ -215,21 +244,23 @@ use-packages.ts
 
 | Archivo | Rutas principales |
 |---|---|
-| `auth.ts` | POST /auth/login (devuelve plan + planStatus), GET /auth/me |
-| `users.ts` | CRUD /users |
-| `clients.ts` | GET /clients (filtrado por historial según plan) |
-| `collaborators.ts` | CRUD + límite plan + performsServices + schedule dinámico ✨ v8.0 |
+| `auth.ts` | POST /auth/login, GET /auth/me |
+| `users.ts` | GET /users (todos); POST/PATCH/DELETE — solo OWNER ✨ v9.0 |
+| `clients.ts` | CRUD + duplicados por teléfono/DNI |
+| `collaborators.ts` | CRUD + performsServices + schedule dinámico |
 | `services.ts` | CRUD + maxConcurrent |
 | `packages.ts` | CRUD + límite plan |
-| `appointments.ts` | CRUD + status (validación políticas ✨ v8.0) + payment + deposit |
-| `availability.ts` | GET /slots (TZ explícito + reason ✨ v8.0) + GET /check |
-| `analytics.ts` | GET /analytics (cancelledCount/noShowCount/rescheduledCount ✨ v8.0) |
-| `settings.ts` | GET/PATCH /settings (waTpl* + reschedulingHours ✨ v8.0) |
+| `appointments.ts` | CRUD + status + origins: social ✨ v9.0 |
+| `availability.ts` | GET /slots (TZ explícito + reason) |
+| `analytics.ts` | instagram → social normalizado ✨ v9.0 |
+| `settings.ts` | GET/PATCH /settings /business /agenda /logo |
 | `admin.ts` | Panel super admin |
 
 ---
 
-## 7. Schema Prisma (estado actual v8.0)
+## 7. Schema Prisma (estado actual v9.0)
+
+Sin cambios de schema respecto a v8.0. El schema v8.0 es el vigente:
 
 ```prisma
 model Business {
@@ -243,7 +274,7 @@ model Business {
   timezone            String     @default("America/Mexico_City")
   slotMinutes         Int        @default(30)
   cancellationHours   Int        @default(24)
-  reschedulingHours   Int        @default(12)    ← ✨ v8.0
+  reschedulingHours   Int        @default(12)
   operatingDays       String[]   @default(["Mon","Tue","Wed","Thu","Fri"])
   openTime            String     @default("09:00")
   closeTime           String     @default("18:00")
@@ -251,104 +282,47 @@ model Business {
   planStatus          PlanStatus @default(ACTIVE)
   planExpiresAt       DateTime?
   trialEndsAt         DateTime?
-  waTplConfirmation   String?                    ← ✨ v8.0
-  waTplReminder       String?                    ← ✨ v8.0
-  waTplPayment        String?                    ← ✨ v8.0
+  waTplConfirmation   String?
+  waTplReminder       String?
+  waTplPayment        String?
 }
 
-model Collaborator {
-  isActive         Boolean  @default(true)
-  performsServices Boolean  @default(true)
-  schedule         Json?    // heredado del negocio al crear ✨ v8.0
+model User {
+  role  Role  @default(ADMIN)   // OWNER | ADMIN | COLLABORATOR
 }
 
-model Service {
-  bufferMinutes  Int   @default(0)
-  maxConcurrent  Int?
-  price          Float
-}
-
-model Appointment {
-  origin         String?  @default("walkin")
-  paidAmount     Float?   // independiente del status
-  paymentMethod  String?
+enum Role {
+  OWNER
+  COLLABORATOR
+  ADMIN
 }
 ```
 
 ---
 
-## 8. Lógica de Disponibilidad (v8.0)
+## 8. Lógica de Roles
 
-```
-TZ = process.env.TZ || "America/Lima"   ← explícito, no depende del proceso Node
+### Qué puede hacer cada rol
 
-Para cada colaborador activo (isActive=true, performsServices=true):
-  1. Verificar que el día esté habilitado en su schedule
-  2. workStart = max(collab.start, businessOpen)
-     workEnd   = min(collab.end,   businessClose)
-  3. Candidatos = grilla fija (cada slotMinutes) ∪ fin de cada cita activa
-  4. Para cada candidato:
-     a. slotStart >= nowMinutes (hora actual en TZ local, solo si es hoy)
-     b. Colaborador libre? (no PENDING/CONFIRMED/IN_PROGRESS en ese rango)
-        — COMPLETED y RESCHEDULED excluidos → liberan al colaborador
-     c. Capacidad del servicio no superada? (si maxConcurrent != null)
-        — Solo cuenta PENDING/CONFIRMED/IN_PROGRESS
+| Funcionalidad | OWNER | ADMIN | COLLABORATOR |
+|---|---|---|---|
+| Dashboard, Clientes, Colaboradores, Servicios | ✅ | ✅ | ❌ |
+| Agenda (todas las citas) | ✅ | ✅ | ✅ (solo vista Día) |
+| Nueva Cita | ✅ | ✅ | ✅ |
+| Paquetes, Reportes | ✅ | ❌ | ❌ |
+| Configuración | ✅ | ❌ | ❌ |
+| Crear/editar/eliminar usuarios | ✅ | ❌ | ❌ |
+| Banner de trial | ✅ | ❌ | ❌ |
 
-Si slots = [] → retorna reason descriptivo al frontend
-```
-
----
-
-## 9. Políticas de Cancelación y Reagendamiento (v8.0)
-
-```
-PATCH /appointments/:id/status
-
-Al status = "CANCELLED":
-  hoursUntil = (startTime - now) / 3_600_000
-  si hoursUntil > 0 && hoursUntil < business.cancellationHours:
-    → 422 "La política del local exige al menos X horas (faltan Y h)"
-
-Al status = "RESCHEDULED":
-  si hoursUntil > 0 && hoursUntil < business.reschedulingHours:
-    → 422 "La política del local exige al menos X horas (faltan Y h)"
-
-cancellationHours = 0 o reschedulingHours = 0 → sin restricción
-```
+### Protección implementada
+- **Backend**: `requireAuth` + verificación de `role === "OWNER"` en rutas de `/users`
+- **Frontend layout**: `apiFetch("/auth/me")` en cada layout → redirect según rol
+- **Sidebar**: filtra items por `ownerOnly` y `collaboratorHidden`
+- **Nota**: la protección de rutas del frontend es client-side y complementaria — la real está en el backend
 
 ---
 
-## 10. Notificaciones WhatsApp (v8.0)
-
-### Variables disponibles en plantillas
-| Variable | Reemplazada por |
-|---|---|
-| `{cliente}` | Nombre del cliente |
-| `{negocio}` | Nombre del negocio |
-| `{fecha}` | Fecha formateada ("lunes, 9 de junio") |
-| `{hora}` | Hora de la cita ("15:00") |
-| `{servicio}` | Nombre del servicio |
-| `{colaborador}` | Nombre del colaborador |
-| `{precio}` | Precio del servicio |
-
-### Plantillas por defecto (si el negocio no las configuró)
-```
-✅ Confirmación:
-"Hola {cliente}, ✅ tu cita está confirmada en {negocio}.
-📅 {fecha} a las {hora} · ✂️ {servicio} con {colaborador} · 💰 S/{precio}"
-
-🔔 Recordatorio:
-"Hola {cliente}, 🔔 te recordamos tu cita de mañana en {negocio}.
-📅 {fecha} a las {hora} · ✂️ {servicio} con {colaborador}"
-
-💳 Cobro pendiente:
-"Hola {cliente}, 💳 tu servicio de {servicio} quedó pendiente de pago.
-💰 Total: S/{precio} · 📍 {negocio}"
-```
-
----
-
-## 11. Variables de Entorno
+## 9. Variables de Entorno
 
 ### Backend (`apps/api/.env`)
 ```
@@ -376,67 +350,56 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 
 ---
 
-## 12. Pantallas — Estado Final
+## 10. Pantallas — Estado Final
 
 | ID | Pantalla | Estado |
 |---|---|---|
-| AUTH-00 a AUTH-05 | Flujo completo de autenticación | ✅ |
+| AUTH-00 a AUTH-05 | Flujo completo de autenticación | ✅ v9.0 |
 | SETUP-01 | Onboarding | ✅ |
-| DASH-01 | Dashboard KPIs + Resumen Operativo | ✅ v8.0 |
+| DASH-01 | Dashboard KPIs | ✅ |
 | PLAN-02 | Plan vencido/suspendido | ✅ |
-| CAL-01 | Agenda / calendario por colaborador | ✅ v8.0 |
-| CAL-02 | Detalle de cita | ✅ v8.0 |
-| CAL-03 | Nueva cita | ✅ v8.0 |
+| CAL-01 | Agenda / calendario | ✅ v9.0 |
+| CAL-02 | Detalle de cita | ✅ v9.0 |
+| CAL-03 | Nueva cita | ✅ v9.0 |
 | CAL-04 | Cobro de cita | ✅ |
-| CLI-01 | Listado de clientes | ✅ |
-| CLI-02 | Perfil de cliente | ✅ v8.0 |
-| STAFF-01 a STAFF-03 | Colaboradores | ✅ v8.0 |
+| CLI-01 | Listado de clientes | ✅ v9.0 |
+| CLI-02 | Perfil de cliente | ✅ v9.0 |
+| CLI-03 | Nuevo cliente | ✅ |
+| STAFF-01 a STAFF-03 | Colaboradores | ✅ |
 | SRV-01 a SRV-03 | Servicios | ✅ |
 | PKG-01 a PKG-03 | Paquetes | ✅ |
 | PLAN-01 | Planes de suscripción | ✅ |
-| RPT-01 | Reportes | ✅ v8.0 |
-| CFG-01 | Config negocio | ✅ |
-| CFG-02 | Config agenda | ✅ v8.0 |
-| CFG-03 | Config usuarios | ✅ |
-| CFG-04 | Config WhatsApp | ✅ v8.0 |
-| ADMIN-02 | Panel super admin — dashboard | ✅ |
-| ADMIN-03 | Panel super admin — detalle negocio | ✅ |
+| RPT-01 | Reportes | ✅ |
+| CFG-01 | Config negocio | ✅ v9.0 |
+| CFG-02 | Config agenda | ✅ v9.0 |
+| CFG-03 | Config usuarios | ✅ v9.0 |
+| CFG-04 | Config WhatsApp | ✅ |
+| ADMIN-02 | Panel super admin — dashboard | ✅ v9.0 |
+| ADMIN-03 | Panel super admin — detalle negocio | ✅ v9.0 |
 
 **Total: 33/33 pantallas cliente · 2/2 panel admin**
 
 ---
 
-## 13. Historial de PRs
-
-| PR | Título | Estado |
-|---|---|---|
-| #1–#31 | Features y fixes de sesiones anteriores | ✅ Mergeados |
-| #32 | v6.0 — super admin, planes, paquetes | ✅ Mergeado |
-| #33 | v7.0 — walk-in, maxConcurrent, cobrar/completar desacoplados | ✅ Mergeado |
-| #34 | Fix TZ, errors descriptivos, walk-in hora actual | ✅ Mergeado |
-| #35 | Fix RESCHEDULED en agenda, dashboard y reportes | ✅ Mergeado |
-| #36 | Feat: WhatsApp wa.me con plantillas editables | ✅ Mergeado |
-| #37 | Feat: políticas cancelación/reagendamiento independientes | ✅ Mergeado |
-
----
-
-## 14. Deuda Técnica Pendiente
+## 11. Deuda Técnica Pendiente
 
 ### Alta prioridad
 | Item | Descripción |
 |---|---|
 | **Deploy a producción** | Vercel + Railway + Supabase. Requiere `prisma generate && prisma db push` en el pipeline |
 | **Exportar Excel** | Flag `canExportExcel` listo en `plan-limits.ts`, falta endpoint GET y botón en reportes |
+| **"Solo mis citas" para COLLABORATOR** | Requiere campo `collaboratorId` en modelo `User` (link User → Collaborator). Sin ese vínculo no se puede filtrar automáticamente |
 
 ### Media prioridad
 | Item | Descripción |
 |---|---|
-| **WhatsApp automático** | Evolucionar de wa.me manual a Baileys o Evolution API para envío sin intervención |
+| **WhatsApp automático** | Evolucionar de wa.me manual a Baileys o Evolution API |
 | **Recordatorios automáticos** | Config/WhatsApp tiene toggles 24h/2h pero no hay scheduler en backend |
 | **Historial de cita real** | `MOCK_TIMELINE` en detalle de cita — no conectado a BD |
 | **Foto de resultado por cita** | Portafolio del negocio |
 | **Comisiones por colaborador** | % sobre servicios atendidos |
 | **Ficha técnica por cliente** | Historial de coloraciones, tratamientos, alergias |
+| **Merge de clientes duplicados** | Actualmente solo se detectan, no se pueden fusionar desde la UI |
 
 ### Baja prioridad
 | Item | Descripción |
@@ -446,10 +409,11 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 | **Tabla `payments` separada** | El pago está inline en `Appointment` |
 | **Responsividad móvil** | Solo desktop |
 | **`audit_log`** | Trazabilidad de acciones críticas |
+| **Errores TS pre-existentes** | reportes, paquetes, colaboradores, nueva-cita tienen errores de tipos no bloqueantes |
 
 ---
 
-## 15. Reglas para producción
+## 12. Reglas para producción
 
 ```bash
 # Al hacer deploy tras cambios de schema:
@@ -462,7 +426,7 @@ FRONTEND_URL=https://tu-dominio.vercel.app
 NODE_ENV=production   # activa flag Secure en cookies httpOnly
 ```
 
-## 16. Crear cuenta super admin
+## 13. Crear cuenta super admin
 
 ```bash
 cd apps/api
@@ -471,14 +435,27 @@ npx tsx src/scripts/create-super-admin.ts
 
 ---
 
-## 17. Convención de PRs (desde v8.0)
+## 14. Historial de PRs
+
+| PR | Título | Estado |
+|---|---|---|
+| #1–#32 | Features y fixes de sesiones anteriores | ✅ Mergeados |
+| #33 | v7.0 — walk-in, maxConcurrent, cobrar/completar desacoplados | ✅ Mergeado |
+| #34 | Fix TZ, errors descriptivos, walk-in hora actual | ✅ Mergeado |
+| #35 | Fix RESCHEDULED en agenda, dashboard y reportes | ✅ Mergeado |
+| #36 | Feat: WhatsApp wa.me con plantillas editables | ✅ Mergeado |
+| #37 | Feat: políticas cancelación/reagendamiento independientes | ✅ Mergeado |
+| — | v9.0 — roles, seguridad, UI fixes (sin PR aún) | 🔄 En rama |
+
+---
+
+## 15. Convención de PRs
 
 Un PR por contexto/feature — no PRs gigantes mezclados:
 
 | Contexto | Nombre de rama sugerido |
 |---|---|
+| Roles y seguridad | `feat/roles` |
 | Bugs de agenda/disponibilidad | `fix/bugs-agenda` |
-| Features de WhatsApp | `feat/whatsapp` |
-| Reportes y métricas | `feat/reportes` |
 | Deploy y CI/CD | `feat/deploy` |
 | Panel admin | `feat/admin` |

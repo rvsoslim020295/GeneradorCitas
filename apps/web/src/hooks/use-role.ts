@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 
-export type UserRole = "OWNER" | "RECEPTIONIST" | "STAFF" | null;
+export type UserRole = "OWNER" | "ADMIN" | "COLLABORATOR" | null;
 
 export function useRole(): UserRole {
   const [role, setRole] = useState<UserRole>(null);

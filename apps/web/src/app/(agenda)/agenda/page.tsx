@@ -1,11 +1,14 @@
 "use client";
 
 import { useState } from "react";
+import { useQuery } from "@tanstack/react-query";
+import { CalendarDays } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { AgendaToolbar, ViewOption } from "./_components/agenda-toolbar";
 import { CalendarGrid } from "./_components/calendar-grid";
 import { useAppointments, useCollaborators } from "@/lib/api/hooks";
+import { apiFetch } from "@/lib/api/client";
 
 export type AppointmentData = {
   id: string;
@@ -20,10 +23,20 @@ export type AppointmentData = {
 
 export type CollaboratorData = { id: string; name: string; role: string };
 
+type AuthMe = { role: string; name: string };
+
 export default function AgendaPage() {
   const [activeView, setActiveView] = useState<ViewOption>("Día");
   const [currentDate, setCurrentDate] = useState(new Date());
   const [filteredCollabId, setFilteredCollabId] = useState<string | null>(null);
+
+  const { data: me } = useQuery<AuthMe>({
+    queryKey: ["auth-me-role"],
+    queryFn: () => apiFetch<AuthMe>("/auth/me"),
+    staleTime: 60_000,
+  });
+
+  const isCollaborator = me?.role === "COLLABORATOR";
 
   const { data: appointments = [], isLoading: loadingApts } = useAppointments();
   const { data: allCollabs = [], isLoading: loadingCollabs } = useCollaborators();
@@ -43,14 +56,26 @@ export default function AgendaPage() {
         <TopBar searchPlaceholder="Buscar citas, clientes..." />
 
         <div className="flex flex-col flex-1 overflow-hidden pt-16">
+          {/* Banner informativo para colaboradores */}
+          {isCollaborator && (
+            <div className="mx-4 mt-3 mb-0 flex items-center gap-2.5 bg-[var(--color-primary-container)]/20 border border-[var(--color-primary)]/20 rounded-xl px-4 py-3 text-body-md text-[var(--color-primary)]">
+              <CalendarDays size={16} strokeWidth={1.5} className="shrink-0" />
+              <span>
+                Estás viendo la agenda del día como <span className="font-semibold">Colaborador</span>.
+                Usa el filtro de colaborador para ver solo tus citas.
+              </span>
+            </div>
+          )}
+
           <AgendaToolbar
             activeView={activeView}
             currentDate={currentDate}
-            onViewChange={setActiveView}
+            onViewChange={isCollaborator ? undefined : setActiveView}
             onDateChange={setCurrentDate}
             collaborators={collaborators}
             filteredCollabId={filteredCollabId}
             onFilterCollab={setFilteredCollabId}
+            lockedToDayView={isCollaborator}
           />
           {loading ? (
             <div className="flex-1 flex items-center justify-center">
@@ -60,7 +85,7 @@ export default function AgendaPage() {
             <CalendarGrid
               appointments={visibleAppointments as unknown as AppointmentData[]}
               allAppointments={appointments as unknown as AppointmentData[]}
-              view={activeView}
+              view={isCollaborator ? "Día" : activeView}
               currentDate={currentDate}
             />
           )}

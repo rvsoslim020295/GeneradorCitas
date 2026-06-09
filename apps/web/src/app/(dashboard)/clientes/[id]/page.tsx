@@ -15,7 +15,7 @@ import { useClient, useUpdateClient, useDeleteClient } from "@/lib/api/hooks";
 import { apiFetch } from "@/lib/api/client";
 import { useQuery } from "@tanstack/react-query";
 
-type AppointmentStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW";
+type AppointmentStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW" | "RESCHEDULED" | "IN_PROGRESS";
 
 type HistoryItem = {
   id: string; startTime: string; status: AppointmentStatus;
@@ -30,11 +30,13 @@ type ClientProfile = {
 };
 
 const statusBadge: Record<AppointmentStatus, { label: string; className: string }> = {
-  COMPLETED: { label: "Completado", className: "bg-[var(--color-primary-container)]/30 text-[var(--color-primary)] border border-[var(--color-primary-fixed)]" },
-  CANCELLED: { label: "Cancelado",  className: "bg-[var(--color-error-container)] text-[var(--color-on-error-container)]" },
-  CONFIRMED: { label: "Confirmada", className: "bg-[var(--color-secondary-fixed)]/40 text-[var(--color-secondary)]" },
-  PENDING:   { label: "Pendiente",  className: "bg-[var(--color-tertiary-fixed)]/40 text-[var(--color-tertiary)]" },
-  NO_SHOW:   { label: "No-show",    className: "bg-[var(--color-surface-variant)] text-[var(--color-on-surface-variant)]" },
+  COMPLETED:   { label: "Completado",  className: "bg-[var(--color-primary-container)]/30 text-[var(--color-primary)] border border-[var(--color-primary-fixed)]" },
+  CANCELLED:   { label: "Cancelado",   className: "bg-[var(--color-error-container)] text-[var(--color-on-error-container)]" },
+  CONFIRMED:   { label: "Confirmada",  className: "bg-[var(--color-secondary-fixed)]/40 text-[var(--color-secondary)]" },
+  PENDING:     { label: "Pendiente",   className: "bg-[var(--color-tertiary-fixed)]/40 text-[var(--color-tertiary)]" },
+  NO_SHOW:     { label: "No-show",     className: "bg-[var(--color-surface-variant)] text-[var(--color-on-surface-variant)]" },
+  RESCHEDULED: { label: "Reagendada", className: "bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)]" },
+  IN_PROGRESS: { label: "En curso",   className: "bg-[var(--color-secondary-fixed)]/20 text-[var(--color-secondary)]" },
 };
 
 function formatDate(iso: string) {
@@ -81,7 +83,11 @@ export default function ClientProfilePage() {
       setNotesValue(client.notes ?? "");
       setEditName(client.name);
       setEditLastName(client.lastName ?? "");
-      setEditPhone(client.phone ?? "");
+      // Normalizar teléfono al formato +51 XXXXXXXXX
+      const rawPhone = client.phone ?? "";
+      const digits = rawPhone.replace(/\D/g, "");
+      const local = digits.startsWith("51") ? digits.slice(2) : digits;
+      setEditPhone(local ? `+51 ${local.slice(0, 9)}` : "+51 ");
       setEditEmail(client.email ?? "");
     }
   }, [client]);
@@ -171,7 +177,6 @@ export default function ClientProfilePage() {
                       {[
                         { label: "Nombre *", value: editName, setter: setEditName },
                         { label: "Apellidos", value: editLastName, setter: setEditLastName },
-                        { label: "Teléfono", value: editPhone, setter: setEditPhone },
                         { label: "Email", value: editEmail, setter: setEditEmail, type: "email" },
                       ].map(({ label, value, setter, type }) => (
                         <div key={label}>
@@ -180,6 +185,23 @@ export default function ClientProfilePage() {
                             className="w-full mt-1 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
                         </div>
                       ))}
+                      <div>
+                        <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Teléfono</label>
+                        <input
+                          value={editPhone}
+                          onChange={(e) => {
+                            const v = e.target.value;
+                            if (!v.startsWith("+51 ")) { setEditPhone("+51 "); return; }
+                            const suffix = v.slice(4).replace(/\D/g, "").slice(0, 9);
+                            setEditPhone("+51 " + suffix);
+                          }}
+                          onFocus={(e) => {
+                            if (e.target.value === "+51 ") setTimeout(() => e.target.setSelectionRange(4, 4), 0);
+                          }}
+                          inputMode="tel"
+                          className="w-full mt-1 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all"
+                        />
+                      </div>
                     </div>
                     {contactError && <p className="text-body-md text-[var(--color-error)]">{contactError}</p>}
                     <div className="flex gap-2">
@@ -321,7 +343,7 @@ export default function ClientProfilePage() {
                   ) : (
                     <div className="space-y-1 relative before:absolute before:left-[11px] before:top-2 before:bottom-2 before:w-0.5 before:bg-gradient-to-b before:from-transparent before:via-[var(--color-outline-variant)] before:to-transparent">
                       {client.appointments.slice(0, 5).map((apt) => {
-                        const badge = statusBadge[apt.status];
+                        const badge = statusBadge[apt.status] ?? { label: apt.status, className: "bg-[var(--color-surface-variant)] text-[var(--color-on-surface-variant)]" };
                         const isCancelled = apt.status === "CANCELLED" || apt.status === "NO_SHOW";
                         return (
                           <div key={apt.id} className="relative flex items-start gap-4 py-3">

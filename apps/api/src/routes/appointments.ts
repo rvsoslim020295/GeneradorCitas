@@ -8,7 +8,7 @@ const appointments = new Hono();
 
 appointments.use("*", requireAuth);
 
-const ORIGINS = ["whatsapp", "phone", "instagram", "walkin"] as const;
+const ORIGINS = ["whatsapp", "phone", "instagram", "social", "walkin"] as const;
 
 const createSchema = z.object({
   clientId: z.string(),

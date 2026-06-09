@@ -90,7 +90,7 @@ export default function AdminDashboardPage() {
   };
 
   return (
-    <main className="min-h-screen bg-[var(--color-surface-container-low)]">
+    <main className="h-full overflow-y-auto bg-[var(--color-surface-container-low)]">
       {/* Topbar */}
       <header className="bg-[var(--color-surface)] border-b border-[var(--color-outline-variant)] px-6 py-3 flex items-center justify-between">
         <button onClick={() => router.push("/admin/dashboard")} className="flex items-center gap-2 text-[var(--color-primary)] hover:opacity-80 transition-opacity">

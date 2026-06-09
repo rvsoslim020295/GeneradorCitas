@@ -33,16 +33,17 @@ function formatDate(date: Date, view: ViewOption): string {
 type Props = {
   activeView: ViewOption;
   currentDate: Date;
-  onViewChange: (v: ViewOption) => void;
+  onViewChange?: (v: ViewOption) => void;
   onDateChange: (d: Date) => void;
   collaborators: CollaboratorData[];
   filteredCollabId: string | null;
   onFilterCollab: (id: string | null) => void;
+  lockedToDayView?: boolean;
 };
 
 export function AgendaToolbar({
   activeView, currentDate, onViewChange, onDateChange,
-  collaborators, filteredCollabId, onFilterCollab,
+  collaborators, filteredCollabId, onFilterCollab, lockedToDayView = false,
 }: Props) {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const dropdownRef = useRef<HTMLDivElement>(null);
@@ -170,22 +171,24 @@ export function AgendaToolbar({
           )}
         </div>
 
-        {/* Selector de vista Día|Semana|Mes */}
-        <div className="flex bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] rounded-lg p-1 shadow-sm">
-          {viewOptions.map((view) => (
-            <button
-              key={view}
-              onClick={() => onViewChange(view)}
-              className={`px-4 py-1.5 text-label-md font-semibold rounded transition-colors ${
-                activeView === view
-                  ? "bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] shadow-sm"
-                  : "text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)]"
-              }`}
-            >
-              {view}
-            </button>
-          ))}
-        </div>
+        {/* Selector de vista Día|Semana|Mes — oculto para colaboradores */}
+        {!lockedToDayView && onViewChange && (
+          <div className="flex bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] rounded-lg p-1 shadow-sm">
+            {viewOptions.map((view) => (
+              <button
+                key={view}
+                onClick={() => onViewChange(view)}
+                className={`px-4 py-1.5 text-label-md font-semibold rounded transition-colors ${
+                  activeView === view
+                    ? "bg-[var(--color-surface-container-lowest)] text-[var(--color-on-surface)] shadow-sm"
+                    : "text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)]"
+                }`}
+              >
+                {view}
+              </button>
+            ))}
+          </div>
+        )}
       </div>
     </div>
   );
