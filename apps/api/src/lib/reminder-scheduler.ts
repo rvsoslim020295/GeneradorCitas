@@ -128,7 +128,7 @@ async function processReminders() {
           "{colaborador}": apt.collaborator.name,
         };
         const tpl2h = `Hola {cliente}, ⏰ tu cita es en 2 horas en {negocio}.\n\n📅 {fecha} a las {hora}\n✂️ {servicio} con {colaborador}\n\n¡Te esperamos!`;
-        const message = buildMessage(biz.waTplReminder ?? tpl2h, vars);
+        const message = buildMessage(tpl2h, vars);
         const waUrl   = buildWaUrl(apt.client.phone!, message);
 
         await prisma.$transaction([
