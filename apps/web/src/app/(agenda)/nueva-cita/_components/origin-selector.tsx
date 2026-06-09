@@ -1,12 +1,12 @@
 "use client";
 
-import { MessageCircle, Phone, Camera, PersonStanding } from "lucide-react";
+import { MessageCircle, Phone, Share2, PersonStanding } from "lucide-react";
 
 const origins = [
-  { id: "whatsapp",  icon: MessageCircle,    title: "WhatsApp / Mensaje" },
-  { id: "phone",     icon: Phone,            title: "Teléfono" },
-  { id: "instagram", icon: Camera,           title: "Instagram / Redes" },
-  { id: "walkin",    icon: PersonStanding,   title: "Presencial" },
+  { id: "whatsapp", icon: MessageCircle,  title: "WhatsApp / Mensaje" },
+  { id: "phone",    icon: Phone,          title: "Teléfono" },
+  { id: "social",   icon: Share2,         title: "Redes Sociales (Instagram, Facebook...)" },
+  { id: "walkin",   icon: PersonStanding, title: "Presencial" },
 ] as const;
 
 export type OriginId = (typeof origins)[number]["id"];

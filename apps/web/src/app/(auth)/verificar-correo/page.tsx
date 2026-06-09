@@ -12,7 +12,7 @@ function VerificarCorreoContent() {
   const email = params.get("email") ?? "";
 
   return (
-    <main className="flex min-h-screen w-full items-center justify-center bg-[var(--color-surface-container-low)] p-4">
+    <main className="flex h-full w-full items-center justify-center overflow-y-auto bg-[var(--color-surface-container-low)] p-4">
       <div className="ambient-shadow relative w-full max-w-[480px] overflow-hidden rounded-xl border border-[var(--color-outline-variant)]/50 bg-[var(--color-surface-container-lowest)] p-8 text-center">
         <div className="absolute left-0 top-0 h-1 w-full bg-[var(--color-primary)]" />
 

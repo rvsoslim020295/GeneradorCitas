@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { MessageSquare, CalendarCheck, Banknote } from "lucide-react";
+import { MessageSquare, CalendarCheck, Banknote, Copy } from "lucide-react";
 
 type Client = {
   id: string;
@@ -37,9 +37,9 @@ function formatCurrency(amount: number) {
   return `S/${amount.toLocaleString("es-PE")}`;
 }
 
-export function ClientCard({ client }: { client: Client }) {
+export function ClientCard({ client, isDuplicate = false }: { client: Client; isDuplicate?: boolean }) {
   return (
-    <Link href={`/clientes/${client.id}`} className="bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer group block">
+    <Link href={`/clientes/${client.id}`} className={`bg-[var(--color-surface-container-lowest)] rounded-xl border shadow-sm p-4 flex flex-col gap-3 hover:shadow-md transition-shadow cursor-pointer group block ${isDuplicate ? "border-amber-400/60" : "border-[var(--color-outline-variant)]"}`}>
       {/* Header: avatar + nombre + botón chat */}
       <div className="flex items-start justify-between">
         <div className="flex items-center gap-3">
@@ -49,22 +49,42 @@ export function ClientCard({ client }: { client: Client }) {
             {getInitials(client.name, client.lastName)}
           </div>
           <div>
-            <h3 className="text-body-lg font-semibold text-[var(--color-on-surface)] group-hover:text-[var(--color-primary)] transition-colors">
-              {getFullName(client.name, client.lastName)}
-            </h3>
+            <div className="flex items-center gap-1.5">
+              <h3 className="text-body-lg font-semibold text-[var(--color-on-surface)] group-hover:text-[var(--color-primary)] transition-colors">
+                {getFullName(client.name, client.lastName)}
+              </h3>
+              {isDuplicate && (
+                <span title="Posible duplicado">
+                  <Copy size={12} strokeWidth={2} className="text-amber-500 shrink-0" />
+                </span>
+              )}
+            </div>
             <p className="text-body-md text-[var(--color-on-surface-variant)]">
               {client.phone ?? "Sin teléfono"}
             </p>
           </div>
         </div>
 
-        {/* Botón WhatsApp / chat */}
-        <button
-          onClick={(e) => e.stopPropagation()}
-          className="w-10 h-10 rounded-full border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] flex items-center justify-center text-[var(--color-primary)] hover:bg-[var(--color-primary-container)]/20 hover:border-[var(--color-primary)] transition-all shrink-0"
-        >
-          <MessageSquare size={18} strokeWidth={1.5} />
-        </button>
+        {/* Botón WhatsApp */}
+        {client.phone ? (
+          <a
+            href={`https://wa.me/${client.phone.replace(/\D/g, "").replace(/^(?!51)/, "51")}`}
+            target="_blank"
+            rel="noopener noreferrer"
+            onClick={(e) => e.stopPropagation()}
+            title="Abrir WhatsApp"
+            className="w-10 h-10 rounded-full border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] flex items-center justify-center text-emerald-500 hover:bg-emerald-50 hover:border-emerald-300 transition-all shrink-0"
+          >
+            <MessageSquare size={18} strokeWidth={1.5} />
+          </a>
+        ) : (
+          <span
+            title="Sin número de contacto"
+            className="w-10 h-10 rounded-full border border-[var(--color-outline-variant)] bg-[var(--color-surface-container-lowest)] flex items-center justify-center text-[var(--color-outline)] opacity-40 shrink-0 cursor-not-allowed"
+          >
+            <MessageSquare size={18} strokeWidth={1.5} />
+          </span>
+        )}
       </div>
 
       {/* Stats: visitas y gasto */}

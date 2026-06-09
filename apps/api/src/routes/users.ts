@@ -8,7 +8,7 @@ const users = new Hono();
 
 users.use("*", requireAuth);
 
-// ─── GET /users ───────────────────────────────────────────────────────────────
+// ─── GET /users — cualquier usuario autenticado puede ver la lista ─────────────
 users.get("/", async (c) => {
   const { businessId } = c.get("user");
 
@@ -21,16 +21,22 @@ users.get("/", async (c) => {
   return c.json(list);
 });
 
-// ─── POST /users ──────────────────────────────────────────────────────────────
+// ─── POST /users — solo OWNER puede crear usuarios ────────────────────────────
 users.post("/", async (c) => {
-  const { businessId } = c.get("user");
+  const { businessId, role } = c.get("user");
+
+  if (role !== "OWNER") {
+    return c.json({ error: "Solo el dueño del negocio puede crear usuarios" }, 403);
+  }
+
   const body = await c.req.json().catch(() => null);
 
   const schema = z.object({
     name: z.string().min(2),
     email: z.string().email(),
     password: z.string().min(6),
-    role: z.enum(["OWNER", "COLLABORATOR", "ADMIN"]).default("ADMIN"),
+    // Solo OWNER puede existir un usuario con ese rol — y solo se puede crear ADMIN o COLLABORATOR
+    role: z.enum(["COLLABORATOR", "ADMIN"]).default("ADMIN"),
   });
 
   const parsed = schema.safeParse(body);
@@ -56,21 +62,32 @@ users.post("/", async (c) => {
   return c.json(user, 201);
 });
 
-// ─── PATCH /users/:id ─────────────────────────────────────────────────────────
+// ─── PATCH /users/:id — solo OWNER puede cambiar roles ───────────────────────
 users.patch("/:id", async (c) => {
-  const { businessId } = c.get("user");
+  const { businessId, role } = c.get("user");
+
+  if (role !== "OWNER") {
+    return c.json({ error: "Solo el dueño del negocio puede modificar usuarios" }, 403);
+  }
+
   const { id } = c.req.param();
   const body = await c.req.json().catch(() => null);
 
   const schema = z.object({
-    role: z.enum(["OWNER", "COLLABORATOR", "ADMIN"]).optional(),
+    // No permitir asignar OWNER a través de este endpoint
+    role: z.enum(["COLLABORATOR", "ADMIN"]).optional(),
   });
 
   const parsed = schema.safeParse(body);
   if (!parsed.success) return c.json({ error: "Datos inválidos" }, 400);
 
-  const user = await prisma.user.findFirst({ where: { id, businessId } });
-  if (!user) return c.json({ error: "Usuario no encontrado" }, 404);
+  const target = await prisma.user.findFirst({ where: { id, businessId } });
+  if (!target) return c.json({ error: "Usuario no encontrado" }, 404);
+
+  // No se puede modificar al OWNER
+  if (target.role === "OWNER") {
+    return c.json({ error: "No se puede modificar el rol del dueño" }, 403);
+  }
 
   const updated = await prisma.user.update({
     where: { id },
@@ -81,15 +98,25 @@ users.patch("/:id", async (c) => {
   return c.json(updated);
 });
 
-// ─── DELETE /users/:id ────────────────────────────────────────────────────────
+// ─── DELETE /users/:id — solo OWNER puede eliminar usuarios ──────────────────
 users.delete("/:id", async (c) => {
-  const { businessId, userId } = c.get("user");
+  const { businessId, userId, role } = c.get("user");
+
+  if (role !== "OWNER") {
+    return c.json({ error: "Solo el dueño del negocio puede eliminar usuarios" }, 403);
+  }
+
   const { id } = c.req.param();
 
   if (id === userId) return c.json({ error: "No puedes eliminarte a ti mismo" }, 400);
 
-  const user = await prisma.user.findFirst({ where: { id, businessId } });
-  if (!user) return c.json({ error: "Usuario no encontrado" }, 404);
+  const target = await prisma.user.findFirst({ where: { id, businessId } });
+  if (!target) return c.json({ error: "Usuario no encontrado" }, 404);
+
+  // No se puede eliminar a otro OWNER
+  if (target.role === "OWNER") {
+    return c.json({ error: "No se puede eliminar al dueño del negocio" }, 403);
+  }
 
   await prisma.user.delete({ where: { id } });
 

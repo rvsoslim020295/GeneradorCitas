@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Building2, Users, Calendar, Scissors, ShieldOff, ShieldCheck, Save, Sun, Moon } from "lucide-react";
+import { ArrowLeft, Building2, Users, Calendar, Scissors, ShieldOff, ShieldCheck, Save, Sun, Moon, CalendarDays } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -41,6 +41,7 @@ export default function AdminNegocioDetailPage() {
   const { theme, toggle: toggleTheme } = useTheme();
   const [plan, setPlan] = useState("TRIAL");
   const [expiresAt, setExpiresAt] = useState("");
+  const dateInputRef = useRef<HTMLInputElement>(null);
   const [confirmDialog, setConfirmDialog] = useState<{ message: string; onConfirm: () => void } | null>(null);
 
   const fetchBusiness = useCallback(async () => {
@@ -157,7 +158,7 @@ export default function AdminNegocioDetailPage() {
         </div>
       </div>
     )}
-    <main className="min-h-screen bg-[var(--color-surface-container-low)]">
+    <main className="h-full overflow-y-auto bg-[var(--color-surface-container-low)]">
       <header className="bg-[var(--color-surface)] border-b border-[var(--color-outline-variant)] px-6 py-3 flex items-center gap-3">
         <button onClick={() => router.push("/admin/dashboard")} className="p-2 rounded-full hover:bg-[var(--color-surface-container-high)] transition-colors text-[var(--color-on-surface-variant)]">
           <ArrowLeft size={20} strokeWidth={1.5} />
@@ -178,7 +179,7 @@ export default function AdminNegocioDetailPage() {
       <div className="max-w-3xl mx-auto px-6 py-8 space-y-6">
 
         {feedback && (
-          <div className={`flex items-center gap-2 rounded-lg px-4 py-3 text-body-md border ${
+          <div className={`fixed top-4 left-1/2 -translate-x-1/2 z-50 flex items-center gap-2 rounded-xl px-5 py-3 text-body-md border shadow-lg min-w-[280px] ${
             feedback.type === "success" ? "bg-emerald-50 border-emerald-200 text-emerald-700" : "bg-[var(--color-error-container)]/30 border-[var(--color-error-container)] text-[var(--color-error)]"
           }`}>
             {feedback.msg}
@@ -240,15 +241,20 @@ export default function AdminNegocioDetailPage() {
             </div>
             <div className="space-y-1.5">
               <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Vence el</label>
-              <input
-                type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}
-                className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 [color-scheme:light] dark:[color-scheme:dark]"
-              />
-              {expiresAt && (
-                <p className="text-[11px] text-[var(--color-on-surface-variant)]">
-                  {new Date(expiresAt + "T12:00:00").toLocaleDateString("es-PE", { day: "2-digit", month: "long", year: "numeric" })}
-                </p>
-              )}
+              <div className="relative">
+                <input
+                  ref={dateInputRef}
+                  type="date" value={expiresAt} onChange={(e) => setExpiresAt(e.target.value)}
+                  className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 pr-10 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 [color-scheme:inherit] [&::-webkit-calendar-picker-indicator]:hidden cursor-pointer"
+                />
+                <button
+                  type="button"
+                  onClick={() => dateInputRef.current?.showPicker()}
+                  className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)] hover:text-[var(--color-on-surface)] transition-colors"
+                >
+                  <CalendarDays size={16} strokeWidth={1.5} />
+                </button>
+              </div>
             </div>
           </div>
 

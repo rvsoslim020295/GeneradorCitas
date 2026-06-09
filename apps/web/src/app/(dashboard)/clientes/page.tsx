@@ -1,8 +1,8 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Search, UserPlus, RefreshCw, AlertCircle } from "lucide-react";
+import { Search, UserPlus, RefreshCw, AlertCircle, Copy } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { ClientCard } from "./_components/client-card";
@@ -14,6 +14,20 @@ export default function ClientesPage() {
   const debouncedSearch = useDebounce(search, 300);
 
   const { data: clients = [], isLoading, error } = useClients(debouncedSearch || undefined);
+
+  // Detectar nombres duplicados (misma combinación nombre+apellido, ignorando mayúsculas)
+  const duplicateNames = useMemo(() => {
+    const counts = new Map<string, number>();
+    for (const c of clients) {
+      const key = `${c.name} ${c.lastName ?? ""}`.trim().toLowerCase();
+      counts.set(key, (counts.get(key) ?? 0) + 1);
+    }
+    const dupes = new Set<string>();
+    for (const [key, count] of counts) {
+      if (count > 1) dupes.add(key);
+    }
+    return dupes;
+  }, [clients]);
 
   return (
     <>
@@ -74,11 +88,22 @@ export default function ClientesPage() {
               </div>
             )}
 
+            {!isLoading && !error && duplicateNames.size > 0 && (
+              <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 mb-2 text-body-md text-amber-600 dark:text-amber-400">
+                <Copy size={16} strokeWidth={1.5} className="shrink-0 mt-0.5" />
+                <span>
+                  <span className="font-semibold">Posibles duplicados detectados: </span>
+                  {Array.from(duplicateNames).map(n => n.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")).join(", ")}.
+                  Revisa y elimina el registro incorrecto.
+                </span>
+              </div>
+            )}
+
             {!isLoading && !error && clients.length > 0 && (
               <>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
                   {clients.map((client) => (
-                    <ClientCard key={client.id} client={client} />
+                    <ClientCard key={client.id} client={client} isDuplicate={duplicateNames.has(`${client.name} ${client.lastName ?? ""}`.trim().toLowerCase())} />
                   ))}
                 </div>
                 <div className="py-6 flex justify-center items-center gap-2 text-[var(--color-on-surface-variant)]">

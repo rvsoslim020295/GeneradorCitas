@@ -11,14 +11,14 @@ import { useRole } from "@/hooks/use-role";
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 const allNavItems = [
-  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, ownerOnly: false },
-  { label: "Agenda", href: "/agenda", icon: Calendar, ownerOnly: false },
-  { label: "Clientes", href: "/clientes", icon: Users, ownerOnly: false },
-  { label: "Colaboradores", href: "/colaboradores", icon: BadgeCheck, ownerOnly: false },
-  { label: "Servicios", href: "/servicios", icon: Scissors, ownerOnly: false },
-  { label: "Paquetes", href: "/paquetes", icon: Package, ownerOnly: true },
-  { label: "Reportes", href: "/reportes", icon: BarChart2, ownerOnly: true },
-  { label: "Configuración", href: "/configuracion", icon: Settings, ownerOnly: true },
+  { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, ownerOnly: false, collaboratorHidden: true },
+  { label: "Agenda", href: "/agenda", icon: Calendar, ownerOnly: false, collaboratorHidden: false },
+  { label: "Clientes", href: "/clientes", icon: Users, ownerOnly: false, collaboratorHidden: true },
+  { label: "Colaboradores", href: "/colaboradores", icon: BadgeCheck, ownerOnly: false, collaboratorHidden: true },
+  { label: "Servicios", href: "/servicios", icon: Scissors, ownerOnly: false, collaboratorHidden: true },
+  { label: "Paquetes", href: "/paquetes", icon: Package, ownerOnly: true, collaboratorHidden: true },
+  { label: "Reportes", href: "/reportes", icon: BarChart2, ownerOnly: true, collaboratorHidden: true },
+  { label: "Configuración", href: "/configuracion", icon: Settings, ownerOnly: true, collaboratorHidden: true },
 ];
 
 type SidebarProps = {
@@ -30,7 +30,11 @@ const TRIAL_DAYS = 7;
 
 export function Sidebar({ activePath }: SidebarProps) {
   const role = useRole();
-  const navItems = allNavItems.filter((item) => !item.ownerOnly || role === "OWNER" || role === null);
+  const navItems = allNavItems.filter((item) => {
+    if (item.ownerOnly && role !== "OWNER" && role !== null) return false;
+    if (item.collaboratorHidden && role === "COLLABORATOR") return false;
+    return true;
+  });
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
 
   useEffect(() => {
@@ -44,7 +48,7 @@ export function Sidebar({ activePath }: SidebarProps) {
       .catch(() => {});
   }, []);
 
-  const showTrialBanner = trialDaysLeft !== null && trialDaysLeft >= 0;
+  const showTrialBanner = trialDaysLeft !== null && trialDaysLeft >= 0 && (role === "OWNER" || role === null);
   const progressPct = trialDaysLeft !== null
     ? Math.max(0, Math.round((trialDaysLeft / TRIAL_DAYS) * 100))
     : 0;
