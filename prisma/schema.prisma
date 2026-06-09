@@ -45,6 +45,8 @@ model Business {
   waTplConfirmation   String?
   waTplReminder       String?
   waTplPayment        String?
+  reminderEnabled     Boolean  @default(false)
+  reminder2hEnabled   Boolean  @default(false)
   createdAt           DateTime   @default(now())
   updatedAt           DateTime   @updatedAt
   users          User[]
@@ -111,8 +113,10 @@ model Appointment {
   tipPercent     Float             @default(0)
   paidAmount     Float?
   paymentMethod  String?
-  depositAmount  Float?
-  origin         String?  @default("walkin")
+  depositAmount     Float?
+  origin            String?   @default("walkin")
+  reminderSentAt    DateTime?
+  reminder2hSentAt  DateTime?
   businessId     String
   clientId       String
   collaboratorId String

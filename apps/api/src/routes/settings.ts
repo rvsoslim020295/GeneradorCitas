@@ -115,6 +115,8 @@ settings.patch("/agenda", async (c) => {
     waTplConfirmation: z.string().optional(),
     waTplReminder: z.string().optional(),
     waTplPayment: z.string().optional(),
+    reminderEnabled:   z.boolean().optional(),
+    reminder2hEnabled: z.boolean().optional(),
   });
 
   const parsed = schema.safeParse(body);

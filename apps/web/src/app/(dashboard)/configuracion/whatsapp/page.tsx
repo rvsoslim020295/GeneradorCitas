@@ -80,6 +80,8 @@ export default function WhatsAppConfigPage() {
   const [confirmation, setConfirmation] = useState(DEFAULT_TEMPLATES.confirmation);
   const [reminder, setReminder]         = useState(DEFAULT_TEMPLATES.reminder);
   const [payment, setPayment]           = useState(DEFAULT_TEMPLATES.payment);
+  const [reminderEnabled, setReminderEnabled]     = useState(false);
+  const [reminder2hEnabled, setReminder2hEnabled] = useState(false);
   const [saved, setSaved] = useState(false);
   const [copied, setCopied] = useState("");
 
@@ -88,6 +90,8 @@ export default function WhatsAppConfigPage() {
     if (settings.waTplConfirmation) setConfirmation(settings.waTplConfirmation);
     if (settings.waTplReminder)     setReminder(settings.waTplReminder);
     if (settings.waTplPayment)      setPayment(settings.waTplPayment);
+    setReminderEnabled(settings.reminderEnabled   ?? false);
+    setReminder2hEnabled(settings.reminder2hEnabled ?? false);
   }, [settings]);
 
   async function handleSave() {
@@ -95,6 +99,8 @@ export default function WhatsAppConfigPage() {
       waTplConfirmation: confirmation,
       waTplReminder: reminder,
       waTplPayment: payment,
+      reminderEnabled,
+      reminder2hEnabled,
     } as never);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
@@ -141,6 +147,36 @@ export default function WhatsAppConfigPage() {
                   Al hacer clic se abre WhatsApp Web con el mensaje pre-llenado y los datos reales del cliente.
                   Tú solo presionas Enviar — sin APIs ni costos.
                 </p>
+              </div>
+            </section>
+
+            {/* Recordatorios automáticos */}
+            <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-4">
+              <div className="flex items-center gap-2">
+                <MessageCircle size={18} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+                <h2 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Recordatorios automáticos</h2>
+              </div>
+              <p className="text-body-md text-[var(--color-on-surface-variant)]">
+                El sistema genera un link de WhatsApp con el mensaje de recordatorio listo para enviar. El link queda registrado en el historial de la cita.
+              </p>
+              <div className="space-y-3">
+                {[
+                  { label: "Recordatorio 24h antes", desc: "Se genera el link un día antes de la cita", value: reminderEnabled, set: setReminderEnabled },
+                  { label: "Recordatorio 2h antes",  desc: "Se genera el link 2 horas antes de la cita", value: reminder2hEnabled, set: setReminder2hEnabled },
+                ].map(({ label, desc, value, set }) => (
+                  <div key={label} className="flex items-center justify-between p-3 bg-[var(--color-surface-container-low)] rounded-lg">
+                    <div>
+                      <p className="text-body-md font-semibold text-[var(--color-on-surface)]">{label}</p>
+                      <p className="text-[12px] text-[var(--color-on-surface-variant)]">{desc}</p>
+                    </div>
+                    <button
+                      onClick={() => set(v => !v)}
+                      className={`relative w-11 h-6 rounded-full transition-colors ${value ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-container-high)]"}`}
+                    >
+                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? "translate-x-5" : "translate-x-0.5"}`} />
+                    </button>
+                  </div>
+                ))}
               </div>
             </section>
 
