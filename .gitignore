@@ -12,10 +12,9 @@ build/
 .env.local
 .env.*.local
 
-# Prisma generated
+# Prisma generated (se regenera en build)
 node_modules/.prisma/
 generated/
-apps/api/generated/
 
 # OS
 .DS_Store
