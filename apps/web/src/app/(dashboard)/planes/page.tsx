@@ -224,18 +224,18 @@ export default function PlanesPage() {
 
             {/* QR */}
             <div className="flex flex-col items-center gap-3">
-              <div className="bg-white rounded-xl p-4 shadow-sm border border-[var(--color-outline-variant)]">
+              <div className="bg-white rounded-xl p-5 shadow-sm border border-[var(--color-outline-variant)]">
                 <Image
                   src="/qr-plin.jpeg"
                   alt="QR Plin - Edgar Russbel Huaman Ramos"
-                  width={200}
-                  height={200}
+                  width={260}
+                  height={260}
                   className="rounded-lg"
                 />
               </div>
               <div className="text-center">
                 <p className="text-label-md font-semibold text-[var(--color-on-surface)]">Edgar Russbel Huaman Ramos</p>
-                <p className="text-[12px] text-[var(--color-on-surface-variant)]">Plin</p>
+                <p className="text-[12px] text-[var(--color-on-surface-variant)]">Plin · 922 358 205</p>
               </div>
             </div>
 
