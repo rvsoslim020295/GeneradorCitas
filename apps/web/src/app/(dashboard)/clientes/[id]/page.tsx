@@ -394,7 +394,9 @@ export default function ClientProfilePage() {
                       <History size={18} className="text-[var(--color-primary)]" strokeWidth={1.5} />
                       Historial de Citas
                     </h3>
-                    <button className="text-[var(--color-primary)] text-label-md font-semibold hover:underline flex items-center gap-1">
+                    <button
+                      onClick={() => router.push("/agenda")}
+                      className="text-[var(--color-primary)] text-label-md font-semibold hover:underline flex items-center gap-1">
                       Ver todo <ChevronRight size={14} strokeWidth={2} />
                     </button>
                   </div>
@@ -412,7 +414,7 @@ export default function ClientProfilePage() {
                             <div className={`w-6 h-6 rounded-full border-2 border-[var(--color-surface)] flex items-center justify-center shrink-0 z-10 shadow ${isCancelled ? "bg-[var(--color-surface-dim)]" : "bg-[var(--color-primary)]"}`}>
                               {isCancelled ? <X size={12} strokeWidth={2} className="text-[var(--color-on-surface-variant)]" /> : <div className="w-2 h-2 rounded-full bg-white" />}
                             </div>
-                            <div className={`flex-1 p-3 rounded-xl border border-[var(--color-outline-variant)] bg-[var(--color-surface)] hover:shadow-md transition-shadow cursor-pointer ${isCancelled ? "opacity-75" : ""}`}>
+                            <div onClick={() => router.push(`/citas/${apt.id}`)} className={`flex-1 p-3 rounded-xl border border-[var(--color-outline-variant)] bg-[var(--color-surface)] hover:shadow-md transition-shadow cursor-pointer ${isCancelled ? "opacity-75" : ""}`}>
                               <div className="flex justify-between items-start mb-2">
                                 <div>
                                   <span className="text-label-md text-[var(--color-on-surface-variant)] block">{formatDate(apt.startTime)}</span>

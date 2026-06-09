@@ -164,16 +164,16 @@ export default function WhatsAppConfigPage() {
                   { label: "Recordatorio 24h antes", desc: "Se genera el link un día antes de la cita", value: reminderEnabled, set: setReminderEnabled },
                   { label: "Recordatorio 2h antes",  desc: "Se genera el link 2 horas antes de la cita", value: reminder2hEnabled, set: setReminder2hEnabled },
                 ].map(({ label, desc, value, set }) => (
-                  <div key={label} className="flex items-center justify-between p-3 bg-[var(--color-surface-container-low)] rounded-lg">
-                    <div>
+                  <div key={label} className="flex justify-between gap-4 p-3 bg-[var(--color-surface-container-low)] rounded-lg">
+                    <div className="flex flex-col justify-center">
                       <p className="text-body-md font-semibold text-[var(--color-on-surface)]">{label}</p>
                       <p className="text-[12px] text-[var(--color-on-surface-variant)]">{desc}</p>
                     </div>
                     <button
                       onClick={() => set(v => !v)}
-                      className={`relative w-11 h-6 rounded-full transition-colors ${value ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-container-high)]"}`}
+                      className={`relative shrink-0 self-center w-11 h-6 rounded-full transition-colors ${value ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-container-high)]"}`}
                     >
-                      <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? "translate-x-5" : "translate-x-0.5"}`} />
+                      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${value ? "translate-x-5" : "translate-x-0"}`} />
                     </button>
                   </div>
                 ))}
