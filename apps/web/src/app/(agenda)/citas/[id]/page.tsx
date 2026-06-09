@@ -375,7 +375,7 @@ export default function CitaDetailPage() {
                       )}
                     </div>
 
-                    {!showDeposit ? (
+                    {appointment.status !== "COMPLETED" && (!showDeposit ? (
                       <button
                         onClick={() => setShowDeposit(true)}
                         className="w-full bg-[var(--color-surface-container)] hover:bg-[var(--color-surface-container-high)] text-[var(--color-on-surface)] border border-[var(--color-outline-variant)] text-label-md font-semibold py-2.5 rounded-lg transition-colors flex items-center justify-center gap-2"
@@ -457,7 +457,7 @@ export default function CitaDetailPage() {
                           {savingDeposit ? "Guardando..." : "Guardar Anticipo"}
                         </button>
                       </div>
-                    )}
+                    ))}
 
                     {/* Reprogramar / Cancelar / No se presentó — solo si el servicio no terminó */}
                     {appointment.status !== "COMPLETED" && (
