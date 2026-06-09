@@ -8,7 +8,6 @@ const START_HOUR = 8;
 const HOURS = Array.from({ length: 14 }, (_, i) => i + START_HOUR); // 08:00 – 22:00
 
 const DAYS_ES = ["Dom", "Lun", "Mar", "Mié", "Jue", "Vie", "Sáb"];
-const MONTHS_ES = ["Ene","Feb","Mar","Abr","May","Jun","Jul","Ago","Sep","Oct","Nov","Dic"];
 
 // ─── Helpers ─────────────────────────────────────────────────────────────────
 

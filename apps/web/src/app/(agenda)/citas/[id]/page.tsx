@@ -167,10 +167,6 @@ export default function CitaDetailPage() {
   const waConfirmationUrl = waVars ? buildWhatsAppUrl(appointment!.client.phone, buildWaMessage(settings?.waTplConfirmation, DEFAULT_TEMPLATES.confirmation, waVars)) : null;
   const waReminderUrl     = waVars ? buildWhatsAppUrl(appointment!.client.phone, buildWaMessage(settings?.waTplReminder,     DEFAULT_TEMPLATES.reminder,     waVars)) : null;
   const waPaymentUrl      = waVars ? buildWhatsAppUrl(appointment!.client.phone, buildWaMessage(settings?.waTplPayment,      DEFAULT_TEMPLATES.payment,      waVars)) : null;
-  const depositAmount =
-    appointment && depositMode === "percent"
-      ? appointment.price * (depositPercent / 100)
-      : parseFloat(depositCustom || "0");
 
   const updating = updateStatus.isPending;
   const savingDeposit = registerDeposit.isPending;

@@ -1,7 +1,6 @@
 "use client";
 
 import { useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
@@ -35,7 +34,6 @@ type SystemUser = {
 };
 
 export default function UsuariosSistemaPage() {
-  const router = useRouter();
   const qc = useQueryClient();
 
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);

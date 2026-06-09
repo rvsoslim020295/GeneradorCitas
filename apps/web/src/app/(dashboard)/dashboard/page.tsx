@@ -173,6 +173,7 @@ export default function DashboardPage() {
                 {/* Logo / Iniciales */}
                 <div className="shrink-0 w-16 h-16 rounded-2xl shadow-md overflow-hidden">
                   {userData.business.logoUrl ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={userData.business.logoUrl} alt="Logo" className="w-full h-full object-cover" />
                   ) : (
                     <div className="w-full h-full bg-[var(--color-primary)] flex items-center justify-center">

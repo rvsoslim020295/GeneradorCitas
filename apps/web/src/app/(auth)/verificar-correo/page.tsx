@@ -5,7 +5,6 @@ import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import { Flower2, Mail, RefreshCw } from "lucide-react";
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
 function VerificarCorreoContent() {
   const params = useSearchParams();

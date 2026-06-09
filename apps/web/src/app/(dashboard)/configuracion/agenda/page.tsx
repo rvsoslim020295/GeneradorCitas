@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { ArrowLeft, ShieldAlert, CalendarCheck, Clock, CheckCircle, AlertCircle, Save, ChevronDown, Minus, Plus } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
@@ -48,7 +47,6 @@ type BusinessSettings = {
 };
 
 export default function AgendaConfigPage() {
-  const router = useRouter();
   const qc = useQueryClient();
   const [feedback, setFeedback] = useState<{ type: "success" | "error"; msg: string } | null>(null);
   const [initialized, setInitialized] = useState(false);

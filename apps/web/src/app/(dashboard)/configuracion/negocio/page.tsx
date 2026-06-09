@@ -449,6 +449,7 @@ export default function NegocioConfigPage() {
               <div className="flex flex-col items-center gap-2">
                 <div className="relative group cursor-pointer" onClick={() => logoInputRef.current?.click()}>
                   {logoPreview ? (
+                    // eslint-disable-next-line @next/next/no-img-element
                     <img src={logoPreview} alt="Logo" className="w-20 h-20 rounded-full object-cover border border-[var(--color-outline-variant)]" />
                   ) : (
                     <div className="w-20 h-20 rounded-full bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] flex items-center justify-center text-headline-sm font-bold text-[var(--color-primary)]">

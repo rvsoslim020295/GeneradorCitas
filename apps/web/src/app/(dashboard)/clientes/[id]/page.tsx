@@ -11,7 +11,7 @@ import {
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
-import { useClient, useUpdateClient, useDeleteClient } from "@/lib/api/hooks";
+import { useUpdateClient, useDeleteClient } from "@/lib/api/hooks";
 import { apiFetch } from "@/lib/api/client";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 

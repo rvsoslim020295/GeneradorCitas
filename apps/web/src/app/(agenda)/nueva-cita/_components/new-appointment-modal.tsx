@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import {
@@ -59,7 +59,7 @@ export function NewAppointmentModal({ preselectedClientId }: { preselectedClient
 
   const services = servicesData?.services ?? [];
   const collaborators = (collabsData ?? []).filter((c) => c.isActive !== false && c.performsServices !== false);
-  const allClients: Client[] = clientsData ?? [];
+  const allClients = useMemo<Client[]>(() => clientsData ?? [], [clientsData]);
   const filteredClients = debouncedSearch.trim() ? allClients.slice(0, 6) : [];
   const availableSlots = slotsData?.slots ?? [];
   const slotCollaboratorMap = slotsData?.slotCollaboratorMap ?? {};

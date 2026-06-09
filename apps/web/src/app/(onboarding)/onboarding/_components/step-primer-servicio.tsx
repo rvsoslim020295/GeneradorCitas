@@ -39,7 +39,6 @@ export function StepPrimerServicio({ onNext }: Props) {
     onNext();
   }
 
-  const inputClass = "w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-3 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all placeholder:text-[var(--color-outline-variant)]";
 
   return (
     <div className="glass-panel p-6 rounded-2xl space-y-5">

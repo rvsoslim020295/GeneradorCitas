@@ -177,7 +177,7 @@ export default function PaquetesPage() {
               </div>
               <div>
                 <h3 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Eliminar paquete</h3>
-                <p className="text-body-md text-[var(--color-on-surface-variant)] mt-1">¿Seguro que deseas eliminar <strong>"{deleteTarget.name}"</strong>? Esta acción no se puede deshacer.</p>
+                <p className="text-body-md text-[var(--color-on-surface-variant)] mt-1">¿Seguro que deseas eliminar <strong>&ldquo;{deleteTarget.name}&rdquo;</strong>? Esta acción no se puede deshacer.</p>
               </div>
             </div>
             <div className="flex gap-2 pt-2">
