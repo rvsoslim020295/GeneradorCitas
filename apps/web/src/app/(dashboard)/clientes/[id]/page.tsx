@@ -7,15 +7,20 @@ import {
   ArrowLeft, Phone, CalendarPlus, MessageSquare,
   CalendarCheck, Banknote, Scissors, User,
   StickyNote, Pencil, Check, X, History, ChevronRight,
-  TrendingUp, Trash2,
+  TrendingUp, Trash2, FlaskConical, Plus, ChevronDown, ChevronUp,
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { useClient, useUpdateClient, useDeleteClient } from "@/lib/api/hooks";
 import { apiFetch } from "@/lib/api/client";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 
 type AppointmentStatus = "PENDING" | "CONFIRMED" | "COMPLETED" | "CANCELLED" | "NO_SHOW" | "RESCHEDULED" | "IN_PROGRESS";
+
+type ClientRecord = {
+  id: string; date: string; treatment: string;
+  colorFormula?: string | null; allergies?: string | null; notes?: string | null;
+};
 
 type HistoryItem = {
   id: string; startTime: string; status: AppointmentStatus;
@@ -69,6 +74,17 @@ export default function ClientProfilePage() {
   const [notesValue, setNotesValue] = useState("");
   const [deleteError, setDeleteError] = useState("");
 
+  // Fichas técnicas
+  const [showRecordForm, setShowRecordForm] = useState(false);
+  const [editingRecord, setEditingRecord] = useState<ClientRecord | null>(null);
+  const [recordDeleteTarget, setRecordDeleteTarget] = useState<string | null>(null);
+  const [expandedRecord, setExpandedRecord] = useState<string | null>(null);
+  const [rTreatment, setRTreatment] = useState("");
+  const [rColorFormula, setRColorFormula] = useState("");
+  const [rAllergies, setRAllergies] = useState("");
+  const [rNotes, setRNotes] = useState("");
+  const [rDate, setRDate] = useState(new Date().toISOString().slice(0, 10));
+
   const { data: client, isLoading } = useQuery<ClientProfile>({
     queryKey: ["clients", "detail", id],
     queryFn: () => apiFetch<ClientProfile>(`/clients/${id}`),
@@ -77,6 +93,52 @@ export default function ClientProfilePage() {
 
   const updateClient = useUpdateClient(id);
   const deleteClient = useDeleteClient();
+  const qc = useQueryClient();
+
+  const { data: records = [] } = useQuery<ClientRecord[]>({
+    queryKey: ["client-records", id],
+    queryFn: () => apiFetch<ClientRecord[]>(`/clients/${id}/records`),
+    enabled: !!id,
+  });
+
+  const createRecord = useMutation({
+    mutationFn: (body: Omit<ClientRecord, "id">) =>
+      apiFetch<ClientRecord>(`/clients/${id}/records`, { method: "POST", body: JSON.stringify(body) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-records", id] }); resetRecordForm(); },
+  });
+
+  const updateRecord = useMutation({
+    mutationFn: ({ recordId, body }: { recordId: string; body: Partial<ClientRecord> }) =>
+      apiFetch<ClientRecord>(`/clients/${id}/records/${recordId}`, { method: "PATCH", body: JSON.stringify(body) }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-records", id] }); resetRecordForm(); },
+  });
+
+  const deleteRecord = useMutation({
+    mutationFn: (recordId: string) =>
+      apiFetch(`/clients/${id}/records/${recordId}`, { method: "DELETE" }),
+    onSuccess: () => { qc.invalidateQueries({ queryKey: ["client-records", id] }); setRecordDeleteTarget(null); },
+  });
+
+  function resetRecordForm() {
+    setShowRecordForm(false); setEditingRecord(null);
+    setRTreatment(""); setRColorFormula(""); setRAllergies(""); setRNotes("");
+    setRDate(new Date().toISOString().slice(0, 10));
+  }
+
+  function openEditRecord(r: ClientRecord) {
+    setEditingRecord(r);
+    setRTreatment(r.treatment); setRColorFormula(r.colorFormula ?? "");
+    setRAllergies(r.allergies ?? ""); setRNotes(r.notes ?? "");
+    setRDate(r.date.slice(0, 10));
+    setShowRecordForm(true);
+  }
+
+  function handleSaveRecord() {
+    if (!rTreatment.trim()) return;
+    const body = { treatment: rTreatment.trim(), colorFormula: rColorFormula || undefined, allergies: rAllergies || undefined, notes: rNotes || undefined, date: new Date(rDate).toISOString() };
+    if (editingRecord) updateRecord.mutate({ recordId: editingRecord.id, body });
+    else createRecord.mutate(body as Omit<ClientRecord, "id">);
+  }
 
   useEffect(() => {
     if (client) {
@@ -375,10 +437,128 @@ export default function ClientProfilePage() {
                   )}
                 </section>
               </div>
-            </div>
+            {/* Ficha Técnica */}
+            <section className="bg-[var(--color-surface)] rounded-xl shadow-sm border border-[var(--color-outline-variant)] p-5 space-y-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)] flex items-center gap-2">
+                  <FlaskConical size={18} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+                  Ficha Técnica
+                </h2>
+                <button onClick={() => { resetRecordForm(); setShowRecordForm(true); }}
+                  className="flex items-center gap-1.5 text-label-md font-semibold text-[var(--color-primary)] hover:bg-[var(--color-primary-container)]/20 px-3 py-1.5 rounded-lg transition-colors">
+                  <Plus size={15} strokeWidth={2} /> Nueva ficha
+                </button>
+              </div>
+
+              {/* Formulario nueva/editar ficha */}
+              {showRecordForm && (
+                <div className="bg-[var(--color-surface-container-low)] border border-[var(--color-primary)]/30 rounded-xl p-4 space-y-3">
+                  <h3 className="text-label-md font-semibold text-[var(--color-on-surface)]">{editingRecord ? "Editar ficha" : "Nueva ficha"}</h3>
+                  <div className="grid grid-cols-2 gap-3">
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Fecha</label>
+                      <input type="date" value={rDate} onChange={(e) => setRDate(e.target.value)}
+                        className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Tratamiento *</label>
+                      <input value={rTreatment} onChange={(e) => setRTreatment(e.target.value)} placeholder="Ej: Tinte, corte, keratina..."
+                        className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all placeholder:text-[var(--color-outline)]" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Fórmula / Color</label>
+                      <input value={rColorFormula} onChange={(e) => setRColorFormula(e.target.value)} placeholder="Ej: 7.3 + oxidante 20vol..."
+                        className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all placeholder:text-[var(--color-outline)]" />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Alergias / Advertencias</label>
+                      <input value={rAllergies} onChange={(e) => setRAllergies(e.target.value)} placeholder="Ej: Alérgica a la amoniaca..."
+                        className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all placeholder:text-[var(--color-outline)]" />
+                    </div>
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Notas adicionales</label>
+                      <textarea value={rNotes} onChange={(e) => setRNotes(e.target.value)} rows={2} placeholder="Observaciones, próximos pasos..."
+                        className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all placeholder:text-[var(--color-outline)] resize-none" />
+                    </div>
+                  </div>
+                  <div className="flex gap-2 pt-1">
+                    <button onClick={resetRecordForm} className="flex-1 py-2 rounded-lg border border-[var(--color-outline-variant)] text-body-md font-semibold text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)] transition-colors">Cancelar</button>
+                    <button onClick={handleSaveRecord} disabled={!rTreatment.trim() || createRecord.isPending || updateRecord.isPending}
+                      className="flex-1 py-2 rounded-lg bg-[var(--color-primary)] text-[var(--color-on-primary)] text-body-md font-semibold hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors disabled:opacity-60">
+                      {createRecord.isPending || updateRecord.isPending ? "Guardando..." : "Guardar"}
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* Lista de fichas */}
+              {records.length === 0 && !showRecordForm ? (
+                <p className="text-body-md text-[var(--color-on-surface-variant)] text-center py-4">Sin fichas técnicas. Agrega la primera.</p>
+              ) : (
+                <div className="space-y-2">
+                  {records.map((r) => (
+                    <div key={r.id} className="border border-[var(--color-outline-variant)] rounded-xl overflow-hidden">
+                      <button onClick={() => setExpandedRecord(expandedRecord === r.id ? null : r.id)}
+                        className="w-full flex items-center justify-between px-4 py-3 hover:bg-[var(--color-surface-container-low)] transition-colors text-left">
+                        <div className="flex items-center gap-3">
+                          <FlaskConical size={15} className="text-[var(--color-primary)] shrink-0" strokeWidth={1.5} />
+                          <div>
+                            <p className="text-body-md font-semibold text-[var(--color-on-surface)]">{r.treatment}</p>
+                            <p className="text-[12px] text-[var(--color-on-surface-variant)]">{new Date(r.date).toLocaleDateString("es-PE", { day: "2-digit", month: "short", year: "numeric" })}</p>
+                          </div>
+                        </div>
+                        <div className="flex items-center gap-1">
+                          <button onClick={(e) => { e.stopPropagation(); openEditRecord(r); }}
+                            className="p-1.5 rounded-lg text-[var(--color-on-surface-variant)] hover:text-[var(--color-primary)] hover:bg-[var(--color-surface-container-high)] transition-colors">
+                            <Pencil size={14} strokeWidth={1.5} />
+                          </button>
+                          <button onClick={(e) => { e.stopPropagation(); setRecordDeleteTarget(r.id); }}
+                            className="p-1.5 rounded-lg text-[var(--color-on-surface-variant)] hover:text-[var(--color-error)] hover:bg-[var(--color-error-container)]/20 transition-colors">
+                            <Trash2 size={14} strokeWidth={1.5} />
+                          </button>
+                          {expandedRecord === r.id ? <ChevronUp size={15} className="text-[var(--color-outline)] ml-1" /> : <ChevronDown size={15} className="text-[var(--color-outline)] ml-1" />}
+                        </div>
+                      </button>
+                      {expandedRecord === r.id && (
+                        <div className="px-4 pb-4 pt-1 grid grid-cols-2 gap-3 bg-[var(--color-surface-container-lowest)] border-t border-[var(--color-outline-variant)]">
+                          {r.colorFormula && <div><p className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-0.5">Fórmula / Color</p><p className="text-body-md text-[var(--color-on-surface)]">{r.colorFormula}</p></div>}
+                          {r.allergies && <div><p className="text-[11px] font-semibold text-amber-600 uppercase tracking-wider mb-0.5">⚠ Alergias</p><p className="text-body-md text-[var(--color-on-surface)]">{r.allergies}</p></div>}
+                          {r.notes && <div className="col-span-2"><p className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider mb-0.5">Notas</p><p className="text-body-md text-[var(--color-on-surface)]">{r.notes}</p></div>}
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </section>
+
           </div>
         </div>
       </main>
+
+      {/* Modal confirmar eliminar ficha */}
+      {recordDeleteTarget && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-[var(--color-surface-container-lowest)] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-[var(--color-error-container)]/30 flex items-center justify-center shrink-0">
+                <Trash2 size={18} className="text-[var(--color-error)]" strokeWidth={1.5} />
+              </div>
+              <div>
+                <h3 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Eliminar ficha técnica</h3>
+                <p className="text-body-md text-[var(--color-on-surface-variant)] mt-1">¿Seguro que deseas eliminar esta ficha? No se puede deshacer.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => setRecordDeleteTarget(null)} className="flex-1 py-2.5 rounded-lg border border-[var(--color-outline-variant)] text-body-md font-semibold text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)] transition-colors">Cancelar</button>
+              <button onClick={() => deleteRecord.mutate(recordDeleteTarget)} disabled={deleteRecord.isPending}
+                className="flex-1 py-2.5 rounded-lg bg-[var(--color-error)] text-white text-body-md font-semibold hover:bg-[var(--color-error)]/90 transition-colors disabled:opacity-60">
+                {deleteRecord.isPending ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }

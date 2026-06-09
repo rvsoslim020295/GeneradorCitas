@@ -217,6 +217,21 @@ model Client {
   businessId   String
   business     Business      @relation(fields: [businessId], references: [id])
   appointments Appointment[]
+  records      ClientRecord[]
   createdAt    DateTime      @default(now())
   updatedAt    DateTime      @updatedAt
+}
+
+// Ficha técnica por cliente — historial de tratamientos, fórmulas, alergias
+model ClientRecord {
+  id           String   @id @default(cuid())
+  clientId     String
+  client       Client   @relation(fields: [clientId], references: [id], onDelete: Cascade)
+  date         DateTime @default(now())
+  treatment    String
+  colorFormula String?
+  allergies    String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 }
