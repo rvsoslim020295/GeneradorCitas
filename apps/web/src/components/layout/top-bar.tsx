@@ -1,10 +1,12 @@
 "use client";
 
-import { Suspense, useEffect, useRef, useState, useCallback } from "react";
+import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
+import { useQuery } from "@tanstack/react-query";
 import { Bell, HelpCircle, LogOut, Settings, X, Sun, Moon, CalendarClock, CalendarCheck, CalendarX } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { GlobalSearch } from "@/components/layout/global-search";
+import { apiFetch } from "@/lib/api/client";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -35,8 +37,14 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
   const [userName, setUserName] = useState("Usuario");
   const [userInitials, setUserInitials] = useState("AM");
 
-  const [notifs, setNotifs] = useState<NotifItem[]>([]);
-  const [notifsLoaded, setNotifsLoaded] = useState(false);
+  const { data: notifData, refetch: refetchNotifs } = useQuery({
+    queryKey: ["notifications"],
+    queryFn: () => apiFetch<{ count: number; items: NotifItem[] }>("/notifications"),
+    refetchInterval: 2 * 60 * 1000,
+    staleTime: 30_000,
+  });
+  const notifs = notifData?.items ?? [];
+  const notifsLoaded = notifData !== undefined;
 
   useEffect(() => {
     const raw = localStorage.getItem("gm_user");
@@ -55,20 +63,6 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
     }
   }, []);
 
-  const fetchNotifs = useCallback(async () => {
-    try {
-      const res = await fetch(`${API_URL}/notifications`, { credentials: "include" });
-      if (res.ok) {
-        const data = await res.json();
-        setNotifs(Array.isArray(data.items) ? data.items : []);
-      }
-    } catch { /* ignore */ }
-    finally { setNotifsLoaded(true); }
-  }, []);
-
-  useEffect(() => {
-    fetchNotifs();
-  }, [fetchNotifs]);
 
   useEffect(() => {
     function handleClickOutside(e: MouseEvent) {
@@ -90,7 +84,7 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
     setShowNotifications(!showNotifications);
     setShowProfile(false);
     setShowHelp(false);
-    if (!showNotifications) fetchNotifs();
+    if (!showNotifications) refetchNotifs();
   }
 
   return (
