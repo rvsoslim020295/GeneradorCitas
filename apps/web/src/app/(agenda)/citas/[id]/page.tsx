@@ -252,28 +252,6 @@ export default function CitaDetailPage() {
                       </p>
                     </div>
                   </div>
-                  {/* Botones WhatsApp contextuales */}
-                  <div className="flex flex-wrap gap-2">
-                    {([
-                      { url: waConfirmationUrl, label: "Confirmación", emoji: "✅" },
-                      { url: waReminderUrl,     label: "Recordatorio", emoji: "🔔" },
-                      { url: waPaymentUrl,      label: "Cobro",        emoji: "💳" },
-                    ] as const).map(({ url, label, emoji }) =>
-                      url ? (
-                        <a key={label} href={url} target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold hover:bg-emerald-100 transition-colors shadow-sm"
-                          title={`Enviar mensaje de ${label} por WhatsApp`}>
-                          <MessageSquare size={12} strokeWidth={2} />
-                          {emoji} {label}
-                        </a>
-                      ) : (
-                        <span key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)] text-[var(--color-outline)] text-[11px] font-semibold opacity-40 cursor-not-allowed">
-                          <MessageSquare size={12} strokeWidth={2} />
-                          {emoji} {label}
-                        </span>
-                      )
-                    )}
-                  </div>
                 </div>
 
                 <div className="space-y-2">
@@ -514,6 +492,38 @@ export default function CitaDetailPage() {
                         </button>
                       </>
                     )}
+                  </div>
+                )}
+
+                {/* Notificaciones WhatsApp */}
+                {(waConfirmationUrl || waReminderUrl || waPaymentUrl) && (
+                  <div className="pt-4 border-t border-[var(--color-outline-variant)]">
+                    <h4 className="text-label-md font-semibold text-[var(--color-outline)] uppercase tracking-widest mb-3 flex items-center gap-2">
+                      <MessageSquare size={14} strokeWidth={1.5} />
+                      Notificar por WhatsApp
+                    </h4>
+                    <div className="grid grid-cols-3 gap-2">
+                      {([
+                        { url: waConfirmationUrl, label: "Confirmación", emoji: "✅" },
+                        { url: waReminderUrl,     label: "Recordatorio", emoji: "🔔" },
+                        { url: waPaymentUrl,      label: "Cobro",        emoji: "💳" },
+                      ] as const).map(({ url, label, emoji }) =>
+                        url ? (
+                          <a key={label} href={url} target="_blank" rel="noopener noreferrer"
+                            className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold hover:bg-emerald-100 transition-colors shadow-sm text-center"
+                            title={`Enviar mensaje de ${label} por WhatsApp`}>
+                            <MessageSquare size={15} strokeWidth={1.5} />
+                            <span>{emoji} {label}</span>
+                          </a>
+                        ) : (
+                          <span key={label}
+                            className="flex flex-col items-center gap-1 py-3 px-2 rounded-xl bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)] text-[var(--color-outline)] text-[11px] font-semibold opacity-40 cursor-not-allowed text-center">
+                            <MessageSquare size={15} strokeWidth={1.5} />
+                            <span>{emoji} {label}</span>
+                          </span>
+                        )
+                      )}
+                    </div>
                   </div>
                 )}
 
