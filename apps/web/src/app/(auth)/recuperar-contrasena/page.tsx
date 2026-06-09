@@ -15,7 +15,7 @@ export default function RecoverPasswordPage() {
   }
 
   return (
-    <div className="flex min-h-screen flex-col bg-background font-body-md text-on-surface">
+    <div className="flex h-full flex-col overflow-y-auto bg-background font-body-md text-on-surface">
       <AuthTopBar />
 
       <main className="relative flex flex-grow items-center justify-center overflow-hidden p-margin-page">

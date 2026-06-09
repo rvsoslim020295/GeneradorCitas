@@ -89,8 +89,18 @@
   --spacing-margin-page: 32px;
 }
 
+html {
+  height: 100%;
+  color-scheme: light;
+}
+
+html.dark {
+  color-scheme: dark;
+}
+
 body {
-  min-height: max(884px, 100dvh);
+  height: 100%;
+  overflow: hidden;
   background: #f7f9fb;
   color: #191c1e;
   font-family: var(--font-inter), Arial, Helvetica, sans-serif;

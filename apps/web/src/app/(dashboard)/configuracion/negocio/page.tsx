@@ -288,9 +288,11 @@ export default function NegocioConfigPage() {
   const [district, setDistrict] = useState("Miraflores");
   const [initialized, setInitialized] = useState(false);
 
-  const { data: settings, isLoading: loading } = useQuery<{ business: Business }>({
+  const { data: settings, isLoading: loading, isError } = useQuery<{ business: Business }>({
     queryKey: ["settings"],
     queryFn: () => apiFetch<{ business: Business }>("/settings"),
+    staleTime: 0,
+    retry: 2,
   });
 
   useEffect(() => {
@@ -390,6 +392,21 @@ export default function NegocioConfigPage() {
       <Sidebar activePath="/configuracion" />
       <main className="flex-1 ml-64 flex items-center justify-center bg-[var(--color-background)]">
         <div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
+      </main>
+    </>
+  );
+
+  if (isError || !settings?.business) return (
+    <>
+      <Sidebar activePath="/configuracion" />
+      <main className="flex-1 ml-64 flex items-center justify-center bg-[var(--color-background)]">
+        <div className="text-center space-y-3">
+          <p className="text-body-md text-[var(--color-on-surface-variant)]">No se pudieron cargar los datos del negocio.</p>
+          <button onClick={() => window.location.reload()}
+            className="px-4 py-2 bg-[var(--color-primary)] text-[var(--color-on-primary)] rounded-lg text-label-md font-semibold">
+            Reintentar
+          </button>
+        </div>
       </main>
     </>
   );

@@ -66,12 +66,12 @@ export default function LoginPage() {
   }
 
   return (
-    <main className="flex min-h-screen w-full bg-surface font-body-md text-on-surface">
-      <section className="hidden w-7/12 overflow-hidden bg-surface-container-high lg:flex">
+    <main className="flex h-screen w-full overflow-hidden bg-surface font-body-md text-on-surface">
+      <section className="hidden w-7/12 overflow-hidden bg-surface-container-high lg:flex lg:h-full">
         <div className="relative h-full w-full">
           <div className="pointer-events-none absolute inset-0 z-10 bg-gradient-to-tr from-on-surface/40 to-transparent mix-blend-multiply" />
           <div
-            aria-label="High-end salon interior"
+            aria-label="Interior de salón de belleza"
             className="absolute inset-0 bg-cover bg-center"
             role="img"
             style={{ backgroundImage: `url(${heroImageUrl})` }}
@@ -79,7 +79,7 @@ export default function LoginPage() {
         </div>
       </section>
 
-      <section className="relative flex w-full flex-col items-center justify-center p-gutter-desktop sm:p-margin-page lg:w-5/12">
+      <section className="relative flex w-full flex-col items-center justify-center overflow-y-auto p-gutter-desktop sm:p-margin-page lg:w-5/12">
         <div className="ambient-shadow relative w-full max-w-[420px] overflow-hidden rounded-xl border border-outline-variant/50 bg-surface-container-lowest p-stack-lg md:p-margin-page">
           <div className="absolute left-0 top-0 h-1 w-full bg-primary" />
 
@@ -89,10 +89,10 @@ export default function LoginPage() {
               GlowManager
             </h1>
             <h2 className="mt-stack-md font-headline-md text-headline-md text-on-surface">
-              Welcome back
+              Bienvenido de nuevo
             </h2>
             <p className="mt-stack-sm font-body-md text-body-md text-on-surface-variant">
-              Sign in to manage your schedule and clients.
+              Inicia sesión para gestionar tu agenda y clientes.
             </p>
           </div>
 
@@ -110,7 +110,7 @@ export default function LoginPage() {
                 className="mb-stack-sm block font-label-md text-label-md uppercase text-on-surface-variant"
                 htmlFor="email"
               >
-                Email Address
+                Correo electrónico
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -132,7 +132,7 @@ export default function LoginPage() {
                 className="mb-stack-sm block font-label-md text-label-md uppercase text-on-surface-variant"
                 htmlFor="password"
               >
-                Password
+                Contraseña
               </label>
               <div className="relative">
                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
@@ -163,14 +163,14 @@ export default function LoginPage() {
                   className="ml-2 block cursor-pointer font-body-md text-body-md text-on-surface"
                   htmlFor="remember-me"
                 >
-                  Remember me
+                  Recordarme
                 </label>
               </div>
               <Link
                 className="font-label-md text-label-md text-primary transition-colors hover:text-primary-container"
                 href="/recuperar-contrasena"
               >
-                Forgot password?
+                ¿Olvidaste tu contraseña?
               </Link>
             </div>
 
@@ -180,7 +180,7 @@ export default function LoginPage() {
                 className="flex w-full items-center justify-center rounded-lg border border-transparent bg-primary px-4 py-3 font-label-md text-label-md text-on-primary shadow-sm transition-all duration-200 hover:bg-surface-tint focus:outline-none focus:ring-2 focus:ring-primary focus:ring-offset-2 active:scale-[0.98] disabled:opacity-60 disabled:cursor-not-allowed"
                 type="submit"
               >
-                {loading ? "Iniciando sesión..." : "Login"}
+                {loading ? "Iniciando sesión..." : "Iniciar sesión"}
                 {!loading && <LogIn className="ml-2" size={18} />}
               </button>
             </div>
@@ -200,17 +200,6 @@ export default function LoginPage() {
           </p>
         </div>
 
-        <div className="mt-stack-lg text-center">
-          <p className="font-body-md text-body-md text-on-surface-variant">
-            Having trouble accessing your account?{" "}
-            <Link
-              className="font-label-md text-label-md text-primary underline-offset-4 transition-all hover:underline"
-              href="#"
-            >
-              Contact Support
-            </Link>
-          </p>
-        </div>
       </section>
     </main>
   );

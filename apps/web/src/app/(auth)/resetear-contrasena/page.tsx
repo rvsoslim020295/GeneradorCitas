@@ -31,7 +31,7 @@ export default function ResetPasswordPage() {
   const [showConfirmPassword, setShowConfirmPassword] = useState(false);
 
   return (
-    <div className="flex min-h-screen flex-col justify-between bg-background font-body-md text-on-background">
+    <div className="flex h-full flex-col justify-between overflow-y-auto bg-background font-body-md text-on-background">
       <AuthTopBar />
 
       <main className="flex flex-grow items-center justify-center p-margin-page">

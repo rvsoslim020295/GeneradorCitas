@@ -307,12 +307,15 @@ analytics.get("/", async (c) => {
   const ORIGIN_LABELS: Record<string, string> = {
     whatsapp:  "WhatsApp",
     phone:     "Teléfono",
-    instagram: "Instagram",
+    social:    "Redes Sociales",
+    instagram: "Redes Sociales", // alias legacy
     walkin:    "Presencial",
   };
   const originMap: Record<string, number> = {};
   for (const apt of appointments) {
-    const key = apt.origin ?? "walkin";
+    // normalizar instagram → social para unificar métricas
+    const raw = apt.origin ?? "walkin";
+    const key = raw === "instagram" ? "social" : raw;
     originMap[key] = (originMap[key] ?? 0) + 1;
   }
   const originBreakdown = Object.entries(originMap)
