@@ -1,8 +1,8 @@
 "use client";
 
-import { useEffect, useState, useCallback } from "react";
+import { useEffect, useState, useCallback, useMemo } from "react";
 import { useRouter } from "next/navigation";
-import { Flower2, LogOut, Building2, Clock, CheckCircle, XCircle, AlertTriangle, ChevronRight, RefreshCw, Sun, Moon } from "lucide-react";
+import { Flower2, LogOut, Building2, Clock, CheckCircle, XCircle, AlertTriangle, ChevronRight, RefreshCw, Sun, Moon, Search, X } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -42,6 +42,9 @@ export default function AdminDashboardPage() {
   const [stats, setStats] = useState<Stats | null>(null);
   const [loading, setLoading] = useState(true);
   const [adminName, setAdminName] = useState("Admin");
+  const [search, setSearch] = useState("");
+  const [filterPlan, setFilterPlan] = useState<string>("ALL");
+  const [filterStatus, setFilterStatus] = useState<string>("ALL");
 
   const fetchData = useCallback(async () => {
     setLoading(true);
@@ -79,6 +82,19 @@ export default function AdminDashboardPage() {
     localStorage.removeItem("gm_admin");
     router.push("/login");
   }
+
+  const filteredBusinesses = useMemo(() => {
+    return businesses.filter((b) => {
+      const q = search.toLowerCase();
+      const matchSearch = !q ||
+        b.name.toLowerCase().includes(q) ||
+        b.users[0]?.email.toLowerCase().includes(q) ||
+        b.type.toLowerCase().includes(q);
+      const matchPlan = filterPlan === "ALL" || b.plan === filterPlan;
+      const matchStatus = filterStatus === "ALL" || b.planStatus === filterStatus;
+      return matchSearch && matchPlan && matchStatus;
+    });
+  }, [businesses, search, filterPlan, filterStatus]);
 
   const expiresLabel = (b: Business) => {
     const date = b.planExpiresAt ?? b.trialEndsAt;
@@ -139,21 +155,63 @@ export default function AdminDashboardPage() {
           </div>
         )}
 
+        {/* Barra de búsqueda y filtros */}
+        <div className="flex items-center gap-3 flex-wrap">
+          <div className="relative flex-1 min-w-[200px]">
+            <Search size={15} strokeWidth={1.5} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)]" />
+            <input
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Buscar por nombre, email o tipo..."
+              className="w-full pl-9 pr-9 py-2.5 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-colors placeholder:text-[var(--color-outline)]"
+            />
+            {search && (
+              <button onClick={() => setSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-outline)] hover:text-[var(--color-on-surface)] transition-colors">
+                <X size={14} strokeWidth={2} />
+              </button>
+            )}
+          </div>
+          <select
+            value={filterPlan}
+            onChange={(e) => setFilterPlan(e.target.value)}
+            className="py-2.5 px-3 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+          >
+            <option value="ALL">Todos los planes</option>
+            <option value="TRIAL">Trial</option>
+            <option value="BASIC">Básico</option>
+            <option value="PRO">Pro</option>
+            <option value="ENTERPRISE">Enterprise</option>
+          </select>
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value)}
+            className="py-2.5 px-3 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-colors"
+          >
+            <option value="ALL">Todos los estados</option>
+            <option value="ACTIVE">Activos</option>
+            <option value="EXPIRED">Expirados</option>
+            <option value="SUSPENDED">Suspendidos</option>
+          </select>
+        </div>
+
         {/* Lista de negocios */}
         <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl overflow-hidden">
-          <div className="px-5 py-4 border-b border-[var(--color-outline-variant)]">
+          <div className="px-5 py-4 border-b border-[var(--color-outline-variant)] flex items-center justify-between">
             <h2 className="font-headline-sm text-headline-sm text-[var(--color-on-surface)]">Negocios registrados</h2>
+            <span className="text-[12px] text-[var(--color-on-surface-variant)]">{filteredBusinesses.length} de {businesses.length}</span>
           </div>
 
           {loading ? (
             <div className="flex items-center justify-center py-16">
               <div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
             </div>
-          ) : businesses.length === 0 ? (
-            <p className="text-center text-body-md text-[var(--color-on-surface-variant)] py-12">Sin negocios registrados.</p>
+          ) : filteredBusinesses.length === 0 ? (
+            <p className="text-center text-body-md text-[var(--color-on-surface-variant)] py-12">
+              {businesses.length === 0 ? "Sin negocios registrados." : "No hay resultados para esta búsqueda."}
+            </p>
           ) : (
             <div className="divide-y divide-[var(--color-outline-variant)]">
-              {businesses.map((b) => (
+              {filteredBusinesses.map((b) => (
                 <button
                   key={b.id}
                   onClick={() => router.push(`/admin/negocios/${b.id}`)}
