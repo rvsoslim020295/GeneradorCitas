@@ -111,6 +111,9 @@ settings.patch("/agenda", async (c) => {
     operatingDays: z.array(z.string()).optional(),
     openTime: z.string().optional(),
     closeTime: z.string().optional(),
+    waTplConfirmation: z.string().optional(),
+    waTplReminder: z.string().optional(),
+    waTplPayment: z.string().optional(),
   });
 
   const parsed = schema.safeParse(body);

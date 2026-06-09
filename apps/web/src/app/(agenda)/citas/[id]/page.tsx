@@ -14,6 +14,7 @@ import {
   useAppointment,
   useUpdateAppointmentStatus,
   useRegisterDeposit,
+  useSettings,
 } from "@/lib/api/hooks";
 
 type AppointmentStatus = "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "NO_SHOW" | "RESCHEDULED";
@@ -42,11 +43,27 @@ function getInitials(name: string) {
   return name.split(" ").slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
 
-function buildWhatsAppUrl(phone: string | null): string | null {
+const DEFAULT_TEMPLATES = {
+  confirmation: `Hola {cliente}, ✅ tu cita está confirmada en {negocio}.\n\n📅 {fecha} a las {hora}\n✂️ {servicio} con {colaborador}\n💰 S/{precio}\n\n¡Te esperamos!`,
+  reminder:     `Hola {cliente}, 🔔 te recordamos tu cita de mañana en {negocio}.\n\n📅 {fecha} a las {hora}\n✂️ {servicio} con {colaborador}\n\nSi necesitas reagendar escríbenos. ¡Hasta mañana!`,
+  payment:      `Hola {cliente}, 💳 tu servicio de {servicio} quedó pendiente de pago.\n\n💰 Total: S/{precio}\n📍 {negocio}\n\nPor favor acércate a cancelar cuando puedas. ¡Gracias!`,
+};
+
+function buildWaMessage(
+  template: string | null | undefined,
+  defaultTpl: string,
+  vars: Record<string, string>,
+): string {
+  const tpl = template || defaultTpl;
+  return Object.entries(vars).reduce((msg, [k, v]) => msg.replaceAll(k, v), tpl);
+}
+
+function buildWhatsAppUrl(phone: string | null, message?: string): string | null {
   if (!phone) return null;
   const digits = phone.replace(/\D/g, "");
   const number = digits.startsWith("51") ? digits : `51${digits}`;
-  return `https://wa.me/${number}`;
+  const base = `https://wa.me/${number}`;
+  return message ? `${base}?text=${encodeURIComponent(message)}` : base;
 }
 
 export default function CitaDetailPage() {
@@ -65,6 +82,7 @@ export default function CitaDetailPage() {
   const [depositCustom, setDepositCustom] = useState("");
 
   const { data: appointment, isLoading } = useAppointment(id);
+  const { data: settings } = useSettings();
   const updateStatus = useUpdateAppointmentStatus();
   const registerDeposit = useRegisterDeposit();
 
@@ -116,7 +134,21 @@ export default function CitaDetailPage() {
   }
 
   const status = appointment ? statusConfig[appointment.status] : null;
-  const whatsappUrl = appointment ? buildWhatsAppUrl(appointment.client.phone) : null;
+
+  // WhatsApp URLs con mensajes pre-llenados
+  const waVars = appointment ? {
+    "{cliente}":     appointment.client.name,
+    "{negocio}":     settings?.name ?? "el negocio",
+    "{fecha}":       new Date(appointment.startTime).toLocaleDateString("es-PE", { weekday: "long", day: "numeric", month: "long" }),
+    "{hora}":        formatTime(appointment.startTime),
+    "{servicio}":    appointment.service.name,
+    "{colaborador}": appointment.collaborator.name,
+    "{precio}":      appointment.price.toFixed(2),
+  } : null;
+
+  const waConfirmationUrl = waVars ? buildWhatsAppUrl(appointment!.client.phone, buildWaMessage(settings?.waTplConfirmation, DEFAULT_TEMPLATES.confirmation, waVars)) : null;
+  const waReminderUrl     = waVars ? buildWhatsAppUrl(appointment!.client.phone, buildWaMessage(settings?.waTplReminder,     DEFAULT_TEMPLATES.reminder,     waVars)) : null;
+  const waPaymentUrl      = waVars ? buildWhatsAppUrl(appointment!.client.phone, buildWaMessage(settings?.waTplPayment,      DEFAULT_TEMPLATES.payment,      waVars)) : null;
   const depositAmount =
     appointment && depositMode === "percent"
       ? appointment.price * (depositPercent / 100)
@@ -220,24 +252,26 @@ export default function CitaDetailPage() {
                       </p>
                     </div>
                   </div>
-                  <div className="flex gap-2">
-                    {whatsappUrl ? (
-                      <a
-                        href={whatsappUrl}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="w-10 h-10 rounded-full bg-[var(--color-surface-container-low)] hover:bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] flex items-center justify-center text-[var(--color-primary)] transition-colors shadow-sm"
-                        title="Enviar WhatsApp"
-                      >
-                        <MessageSquare size={18} strokeWidth={1.5} />
-                      </a>
-                    ) : (
-                      <button
-                        disabled
-                        className="w-10 h-10 rounded-full bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)] flex items-center justify-center text-[var(--color-outline)] opacity-40 cursor-not-allowed"
-                      >
-                        <MessageSquare size={18} strokeWidth={1.5} />
-                      </button>
+                  {/* Botones WhatsApp contextuales */}
+                  <div className="flex flex-wrap gap-2">
+                    {([
+                      { url: waConfirmationUrl, label: "Confirmación", emoji: "✅" },
+                      { url: waReminderUrl,     label: "Recordatorio", emoji: "🔔" },
+                      { url: waPaymentUrl,      label: "Cobro",        emoji: "💳" },
+                    ] as const).map(({ url, label, emoji }) =>
+                      url ? (
+                        <a key={label} href={url} target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-emerald-50 border border-emerald-200 text-emerald-700 text-[11px] font-semibold hover:bg-emerald-100 transition-colors shadow-sm"
+                          title={`Enviar mensaje de ${label} por WhatsApp`}>
+                          <MessageSquare size={12} strokeWidth={2} />
+                          {emoji} {label}
+                        </a>
+                      ) : (
+                        <span key={label} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-[var(--color-surface-container-low)] border border-[var(--color-outline-variant)] text-[var(--color-outline)] text-[11px] font-semibold opacity-40 cursor-not-allowed">
+                          <MessageSquare size={12} strokeWidth={2} />
+                          {emoji} {label}
+                        </span>
+                      )
                     )}
                   </div>
                 </div>

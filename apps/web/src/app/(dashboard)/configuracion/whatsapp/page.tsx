@@ -1,38 +1,109 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Link from "next/link";
-import { ArrowLeft, MessageCircle, Clock, FileText, Timer, CheckCircle } from "lucide-react";
+import { ArrowLeft, MessageCircle, FileText, CheckCircle, Copy, Info } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
+import { useSettings, useUpdateSettings } from "@/lib/api/hooks";
 
-const INITIAL_TEMPLATES = {
-  reminder: `"Hola [Nombre del Cliente], te recordamos tu cita en GlowManager el [Fecha] a las [Hora]..."`,
-  confirmation: `"¡Confirmado! Tu cita con [Nombre del Colaborador] para [Servicio] está agendada para [Fecha]..."`,
+const DEFAULT_TEMPLATES = {
+  confirmation: `Hola {cliente}, ✅ tu cita está confirmada en {negocio}.
+
+📅 {fecha} a las {hora}
+✂️ {servicio} con {colaborador}
+💰 S/{precio}
+
+¡Te esperamos!`,
+  reminder: `Hola {cliente}, 🔔 te recordamos tu cita de mañana en {negocio}.
+
+📅 {fecha} a las {hora}
+✂️ {servicio} con {colaborador}
+
+Si necesitas reagendar escríbenos. ¡Hasta mañana!`,
+  payment: `Hola {cliente}, 💳 tu servicio de {servicio} quedó pendiente de pago.
+
+💰 Total: S/{precio}
+📍 {negocio}
+
+Por favor acércate a cancelar cuando puedas. ¡Gracias!`,
 };
 
-function Toggle({ checked, onChange }: { checked: boolean; onChange: () => void }) {
+const VARIABLES = [
+  { key: "{cliente}",      desc: "Nombre del cliente" },
+  { key: "{negocio}",      desc: "Nombre del negocio" },
+  { key: "{fecha}",        desc: "Fecha de la cita" },
+  { key: "{hora}",         desc: "Hora de la cita" },
+  { key: "{servicio}",     desc: "Nombre del servicio" },
+  { key: "{colaborador}",  desc: "Nombre del colaborador" },
+  { key: "{precio}",       desc: "Precio del servicio" },
+];
+
+function TemplateEditor({
+  label, description, value, onChange,
+}: { label: string; description: string; value: string; onChange: (v: string) => void }) {
+  const [editing, setEditing] = useState(false);
+
   return (
-    <button onClick={onChange}
-      className={`w-11 h-6 rounded-full transition-colors relative shrink-0 ${checked ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-variant)]"}`}>
-      <span className={`absolute top-0.5 left-0.5 w-5 h-5 bg-white rounded-full shadow transition-transform ${checked ? "translate-x-5" : "translate-x-0"}`} />
-    </button>
+    <div className="space-y-2">
+      <div className="flex items-center justify-between">
+        <div>
+          <h3 className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">{label}</h3>
+          <p className="text-[11px] text-[var(--color-on-surface-variant)] mt-0.5">{description}</p>
+        </div>
+        <button onClick={() => setEditing(v => !v)}
+          className="text-[11px] font-semibold text-[var(--color-primary)] hover:underline px-2 py-1">
+          {editing ? "✓ Listo" : "✏ Editar"}
+        </button>
+      </div>
+
+      {editing ? (
+        <textarea
+          value={value}
+          onChange={e => onChange(e.target.value)}
+          rows={5}
+          className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-primary)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 resize-none font-mono text-[13px]"
+        />
+      ) : (
+        <div className="bg-[var(--color-surface-container-low)] rounded-lg p-3 text-[13px] text-[var(--color-on-surface-variant)] whitespace-pre-wrap font-mono border border-[var(--color-outline-variant)]/40">
+          {value}
+        </div>
+      )}
+    </div>
   );
 }
 
 export default function WhatsAppConfigPage() {
-  const [reminder24h, setReminder24h] = useState(true);
-  const [reminder2h, setReminder2h] = useState(false);
-  const [businessHoursOnly, setBusinessHoursOnly] = useState(true);
-  const [reminderTemplate, setReminderTemplate] = useState(INITIAL_TEMPLATES.reminder);
-  const [confirmationTemplate, setConfirmationTemplate] = useState(INITIAL_TEMPLATES.confirmation);
-  const [editingReminder, setEditingReminder] = useState(false);
-  const [editingConfirmation, setEditingConfirmation] = useState(false);
-  const [saved, setSaved] = useState(false);
+  const { data: settings, isLoading } = useSettings();
+  const updateSettings = useUpdateSettings();
 
-  function handleSaveAll() {
+  const [confirmation, setConfirmation] = useState(DEFAULT_TEMPLATES.confirmation);
+  const [reminder, setReminder]         = useState(DEFAULT_TEMPLATES.reminder);
+  const [payment, setPayment]           = useState(DEFAULT_TEMPLATES.payment);
+  const [saved, setSaved] = useState(false);
+  const [copied, setCopied] = useState("");
+
+  useEffect(() => {
+    if (!settings) return;
+    if (settings.waTplConfirmation) setConfirmation(settings.waTplConfirmation);
+    if (settings.waTplReminder)     setReminder(settings.waTplReminder);
+    if (settings.waTplPayment)      setPayment(settings.waTplPayment);
+  }, [settings]);
+
+  async function handleSave() {
+    await updateSettings.mutateAsync({
+      waTplConfirmation: confirmation,
+      waTplReminder: reminder,
+      waTplPayment: payment,
+    } as never);
     setSaved(true);
     setTimeout(() => setSaved(false), 2500);
+  }
+
+  function copyVar(key: string) {
+    navigator.clipboard.writeText(key);
+    setCopied(key);
+    setTimeout(() => setCopied(""), 1500);
   }
 
   return (
@@ -43,146 +114,100 @@ export default function WhatsAppConfigPage() {
         <div className="flex-1 overflow-y-auto pt-16" style={{ scrollbarWidth: "thin" }}>
           <div className="max-w-2xl mx-auto px-6 py-6 space-y-6">
 
-            {/* Header */}
             <div className="flex items-center gap-3">
               <Link href="/configuracion" className="p-2 text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)] rounded-full transition-colors">
                 <ArrowLeft size={20} strokeWidth={1.5} />
               </Link>
-              <h1 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Notificaciones WhatsApp</h1>
+              <div>
+                <h1 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Notificaciones WhatsApp</h1>
+                <p className="text-[12px] text-[var(--color-on-surface-variant)]">Mensajes manuales via wa.me — sin costo, sin API externa</p>
+              </div>
             </div>
 
             {saved && (
               <div className="flex items-center gap-2 bg-emerald-50 border border-emerald-200 text-emerald-700 rounded-lg px-4 py-3 text-body-md">
                 <CheckCircle size={16} strokeWidth={1.5} />
-                Configuración guardada
+                Plantillas guardadas correctamente
               </div>
             )}
 
-            {/* Connection Status */}
-            <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-3">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
-                    <MessageCircle size={20} className="text-emerald-600" strokeWidth={1.5} />
-                  </div>
-                  <div>
-                    <h2 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Estado de Conexión</h2>
-                    <div className="flex items-center gap-1.5 text-body-md text-emerald-600 mt-0.5">
-                      <div className="w-2 h-2 rounded-full bg-emerald-500" />
-                      Conectado
-                    </div>
-                  </div>
-                </div>
-                <button className="text-label-md font-semibold text-[var(--color-error)] border border-[var(--color-error)]/30 px-3 py-1.5 rounded-lg hover:bg-[var(--color-error-container)]/20 transition-colors">
-                  Desconectar
-                </button>
+            {/* Cómo funciona */}
+            <section className="bg-[var(--color-primary-container)]/10 border border-[var(--color-primary)]/20 rounded-xl p-4 flex gap-3">
+              <Info size={18} className="text-[var(--color-primary)] shrink-0 mt-0.5" strokeWidth={1.5} />
+              <div className="space-y-1">
+                <p className="text-body-md font-semibold text-[var(--color-on-surface)]">¿Cómo funciona?</p>
+                <p className="text-[12px] text-[var(--color-on-surface-variant)] leading-relaxed">
+                  En cada cita encontrarás botones de WhatsApp para <strong>Confirmación</strong>, <strong>Recordatorio</strong> y <strong>Cobro pendiente</strong>.
+                  Al hacer clic se abre WhatsApp Web con el mensaje pre-llenado y los datos reales del cliente.
+                  Tú solo presionas Enviar — sin APIs ni costos.
+                </p>
               </div>
-              <p className="text-body-md text-[var(--color-on-surface-variant)]">+1 (555) 019-8372</p>
             </section>
 
-            {/* Automated Reminders */}
-            <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-4">
+            {/* Variables disponibles */}
+            <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-3">
               <div className="flex items-center gap-2">
-                <Clock size={20} className="text-[var(--color-primary)]" strokeWidth={1.5} />
-                <div>
-                  <h2 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Recordatorios Automáticos</h2>
-                  <p className="text-body-md text-[var(--color-on-surface-variant)]">Envía mensajes a tiempo para reducir ausencias.</p>
-                </div>
+                <FileText size={18} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+                <h2 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Variables disponibles</h2>
               </div>
-
-              <div className="space-y-3">
-                {[
-                  { label: "24 horas antes", detail: "Ideal para permitir cancelaciones a tiempo.", value: reminder24h, toggle: () => setReminder24h(!reminder24h) },
-                  { label: "2 horas antes", detail: "Recordatorio final para la cita próxima.", value: reminder2h, toggle: () => setReminder2h(!reminder2h) },
-                ].map((item) => (
-                  <div key={item.label} className="flex items-start justify-between gap-3 py-2 border-b border-[var(--color-outline-variant)]/40 last:border-0">
-                    <div>
-                      <p className="text-body-md font-semibold text-[var(--color-on-surface)]">{item.label}</p>
-                      <p className="text-body-md text-[var(--color-on-surface-variant)] text-[12px]">{item.detail}</p>
-                    </div>
-                    <Toggle checked={item.value} onChange={item.toggle} />
-                  </div>
+              <p className="text-[12px] text-[var(--color-on-surface-variant)]">Clic en una variable para copiarla al portapapeles.</p>
+              <div className="flex flex-wrap gap-2">
+                {VARIABLES.map(v => (
+                  <button key={v.key} onClick={() => copyVar(v.key)} title={v.desc}
+                    className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[12px] font-mono font-semibold transition-colors ${
+                      copied === v.key
+                        ? "bg-emerald-50 border-emerald-300 text-emerald-700"
+                        : "bg-[var(--color-surface-container-low)] border-[var(--color-outline-variant)] text-[var(--color-primary)] hover:bg-[var(--color-primary-container)]/20"
+                    }`}>
+                    {copied === v.key ? <CheckCircle size={11} /> : <Copy size={11} />}
+                    {v.key}
+                    <span className="text-[10px] font-normal text-[var(--color-on-surface-variant)] font-sans">{v.desc}</span>
+                  </button>
                 ))}
               </div>
             </section>
 
-            {/* Message Templates */}
-            <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-5">
+            {/* Plantillas */}
+            <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-6">
               <div className="flex items-center gap-2">
-                <FileText size={20} className="text-[var(--color-primary)]" strokeWidth={1.5} />
-                <div>
-                  <h2 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Plantillas de Mensajes</h2>
-                  <p className="text-body-md text-[var(--color-on-surface-variant)]">Personaliza lo que ven tus clientes.</p>
-                </div>
+                <MessageCircle size={18} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+                <h2 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Plantillas de mensajes</h2>
               </div>
 
-              {/* Appointment Reminder */}
-              <div className="space-y-2">
-                <h3 className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Recordatorio de Cita</h3>
-                {editingReminder ? (
-                  <div className="space-y-2">
-                    <textarea value={reminderTemplate} onChange={(e) => setReminderTemplate(e.target.value)} rows={3}
-                      className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-primary)] rounded-lg px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 resize-none" />
-                    <button onClick={() => setEditingReminder(false)}
-                      className="text-label-md font-semibold text-[var(--color-primary)] flex items-center gap-1 hover:underline">
-                      ✓ Guardar
-                    </button>
-                  </div>
-                ) : (
-                  <div className="bg-[var(--color-surface-container-low)] rounded-lg p-3 text-body-md text-[var(--color-on-surface-variant)] italic">
-                    {reminderTemplate}
-                    <button onClick={() => setEditingReminder(true)}
-                      className="mt-2 flex items-center gap-1 text-[var(--color-primary)] text-label-md font-semibold not-italic hover:underline">
-                      ✏ Editar
-                    </button>
-                  </div>
-                )}
-              </div>
-
-              {/* Booking Confirmation */}
-              <div className="space-y-2">
-                <h3 className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Confirmación de Cita</h3>
-                {editingConfirmation ? (
-                  <div className="space-y-2">
-                    <textarea value={confirmationTemplate} onChange={(e) => setConfirmationTemplate(e.target.value)} rows={3}
-                      className="w-full bg-[var(--color-surface-container-lowest)] border border-[var(--color-primary)] rounded-lg px-3 py-2 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)]/20 resize-none" />
-                    <button onClick={() => setEditingConfirmation(false)}
-                      className="text-label-md font-semibold text-[var(--color-primary)] flex items-center gap-1 hover:underline">
-                      ✓ Guardar
-                    </button>
-                  </div>
-                ) : (
-                  <div className="bg-[var(--color-surface-container-low)] rounded-lg p-3 text-body-md text-[var(--color-on-surface-variant)] italic">
-                    {confirmationTemplate}
-                    <button onClick={() => setEditingConfirmation(true)}
-                      className="mt-2 flex items-center gap-1 text-[var(--color-primary)] text-label-md font-semibold not-italic hover:underline">
-                      ✏ Editar
-                    </button>
-                  </div>
-                )}
-              </div>
+              {isLoading ? (
+                <p className="text-body-md text-[var(--color-on-surface-variant)]">Cargando...</p>
+              ) : (
+                <>
+                  <TemplateEditor
+                    label="✅ Confirmación de cita"
+                    description="Se envía al agendar o confirmar una cita."
+                    value={confirmation}
+                    onChange={setConfirmation}
+                  />
+                  <div className="border-t border-[var(--color-outline-variant)]/40" />
+                  <TemplateEditor
+                    label="🔔 Recordatorio"
+                    description="Para recordar la cita del día siguiente."
+                    value={reminder}
+                    onChange={setReminder}
+                  />
+                  <div className="border-t border-[var(--color-outline-variant)]/40" />
+                  <TemplateEditor
+                    label="💳 Cobro pendiente"
+                    description="Cuando el servicio se completó pero no se cobró."
+                    value={payment}
+                    onChange={setPayment}
+                  />
+                </>
+              )}
             </section>
 
-            {/* Timing & Logic */}
-            <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5">
-              <div className="flex items-center gap-2 mb-4">
-                <Timer size={20} className="text-[var(--color-primary)]" strokeWidth={1.5} />
-                <div>
-                  <h2 className="text-body-lg font-semibold text-[var(--color-on-surface)]">Horario de Envío</h2>
-                </div>
-              </div>
-              <div className="flex items-start justify-between gap-3">
-                <div>
-                  <p className="text-body-md font-semibold text-[var(--color-on-surface)]">Enviar solo en horario de negocio</p>
-                  <p className="text-body-md text-[var(--color-on-surface-variant)] text-[12px]">Evita que los mensajes se envíen de madrugada.</p>
-                </div>
-                <Toggle checked={businessHoursOnly} onChange={() => setBusinessHoursOnly(!businessHoursOnly)} />
-              </div>
-            </section>
-
-            <button onClick={handleSaveAll}
-              className="w-full bg-[var(--color-primary)] text-[var(--color-on-primary)] text-headline-sm font-semibold py-4 rounded-xl hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors shadow-md active:scale-[0.98] mb-4">
-              Guardar Cambios
+            <button
+              onClick={handleSave}
+              disabled={updateSettings.isPending}
+              className="w-full bg-[var(--color-primary)] text-[var(--color-on-primary)] text-headline-sm font-semibold py-4 rounded-xl hover:bg-[var(--color-on-primary-fixed-variant)] transition-colors shadow-md active:scale-[0.98] mb-4 disabled:opacity-60"
+            >
+              {updateSettings.isPending ? "Guardando..." : "Guardar Plantillas"}
             </button>
           </div>
         </div>

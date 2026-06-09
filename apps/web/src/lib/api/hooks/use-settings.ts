@@ -12,6 +12,9 @@ export type Settings = {
   operatingDays: string[];
   openTime: string;
   closeTime: string;
+  waTplConfirmation: string | null;
+  waTplReminder: string | null;
+  waTplPayment: string | null;
 };
 
 export const settingsKeys = {
