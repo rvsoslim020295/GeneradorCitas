@@ -202,8 +202,8 @@ export default function PlanesPage() {
 
       {/* Modal de pago */}
       {selectedPlan && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm">
-          <div className="bg-[var(--color-surface-container-lowest)] rounded-2xl p-4 w-full max-w-sm mx-4 shadow-xl space-y-3">
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4">
+          <div className="bg-[var(--color-surface-container-lowest)] rounded-2xl p-4 w-full max-w-sm shadow-xl space-y-3 max-h-[90vh] overflow-y-auto" style={{ scrollbarWidth: "none" }}>
             {/* Header modal */}
             <div className="flex items-center justify-between">
               <div>
@@ -222,13 +222,14 @@ export default function PlanesPage() {
 
             {/* QR */}
             <div className="flex flex-col items-center gap-2">
-              <div className="bg-white rounded-xl p-3 shadow-sm border border-[var(--color-outline-variant)]">
+              <div className="bg-white rounded-xl border border-[var(--color-outline-variant)] overflow-hidden w-full" style={{ height: 200 }}>
                 <Image
                   src="/qr-plin.jpeg"
-                  alt="QR Plin - Edgar Russbel Huaman Ramos"
-                  width={240}
-                  height={240}
-                  className="rounded-lg"
+                  alt="QR Plin"
+                  width={380}
+                  height={600}
+                  className="w-full object-cover"
+                  style={{ objectPosition: "center 42%", height: 200 }}
                 />
               </div>
               <div className="text-center">
