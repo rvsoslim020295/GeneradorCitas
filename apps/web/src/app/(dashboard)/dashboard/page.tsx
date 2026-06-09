@@ -47,13 +47,15 @@ export default function DashboardPage() {
 
   const now = new Date();
 
+  const INACTIVE = ["CANCELLED", "NO_SHOW", "RESCHEDULED"] as const;
+
   const todayApts = appointments.filter(a => {
     const d = new Date(a.startTime);
-    return d.toDateString() === now.toDateString();
+    return d.toDateString() === now.toDateString() && !INACTIVE.includes(a.status as typeof INACTIVE[number]);
   });
 
   const nextApt = appointments
-    .filter(a => new Date(a.startTime) >= now && !["CANCELLED", "NO_SHOW", "COMPLETED"].includes(a.status))
+    .filter(a => new Date(a.startTime) >= now && !["CANCELLED", "NO_SHOW", "COMPLETED", "RESCHEDULED"].includes(a.status))
     .sort((a, b) => new Date(a.startTime).getTime() - new Date(b.startTime).getTime())[0] ?? null;
 
   const pending   = appointments.filter(a => a.status === "PENDING").length;
