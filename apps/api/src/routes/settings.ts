@@ -108,6 +108,7 @@ settings.patch("/agenda", async (c) => {
   const schema = z.object({
     slotMinutes: z.number().int().positive().optional(),
     cancellationHours: z.number().int().nonnegative().optional(),
+    reschedulingHours: z.number().int().nonnegative().optional(),
     operatingDays: z.array(z.string()).optional(),
     openTime: z.string().optional(),
     closeTime: z.string().optional(),

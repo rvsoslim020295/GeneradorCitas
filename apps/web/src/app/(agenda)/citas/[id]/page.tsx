@@ -94,7 +94,13 @@ export default function CitaDetailPage() {
         setTimeout(() => router.push("/agenda"), 800);
       }
     } catch (err: unknown) {
-      setActionError(err instanceof Error ? err.message : "No se pudo actualizar la cita.");
+      const raw = err instanceof Error ? err.message : "No se pudo actualizar la cita.";
+      try {
+        const body = JSON.parse(raw);
+        setActionError(body.error ?? raw);
+      } catch {
+        setActionError(raw);
+      }
     }
   }
 

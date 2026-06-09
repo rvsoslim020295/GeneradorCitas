@@ -32,6 +32,7 @@ model Business {
   timezone            String     @default("America/Mexico_City")
   slotMinutes         Int        @default(30)
   cancellationHours   Int        @default(24)
+  reschedulingHours  Int        @default(12)
   operatingDays       String[]   @default(["Mon","Tue","Wed","Thu","Fri"])
   openTime            String     @default("09:00")
   closeTime           String     @default("18:00")

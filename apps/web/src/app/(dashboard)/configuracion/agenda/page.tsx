@@ -41,6 +41,7 @@ function fmt12(time: string) {
 
 type BusinessSettings = {
   cancellationHours: number;
+  reschedulingHours: number;
   operatingDays: string[];
   openTime: string;
   closeTime: string;
@@ -53,6 +54,7 @@ export default function AgendaConfigPage() {
   const [initialized, setInitialized] = useState(false);
 
   const [cancellationHours, setCancellationHours] = useState(24);
+  const [reschedulingHours, setReschedulingHours] = useState(12);
   const [operatingDays, setOperatingDays] = useState<string[]>(["Mon", "Tue", "Wed", "Thu", "Fri"]);
   const [openTime, setOpenTime] = useState("09:00");
   const [closeTime, setCloseTime] = useState("18:00");
@@ -66,6 +68,7 @@ export default function AgendaConfigPage() {
     if (settings?.business && !initialized) {
       const b = settings.business;
       setCancellationHours(b.cancellationHours ?? 24);
+      setReschedulingHours(b.reschedulingHours ?? 12);
       setOperatingDays(b.operatingDays ?? ["Mon", "Tue", "Wed", "Thu", "Fri"]);
       setOpenTime(b.openTime ?? "09:00");
       setCloseTime(b.closeTime ?? "18:00");
@@ -95,7 +98,7 @@ export default function AgendaConfigPage() {
       setFeedback({ type: "error", msg: "La hora de apertura debe ser anterior a la hora de cierre." });
       return;
     }
-    saveMutation.mutate({ cancellationHours, operatingDays, openTime, closeTime });
+    saveMutation.mutate({ cancellationHours, reschedulingHours, operatingDays, openTime, closeTime });
   }
 
   const saving = saveMutation.isPending;
@@ -237,13 +240,36 @@ export default function AgendaConfigPage() {
                 <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Política de Cancelación</h2>
               </div>
               <p className="text-body-md text-[var(--color-on-surface-variant)]">
-                Horas mínimas de anticipación que requiere un cliente para cancelar o reagendar.
+                Horas mínimas de anticipación para cancelar una cita. Si se intenta cancelar dentro de ese plazo, el sistema lo bloqueará.
               </p>
               <div>
-                <label className={labelClass}>Horas de anticipación</label>
-                <input type="number" min={0} max={168} value={cancellationHours}
-                  onChange={(e) => setCancellationHours(Number(e.target.value))}
-                  className="w-32 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                <label className={labelClass}>Horas de anticipación para cancelar</label>
+                <div className="flex items-center gap-3">
+                  <input type="number" min={0} max={168} value={cancellationHours}
+                    onChange={(e) => setCancellationHours(Number(e.target.value))}
+                    className="w-32 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                  <span className="text-body-md text-[var(--color-on-surface-variant)]">
+                    {cancellationHours === 0 ? "Sin restricción" : `${cancellationHours} h antes de la cita`}
+                  </span>
+                </div>
+              </div>
+
+              <div className="border-t border-[var(--color-outline-variant)]/40 pt-4 space-y-3">
+                <h3 className="text-body-md font-semibold text-[var(--color-on-surface)]">Política de Reagendamiento</h3>
+                <p className="text-body-md text-[var(--color-on-surface-variant)]">
+                  Horas mínimas de anticipación para reagendar una cita. Puede ser distinto al de cancelación.
+                </p>
+                <div>
+                  <label className={labelClass}>Horas de anticipación para reagendar</label>
+                  <div className="flex items-center gap-3">
+                    <input type="number" min={0} max={168} value={reschedulingHours}
+                      onChange={(e) => setReschedulingHours(Number(e.target.value))}
+                      className="w-32 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all" />
+                    <span className="text-body-md text-[var(--color-on-surface-variant)]">
+                      {reschedulingHours === 0 ? "Sin restricción" : `${reschedulingHours} h antes de la cita`}
+                    </span>
+                  </div>
+                </div>
               </div>
             </section>
 
