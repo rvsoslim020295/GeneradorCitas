@@ -2,18 +2,41 @@
 
 import { useState, useMemo } from "react";
 import Link from "next/link";
-import { Search, UserPlus, RefreshCw, AlertCircle, Copy } from "lucide-react";
+import { Search, UserPlus, RefreshCw, AlertCircle, Copy, Merge, X, Check } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
 import { ClientCard } from "./_components/client-card";
 import { useClients } from "@/lib/api/hooks";
 import { useDebounce } from "@/lib/hooks/use-debounce";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api/client";
+
+type Client = { id: string; name: string; lastName: string | null; phone: string | null; totalVisits: number; totalSpent: number };
 
 export default function ClientesPage() {
   const [search, setSearch] = useState("");
   const debouncedSearch = useDebounce(search, 300);
+  const [mergeGroup, setMergeGroup] = useState<Client[] | null>(null);
+  const [keepId, setKeepId] = useState<string>("");
+  const qc = useQueryClient();
 
   const { data: clients = [], isLoading, error } = useClients(debouncedSearch || undefined);
+
+  const merge = useMutation({
+    mutationFn: ({ keepId, deleteId }: { keepId: string; deleteId: string }) =>
+      apiFetch("/clients/merge", { method: "POST", body: JSON.stringify({ keepId, deleteId }) }),
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ["clients"] });
+      setMergeGroup(null);
+      setKeepId("");
+    },
+  });
+
+  function openMerge(name: string) {
+    const group = clients.filter(c => `${c.name} ${c.lastName ?? ""}`.trim().toLowerCase() === name);
+    setMergeGroup(group);
+    setKeepId(group[0]?.id ?? "");
+  }
 
   // Detectar nombres duplicados (misma combinación nombre+apellido, ignorando mayúsculas)
   const duplicateNames = useMemo(() => {
@@ -89,13 +112,23 @@ export default function ClientesPage() {
             )}
 
             {!isLoading && !error && duplicateNames.size > 0 && (
-              <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 mb-2 text-body-md text-amber-600 dark:text-amber-400">
-                <Copy size={16} strokeWidth={1.5} className="shrink-0 mt-0.5" />
-                <span>
-                  <span className="font-semibold">Posibles duplicados detectados: </span>
-                  {Array.from(duplicateNames).map(n => n.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ")).join(", ")}.
-                  Revisa y elimina el registro incorrecto.
-                </span>
+              <div className="bg-amber-500/10 border border-amber-500/30 rounded-xl px-4 py-3 mb-2 space-y-2">
+                <div className="flex items-center gap-2 text-body-md text-amber-600">
+                  <Copy size={16} strokeWidth={1.5} className="shrink-0" />
+                  <span className="font-semibold">Posibles duplicados detectados</span>
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {Array.from(duplicateNames).map(name => {
+                    const label = name.split(" ").map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+                    return (
+                      <button key={name} onClick={() => openMerge(name)}
+                        className="flex items-center gap-1.5 text-label-md font-semibold text-amber-700 bg-amber-100 border border-amber-300 px-3 py-1.5 rounded-lg hover:bg-amber-200 transition-colors">
+                        <Merge size={13} strokeWidth={2} />
+                        Fusionar: {label}
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
             )}
 
@@ -124,6 +157,63 @@ export default function ClientesPage() {
           </span>
         </Link>
       </main>
+
+      {/* Modal fusionar duplicados */}
+      {mergeGroup && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-[var(--color-surface-container-lowest)] rounded-2xl shadow-2xl w-full max-w-md mx-4 p-6 space-y-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Merge size={18} className="text-amber-600" strokeWidth={1.5} />
+                <h3 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Fusionar clientes duplicados</h3>
+              </div>
+              <button onClick={() => setMergeGroup(null)} className="text-[var(--color-outline)] hover:text-[var(--color-on-surface)] transition-colors">
+                <X size={18} strokeWidth={1.5} />
+              </button>
+            </div>
+
+            <p className="text-body-md text-[var(--color-on-surface-variant)]">
+              Selecciona el registro que quieres <span className="font-semibold text-[var(--color-on-surface)]">conservar</span>. Las citas del otro se moverán a este y el duplicado será eliminado.
+            </p>
+
+            <div className="space-y-2">
+              {mergeGroup.map((c) => (
+                <button key={c.id} onClick={() => setKeepId(c.id)}
+                  className={`w-full flex items-center gap-3 p-3 rounded-xl border-2 transition-all text-left ${keepId === c.id ? "border-[var(--color-primary)] bg-[var(--color-primary-container)]/10" : "border-[var(--color-outline-variant)] hover:border-[var(--color-primary)]/40"}`}>
+                  <div className={`w-8 h-8 rounded-full flex items-center justify-center text-label-md font-bold shrink-0 ${keepId === c.id ? "bg-[var(--color-primary)] text-[var(--color-on-primary)]" : "bg-[var(--color-surface-container-high)] text-[var(--color-on-surface-variant)]"}`}>
+                    {keepId === c.id ? <Check size={14} strokeWidth={2.5} /> : c.name[0].toUpperCase()}
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-body-md font-semibold text-[var(--color-on-surface)]">{c.name}{c.lastName ? ` ${c.lastName}` : ""}</p>
+                    <p className="text-[12px] text-[var(--color-on-surface-variant)]">{c.phone ?? "Sin teléfono"} · {c.totalVisits} visita{c.totalVisits !== 1 ? "s" : ""} · S/{c.totalSpent.toLocaleString("es-PE")}</p>
+                  </div>
+                  {keepId === c.id && <span className="text-[11px] font-semibold text-[var(--color-primary)] bg-[var(--color-primary-container)]/20 px-2 py-0.5 rounded-full shrink-0">Conservar</span>}
+                </button>
+              ))}
+            </div>
+
+            <div className="bg-amber-50 border border-amber-200 rounded-lg px-3 py-2 text-[12px] text-amber-700">
+              ⚠ El registro no seleccionado será <strong>eliminado permanentemente</strong> junto con sus datos de contacto. Sus citas pasarán al registro conservado.
+            </div>
+
+            <div className="flex gap-2 pt-1">
+              <button onClick={() => setMergeGroup(null)}
+                className="flex-1 py-2.5 rounded-lg border border-[var(--color-outline-variant)] text-body-md font-semibold text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)] transition-colors">
+                Cancelar
+              </button>
+              <button
+                onClick={() => {
+                  const deleteId = mergeGroup.find(c => c.id !== keepId)?.id;
+                  if (deleteId) merge.mutate({ keepId, deleteId });
+                }}
+                disabled={!keepId || merge.isPending}
+                className="flex-1 py-2.5 rounded-lg bg-amber-600 hover:bg-amber-700 text-white text-body-md font-semibold transition-colors disabled:opacity-60">
+                {merge.isPending ? "Fusionando..." : "Fusionar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </>
   );
 }
