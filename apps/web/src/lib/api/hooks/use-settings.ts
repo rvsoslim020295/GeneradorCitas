@@ -16,6 +16,8 @@ export type Settings = {
   waTplConfirmation: string | null;
   waTplReminder: string | null;
   waTplPayment: string | null;
+  reminderEnabled: boolean;
+  reminder2hEnabled: boolean;
 };
 
 export const settingsKeys = {
