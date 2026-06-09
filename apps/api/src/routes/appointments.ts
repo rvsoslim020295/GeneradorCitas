@@ -39,13 +39,19 @@ const appointmentInclude = {
 
 // ─── GET /appointments ────────────────────────────────────────────────────────
 // Acepta ?search= para filtrar por nombre de cliente o servicio
+// Si el usuario es COLLABORATOR con collaboratorId vinculado, solo ve sus propias citas
 appointments.get("/", async (c) => {
-  const { businessId } = c.get("user");
+  const { businessId, role, collaboratorId } = c.get("user");
   const search = c.req.query("search")?.trim() ?? "";
+
+  const ownFilter = role === "COLLABORATOR" && collaboratorId
+    ? { collaboratorId }
+    : {};
 
   const data = await prisma.appointment.findMany({
     where: {
       businessId,
+      ...ownFilter,
       ...(search && {
         OR: [
           { client:  { name: { contains: search, mode: "insensitive" } } },

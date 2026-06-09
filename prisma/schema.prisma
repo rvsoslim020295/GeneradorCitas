@@ -67,19 +67,21 @@ model SuperAdmin {
 
 // Un usuario pertenece a un negocio y puede ser dueño o colaborador
 model User {
-  id                     String   @id @default(cuid())
-  email                  String   @unique
+  id                     String        @id @default(cuid())
+  email                  String        @unique
   password               String
   name                   String
   lastName               String?
   dni                    String?
-  role                   Role     @default(OWNER)
-  emailVerified          Boolean  @default(false)
-  emailVerificationToken String?  @unique
+  role                   Role          @default(OWNER)
+  emailVerified          Boolean       @default(false)
+  emailVerificationToken String?       @unique
   businessId             String
-  business               Business @relation(fields: [businessId], references: [id])
-  createdAt              DateTime @default(now())
-  updatedAt              DateTime @updatedAt
+  business               Business      @relation(fields: [businessId], references: [id])
+  collaboratorId         String?       @unique
+  collaborator           Collaborator? @relation(fields: [collaboratorId], references: [id])
+  createdAt              DateTime      @default(now())
+  updatedAt              DateTime      @updatedAt
 }
 
 enum Role {
@@ -170,23 +172,24 @@ model Service {
 
 // Un colaborador es miembro del equipo del negocio
 model Collaborator {
-  id           String   @id @default(cuid())
-  name           String
-  lastName       String?
-  role           String
-  specialties    String[]
+  id               String   @id @default(cuid())
+  name             String
+  lastName         String?
+  role             String
+  specialties      String[]
   isActive         Boolean  @default(true)
   performsServices Boolean  @default(true)
-  avatarUrl      String?
-  schedule       Json?
-  documentType   String?
-  documentNumber String?
-  phone          String?
-  businessId   String
-  business     Business      @relation(fields: [businessId], references: [id])
-  appointments Appointment[]
-  createdAt    DateTime      @default(now())
-  updatedAt    DateTime      @updatedAt
+  avatarUrl        String?
+  schedule         Json?
+  documentType     String?
+  documentNumber   String?
+  phone            String?
+  businessId       String
+  business         Business      @relation(fields: [businessId], references: [id])
+  appointments     Appointment[]
+  user             User?
+  createdAt        DateTime      @default(now())
+  updatedAt        DateTime      @updatedAt
 }
 
 // Un cliente pertenece a un negocio y acumula visitas y gasto a lo largo del tiempo

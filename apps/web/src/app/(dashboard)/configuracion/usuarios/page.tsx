@@ -6,7 +6,7 @@ import Link from "next/link";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import {
   ArrowLeft, Plus, Trash2, ShieldCheck, UserCog,
-  Eye, EyeOff, AlertCircle, CheckCircle, X, ChevronDown,
+  Eye, EyeOff, AlertCircle, CheckCircle, X, ChevronDown, Link2,
 } from "lucide-react";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
@@ -46,6 +46,7 @@ export default function UsuariosSistemaPage() {
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [newRole, setNewRole] = useState<SystemRole>("ADMIN");
+  const [newCollaboratorId, setNewCollaboratorId] = useState<string>("");
   const [showPassword, setShowPassword] = useState(false);
 
   // Delete confirmation modal
@@ -61,6 +62,13 @@ export default function UsuariosSistemaPage() {
 
   // ─── Queries ────────────────────────────────────────────────────────────────
 
+  type Collaborator = { id: string; name: string; lastName: string | null };
+
+  const { data: collaborators = [] } = useQuery<Collaborator[]>({
+    queryKey: ["collaborators-list"],
+    queryFn: () => apiFetch<Collaborator[]>("/collaborators"),
+  });
+
   const { data: users = [], isLoading } = useQuery<SystemUser[]>({
     queryKey: ["system-users"],
     queryFn: () => apiFetch<SystemUser[]>("/users"),
@@ -70,11 +78,11 @@ export default function UsuariosSistemaPage() {
   });
 
   const createUser = useMutation({
-    mutationFn: (body: { name: string; email: string; password: string; role: SystemRole }) =>
+    mutationFn: (body: { name: string; email: string; password: string; role: SystemRole; collaboratorId?: string }) =>
       apiFetch<SystemUser>("/users", { method: "POST", body: JSON.stringify(body) }),
     onSuccess: (created) => {
       qc.setQueryData<SystemUser[]>(["system-users"], (prev = []) => [...prev, created]);
-      setNewName(""); setNewEmail(""); setNewPassword(""); setNewRole("ADMIN");
+      setNewName(""); setNewEmail(""); setNewPassword(""); setNewRole("ADMIN"); setNewCollaboratorId("");
       setShowForm(false);
       showMsg("success", "Usuario creado correctamente.");
     },
@@ -123,7 +131,13 @@ export default function UsuariosSistemaPage() {
       showMsg("error", "La contraseña debe tener al menos 8 caracteres.");
       return;
     }
-    createUser.mutate({ name: newName.trim(), email: newEmail.trim(), password: newPassword, role: newRole });
+    createUser.mutate({
+      name: newName.trim(),
+      email: newEmail.trim(),
+      password: newPassword,
+      role: newRole,
+      ...(newRole === "COLLABORATOR" && newCollaboratorId ? { collaboratorId: newCollaboratorId } : {}),
+    });
   }
 
   // ─── UI helpers ─────────────────────────────────────────────────────────────
@@ -257,7 +271,7 @@ export default function UsuariosSistemaPage() {
                     <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Rol</label>
                     <div className="flex gap-2">
                       {ASSIGNABLE_ROLES.map((r) => (
-                        <button key={r.value} type="button" onClick={() => setNewRole(r.value)}
+                        <button key={r.value} type="button" onClick={() => { setNewRole(r.value); setNewCollaboratorId(""); }}
                           className={`flex-1 py-2.5 px-3 rounded-lg border text-body-md font-semibold transition-all text-left ${
                             newRole === r.value
                               ? "bg-[var(--color-primary)] text-[var(--color-on-primary)] border-[var(--color-primary)]"
@@ -269,6 +283,33 @@ export default function UsuariosSistemaPage() {
                       ))}
                     </div>
                   </div>
+
+                  {newRole === "COLLABORATOR" && (
+                    <div className="col-span-2 space-y-1">
+                      <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider flex items-center gap-1">
+                        <Link2 size={12} strokeWidth={2} />
+                        Vincular a colaborador <span className="font-normal normal-case">(opcional)</span>
+                      </label>
+                      <div className="relative">
+                        <select
+                          value={newCollaboratorId}
+                          onChange={(e) => setNewCollaboratorId(e.target.value)}
+                          className="w-full appearance-none bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-lg px-3 py-2.5 pr-9 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] focus:ring-2 focus:ring-[var(--color-primary)]/20 transition-all"
+                        >
+                          <option value="">Sin vincular</option>
+                          {collaborators.map((col) => (
+                            <option key={col.id} value={col.id}>
+                              {col.name}{col.lastName ? ` ${col.lastName}` : ""}
+                            </option>
+                          ))}
+                        </select>
+                        <ChevronDown size={14} strokeWidth={2} className="pointer-events-none absolute right-3 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)]" />
+                      </div>
+                      <p className="text-[11px] text-[var(--color-on-surface-variant)]">
+                        Al vincularlo, este usuario solo verá las citas asignadas a ese colaborador.
+                      </p>
+                    </div>
+                  )}
                 </div>
 
                 <button onClick={handleCreate} disabled={createUser.isPending}

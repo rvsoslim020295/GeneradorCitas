@@ -45,7 +45,7 @@ auth.post("/login", async (c) => {
   // ── Intentar como usuario de negocio primero ──────────────────────────────
   const user = await prisma.user.findUnique({
     where: { email },
-    include: { business: true },
+    include: { business: true, collaborator: { select: { id: true } } },
   });
 
   if (user) {
@@ -57,7 +57,7 @@ auth.post("/login", async (c) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, businessId: user.businessId, role: user.role },
+      { userId: user.id, email: user.email, businessId: user.businessId, role: user.role, collaboratorId: user.collaborator?.id ?? null },
       JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -73,6 +73,7 @@ auth.post("/login", async (c) => {
         name: user.name,
         email: user.email,
         role: user.role,
+        collaboratorId: user.collaborator?.id ?? null,
         business: {
           id: user.business.id,
           name: user.business.name,
@@ -210,7 +211,7 @@ auth.get("/me", requireAuth, async (c) => {
 
   const user = await prisma.user.findUnique({
     where: { id: userId },
-    include: { business: true },
+    include: { business: true, collaborator: { select: { id: true } } },
   });
 
   if (!user) return c.json({ error: "Usuario no encontrado" }, 404);
@@ -227,6 +228,7 @@ auth.get("/me", requireAuth, async (c) => {
     name: user.name,
     email: user.email,
     role: user.role,
+    collaboratorId: user.collaborator?.id ?? null,
     business: {
       id: user.business.id,
       name: user.business.name,

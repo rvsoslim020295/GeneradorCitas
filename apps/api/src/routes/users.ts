@@ -35,8 +35,8 @@ users.post("/", async (c) => {
     name: z.string().min(2),
     email: z.string().email(),
     password: z.string().min(6),
-    // Solo OWNER puede existir un usuario con ese rol — y solo se puede crear ADMIN o COLLABORATOR
     role: z.enum(["COLLABORATOR", "ADMIN"]).default("ADMIN"),
+    collaboratorId: z.string().optional(),
   });
 
   const parsed = schema.safeParse(body);
@@ -44,6 +44,16 @@ users.post("/", async (c) => {
 
   const existing = await prisma.user.findUnique({ where: { email: parsed.data.email } });
   if (existing) return c.json({ error: "Este email ya está registrado" }, 409);
+
+  // Si se vincula un colaborador, verificar que pertenezca al negocio y no tenga usuario ya
+  if (parsed.data.collaboratorId) {
+    const collab = await prisma.collaborator.findFirst({
+      where: { id: parsed.data.collaboratorId, businessId },
+      include: { user: { select: { id: true } } },
+    });
+    if (!collab) return c.json({ error: "Colaborador no encontrado" }, 404);
+    if (collab.user) return c.json({ error: "Este colaborador ya tiene un usuario vinculado" }, 409);
+  }
 
   const hashedPassword = await bcrypt.hash(parsed.data.password, 10);
 
@@ -55,6 +65,7 @@ users.post("/", async (c) => {
       role: parsed.data.role,
       emailVerified: true,
       businessId,
+      ...(parsed.data.collaboratorId ? { collaboratorId: parsed.data.collaboratorId } : {}),
     },
     select: { id: true, name: true, email: true, role: true, emailVerified: true },
   });

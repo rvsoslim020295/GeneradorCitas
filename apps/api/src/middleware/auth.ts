@@ -8,6 +8,7 @@ export type AuthPayload = {
   email: string;
   businessId: string;
   role: string;
+  collaboratorId: string | null;
 };
 
 // Este middleware extrae y verifica el token JWT del header Authorization
