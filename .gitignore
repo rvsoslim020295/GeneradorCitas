@@ -32,5 +32,4 @@ pnpm-debug.log*
 
 # TypeScript
 *.tsbuildinfo
-pnpm-lock.yaml
 .claude/
