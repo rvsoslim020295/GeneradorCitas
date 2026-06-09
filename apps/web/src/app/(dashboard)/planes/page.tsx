@@ -15,7 +15,7 @@ const PLANS = [
   {
     key: "BASIC",
     label: "Básico",
-    price: 15,
+    price: 29,
     icon: Zap,
     color: "text-blue-600",
     border: "border-blue-200",
@@ -36,7 +36,7 @@ const PLANS = [
   {
     key: "PRO",
     label: "Pro",
-    price: 30,
+    price: 39,
     icon: Star,
     color: "text-[var(--color-primary)]",
     border: "border-[var(--color-primary)]/40",
