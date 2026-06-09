@@ -197,4 +197,95 @@ clients.delete("/:id", async (c) => {
   return c.json({ ok: true });
 });
 
+// ─── FICHAS TÉCNICAS ─────────────────────────────────────────────────────────
+
+const recordSchema = z.object({
+  date:         z.string().datetime().optional(),
+  treatment:    z.string().min(1),
+  colorFormula: z.string().optional(),
+  allergies:    z.string().optional(),
+  notes:        z.string().optional(),
+});
+
+// GET /clients/:id/records
+clients.get("/:id/records", async (c) => {
+  const { businessId } = c.get("user");
+  const { id } = c.req.param();
+
+  const client = await prisma.client.findFirst({ where: { id, businessId } });
+  if (!client) return c.json({ error: "Cliente no encontrado" }, 404);
+
+  const records = await prisma.clientRecord.findMany({
+    where: { clientId: id },
+    orderBy: { date: "desc" },
+  });
+
+  return c.json(records);
+});
+
+// POST /clients/:id/records
+clients.post("/:id/records", async (c) => {
+  const { businessId } = c.get("user");
+  const { id } = c.req.param();
+  const body = await c.req.json().catch(() => null);
+  const parsed = recordSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: "Datos inválidos" }, 400);
+
+  const client = await prisma.client.findFirst({ where: { id, businessId } });
+  if (!client) return c.json({ error: "Cliente no encontrado" }, 404);
+
+  const record = await prisma.clientRecord.create({
+    data: {
+      clientId: id,
+      treatment:    parsed.data.treatment,
+      colorFormula: parsed.data.colorFormula,
+      allergies:    parsed.data.allergies,
+      notes:        parsed.data.notes,
+      ...(parsed.data.date ? { date: new Date(parsed.data.date) } : {}),
+    },
+  });
+
+  return c.json(record, 201);
+});
+
+// PATCH /clients/:id/records/:recordId
+clients.patch("/:id/records/:recordId", async (c) => {
+  const { businessId } = c.get("user");
+  const { id, recordId } = c.req.param();
+  const body = await c.req.json().catch(() => null);
+  const parsed = recordSchema.partial().safeParse(body);
+  if (!parsed.success) return c.json({ error: "Datos inválidos" }, 400);
+
+  const client = await prisma.client.findFirst({ where: { id, businessId } });
+  if (!client) return c.json({ error: "Cliente no encontrado" }, 404);
+
+  const record = await prisma.clientRecord.findFirst({ where: { id: recordId, clientId: id } });
+  if (!record) return c.json({ error: "Ficha no encontrada" }, 404);
+
+  const updated = await prisma.clientRecord.update({
+    where: { id: recordId },
+    data: {
+      ...parsed.data,
+      ...(parsed.data.date ? { date: new Date(parsed.data.date) } : {}),
+    },
+  });
+
+  return c.json(updated);
+});
+
+// DELETE /clients/:id/records/:recordId
+clients.delete("/:id/records/:recordId", async (c) => {
+  const { businessId } = c.get("user");
+  const { id, recordId } = c.req.param();
+
+  const client = await prisma.client.findFirst({ where: { id, businessId } });
+  if (!client) return c.json({ error: "Cliente no encontrado" }, 404);
+
+  const record = await prisma.clientRecord.findFirst({ where: { id: recordId, clientId: id } });
+  if (!record) return c.json({ error: "Ficha no encontrada" }, 404);
+
+  await prisma.clientRecord.delete({ where: { id: recordId } });
+  return c.json({ ok: true });
+});
+
 export default clients;
