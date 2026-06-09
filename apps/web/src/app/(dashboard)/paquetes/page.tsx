@@ -4,14 +4,14 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
-import { usePackages, useDeletePackage } from "@/lib/api/hooks";
-import { Plus, Package, Clock, Banknote, Pencil, Trash2, ChevronRight } from "lucide-react";
+import { usePackages, useDeletePackage, type Package } from "@/lib/api/hooks";
+import { Plus, Package as PackageIcon, Clock, Banknote, Pencil, Trash2, ChevronRight } from "lucide-react";
 
-function totalDuration(pkg: ReturnType<typeof usePackages>["data"][0]) {
+function totalDuration(pkg: Package) {
   return pkg.services.reduce((sum, ps) => sum + ps.service.durationMin, 0);
 }
 
-function totalOriginalPrice(pkg: ReturnType<typeof usePackages>["data"][0]) {
+function totalOriginalPrice(pkg: Package) {
   return pkg.services.reduce((sum, ps) => sum + ps.service.price, 0);
 }
 
@@ -59,7 +59,7 @@ export default function PaquetesPage() {
             ) : packages.length === 0 ? (
               <div className="flex flex-col items-center justify-center py-20 gap-4 text-center">
                 <div className="w-16 h-16 rounded-2xl bg-[var(--color-primary-container)]/20 flex items-center justify-center">
-                  <Package size={28} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+                  <PackageIcon size={28} className="text-[var(--color-primary)]" strokeWidth={1.5} />
                 </div>
                 <div>
                   <p className="font-headline-sm text-[var(--color-on-surface)]">Sin paquetes todavía</p>
@@ -88,7 +88,7 @@ export default function PaquetesPage() {
                     >
                       {/* Icono */}
                       <div className="w-11 h-11 rounded-xl bg-[var(--color-primary-container)]/20 flex items-center justify-center shrink-0 mt-0.5">
-                        <Package size={20} className="text-[var(--color-primary)]" strokeWidth={1.5} />
+                        <PackageIcon size={20} className="text-[var(--color-primary)]" strokeWidth={1.5} />
                       </div>
 
                       {/* Info */}

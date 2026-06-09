@@ -53,6 +53,7 @@ export function useCreateAppointment() {
       endTime: string;
       price: number;
       notes?: string;
+      origin?: string;
     }) =>
       apiFetch<Appointment>("/appointments", { method: "POST", body: JSON.stringify(body) }),
     onSuccess: () => {

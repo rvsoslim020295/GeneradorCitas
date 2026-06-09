@@ -141,7 +141,7 @@ export default function CollaboratorProfilePage() {
         return { ...prev, [day]: { ...current, end: clamped } };
       }
 
-      return { ...prev, [day]: { ...current, [field]: value } };
+      return { ...prev, [day]: { ...current, [field]: value } } as Schedule;
     });
   }
 

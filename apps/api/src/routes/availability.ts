@@ -1,8 +1,8 @@
-import { Hono } from "hono";
+import { createRouter } from "../lib/hono.js";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 
-const availability = new Hono();
+const availability = createRouter();
 
 availability.use("*", requireAuth);
 

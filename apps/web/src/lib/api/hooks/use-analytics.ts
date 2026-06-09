@@ -32,6 +32,13 @@ export type AnalyticsData = {
   statusDistribution: { completed: number; pending: number; cancelled: number };
   topCollaborators: CollaboratorStat[];
   allCollaborators: CollaboratorStat[];
+  heatmap: { day: number; hour: number; count: number }[];
+  newVsRecurring: { new: number; recurring: number; newPct: number; recurringPct: number; total: number } | null;
+  bestMonth: { month: string; amount: number; appointments: number } | null;
+  topServices: { name: string; count: number; revenue: number; percentage: number }[];
+  topClients: { name: string; visits: number; revenue: number }[];
+  originBreakdown: { id: string; label: string; count: number; percentage: number }[];
+  cancellationByCollaborator: { name: string; cancelled: number; total: number; rate: number }[];
 };
 
 export const analyticsKeys = {
