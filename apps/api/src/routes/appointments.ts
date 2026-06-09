@@ -8,6 +8,16 @@ const appointments = new Hono();
 
 appointments.use("*", requireAuth);
 
+// ─── Helper: registrar evento en el historial de la cita ──────────────────────
+async function logEvent(appointmentId: string, type: string, description: string) {
+  await prisma.appointmentEvent.create({ data: { appointmentId, type, description } });
+}
+
+const STATUS_LABELS: Record<string, string> = {
+  PENDING: "Pendiente", CONFIRMED: "Confirmada", IN_PROGRESS: "En progreso",
+  COMPLETED: "Completada", CANCELLED: "Cancelada", NO_SHOW: "No se presentó", RESCHEDULED: "Reagendada",
+};
+
 const ORIGINS = ["whatsapp", "phone", "instagram", "social", "walkin"] as const;
 
 const createSchema = z.object({
@@ -212,6 +222,8 @@ appointments.post("/", async (c) => {
     include: appointmentInclude,
   });
 
+  await logEvent(appointment.id, "CREATED", "Cita creada");
+
   return c.json(appointment, 201);
 });
 
@@ -262,6 +274,10 @@ appointments.patch("/:id/status", async (c) => {
     data: { status: newStatus },
     include: appointmentInclude,
   });
+
+  await logEvent(id, "STATUS_CHANGED",
+    `Estado cambiado a ${STATUS_LABELS[newStatus] ?? newStatus}`
+  );
 
   return c.json(appointment);
 });
@@ -320,6 +336,10 @@ appointments.post("/:id/payment", async (c) => {
     return appointment;
   });
 
+  await logEvent(id, "PAYMENT_REGISTERED",
+    `Pago registrado: S/${totalWithTip.toFixed(2)} vía ${paymentMethod}`
+  );
+
   return c.json(result);
 });
 
@@ -359,7 +379,27 @@ appointments.post("/:id/deposit", async (c) => {
     include: appointmentInclude,
   });
 
+  await logEvent(id, "DEPOSIT_REGISTERED",
+    `Anticipo registrado: S/${parsed.data.depositAmount.toFixed(2)}`
+  );
+
   return c.json(appointment);
+});
+
+// ─── GET /appointments/:id/events ────────────────────────────────────────────
+appointments.get("/:id/events", async (c) => {
+  const { businessId } = c.get("user");
+  const id = c.req.param("id");
+
+  const appointment = await prisma.appointment.findFirst({ where: { id, businessId } });
+  if (!appointment) return c.json({ error: "Cita no encontrada" }, 404);
+
+  const events = await prisma.appointmentEvent.findMany({
+    where: { appointmentId: id },
+    orderBy: { createdAt: "desc" },
+  });
+
+  return c.json(events);
 });
 
 export default appointments;

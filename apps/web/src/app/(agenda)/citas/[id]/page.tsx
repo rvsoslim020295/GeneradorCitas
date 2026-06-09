@@ -16,6 +16,8 @@ import {
   useRegisterDeposit,
   useSettings,
 } from "@/lib/api/hooks";
+import { useQuery } from "@tanstack/react-query";
+import { apiFetch } from "@/lib/api/client";
 
 type AppointmentStatus = "PENDING" | "CONFIRMED" | "IN_PROGRESS" | "COMPLETED" | "CANCELLED" | "NO_SHOW" | "RESCHEDULED";
 
@@ -29,11 +31,16 @@ const statusConfig: Record<AppointmentStatus, { label: string; bg: string; dot: 
   RESCHEDULED: { label: "Reagendada",     bg: "bg-orange-50 border-orange-200",     dot: "bg-orange-500",  text: "text-orange-700" },
 };
 
-const MOCK_TIMELINE = [
-  { label: "Cita Confirmada",      detail: "Hoy, 09:15 AM • Vía WhatsApp", active: true },
-  { label: "Recordatorio enviado", detail: "Ayer, 10:00 AM • SMS Automático", active: false },
-  { label: "Cita Creada",          detail: "Hace 3 días • Por Recepción",   active: false },
-];
+type AppointmentEvent = { id: string; type: string; description: string; createdAt: string };
+
+const EVENT_ICONS: Record<string, boolean> = {
+  CREATED: false, STATUS_CHANGED: true, PAYMENT_REGISTERED: true, DEPOSIT_REGISTERED: true,
+};
+
+function formatEventDate(iso: string) {
+  return new Date(iso).toLocaleDateString("es-PE", { day: "2-digit", month: "short" }) +
+    " • " + new Date(iso).toLocaleTimeString("es-PE", { hour: "2-digit", minute: "2-digit", hour12: true });
+}
 
 function formatTime(iso: string) {
   return new Date(iso).toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
@@ -83,6 +90,11 @@ export default function CitaDetailPage() {
 
   const { data: appointment, isLoading } = useAppointment(id);
   const { data: settings } = useSettings();
+  const { data: events = [] } = useQuery<AppointmentEvent[]>({
+    queryKey: ["appointment-events", id],
+    queryFn: () => apiFetch<AppointmentEvent[]>(`/appointments/${id}/events`),
+    enabled: !!id,
+  });
   const updateStatus = useUpdateAppointmentStatus();
   const registerDeposit = useRegisterDeposit();
 
@@ -539,11 +551,13 @@ export default function CitaDetailPage() {
                     Historial de la Cita
                   </h4>
                   <div className="relative pl-4 space-y-5 before:absolute before:left-[7px] before:top-2 before:bottom-2 before:w-[2px] before:bg-[var(--color-outline-variant)]/30">
-                    {MOCK_TIMELINE.map((event) => (
-                      <div key={event.label} className="relative">
-                        <div className={`absolute -left-[17px] top-1 w-[10px] h-[10px] rounded-full ring-4 ring-[var(--color-surface-container-lowest)] ${event.active ? "bg-[var(--color-secondary)]" : "bg-[var(--color-outline-variant)]"}`} />
-                        <p className="text-body-md text-[var(--color-on-surface)]">{event.label}</p>
-                        <p className="text-label-md text-[var(--color-on-surface-variant)] mt-0.5">{event.detail}</p>
+                    {events.length === 0 ? (
+                      <p className="text-body-md text-[var(--color-on-surface-variant)]">Sin eventos registrados.</p>
+                    ) : events.map((event) => (
+                      <div key={event.id} className="relative">
+                        <div className={`absolute -left-[17px] top-1 w-[10px] h-[10px] rounded-full ring-4 ring-[var(--color-surface-container-lowest)] ${EVENT_ICONS[event.type] ? "bg-[var(--color-secondary)]" : "bg-[var(--color-outline-variant)]"}`} />
+                        <p className="text-body-md text-[var(--color-on-surface)]">{event.description}</p>
+                        <p className="text-label-md text-[var(--color-on-surface-variant)] mt-0.5">{formatEventDate(event.createdAt)}</p>
                       </div>
                     ))}
                   </div>
