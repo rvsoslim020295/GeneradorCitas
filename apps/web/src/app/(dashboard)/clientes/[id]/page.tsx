@@ -78,6 +78,7 @@ export default function ClientProfilePage() {
   const [showRecordForm, setShowRecordForm] = useState(false);
   const [editingRecord, setEditingRecord] = useState<ClientRecord | null>(null);
   const [recordDeleteTarget, setRecordDeleteTarget] = useState<string | null>(null);
+  const [showDeleteClientConfirm, setShowDeleteClientConfirm] = useState(false);
   const [expandedRecord, setExpandedRecord] = useState<string | null>(null);
   const [rTreatment, setRTreatment] = useState("");
   const [rColorFormula, setRColorFormula] = useState("");
@@ -155,7 +156,6 @@ export default function ClientProfilePage() {
   }, [client]);
 
   async function handleDelete() {
-    if (!confirm("¿Eliminar este cliente? Esta acción no se puede deshacer.")) return;
     setDeleteError("");
     try {
       await deleteClient.mutateAsync(id);
@@ -320,7 +320,7 @@ export default function ClientProfilePage() {
                           WhatsApp
                         </button>
                       )}
-                      <button onClick={handleDelete} disabled={deleteClient.isPending}
+                      <button onClick={() => setShowDeleteClientConfirm(true)} disabled={deleteClient.isPending}
                         className="flex items-center gap-2 bg-[var(--color-error-container)]/20 border border-[var(--color-error-container)] text-[var(--color-error)] text-label-md font-semibold uppercase tracking-wider px-4 py-3 rounded-lg hover:bg-[var(--color-error-container)]/40 transition-all active:scale-95 disabled:opacity-60">
                         <Trash2 size={16} strokeWidth={1.5} />
                         {deleteClient.isPending ? "Eliminando..." : "Eliminar"}
@@ -437,6 +437,8 @@ export default function ClientProfilePage() {
                   )}
                 </section>
               </div>
+            </div>
+
             {/* Ficha Técnica */}
             <section className="bg-[var(--color-surface)] rounded-xl shadow-sm border border-[var(--color-outline-variant)] p-5 space-y-4">
               <div className="flex items-center justify-between">
@@ -535,6 +537,30 @@ export default function ClientProfilePage() {
           </div>
         </div>
       </main>
+
+      {/* Modal confirmar eliminar cliente */}
+      {showDeleteClientConfirm && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 backdrop-blur-sm">
+          <div className="bg-[var(--color-surface-container-lowest)] rounded-2xl shadow-2xl w-full max-w-sm mx-4 p-6 space-y-4">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-full bg-[var(--color-error-container)]/30 flex items-center justify-center shrink-0">
+                <Trash2 size={18} className="text-[var(--color-error)]" strokeWidth={1.5} />
+              </div>
+              <div>
+                <h3 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Eliminar cliente</h3>
+                <p className="text-body-md text-[var(--color-on-surface-variant)] mt-1">¿Seguro que deseas eliminar este cliente? Esta acción no se puede deshacer.</p>
+              </div>
+            </div>
+            <div className="flex gap-2 pt-2">
+              <button onClick={() => setShowDeleteClientConfirm(false)} className="flex-1 py-2.5 rounded-lg border border-[var(--color-outline-variant)] text-body-md font-semibold text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-high)] transition-colors">Cancelar</button>
+              <button onClick={handleDelete} disabled={deleteClient.isPending}
+                className="flex-1 py-2.5 rounded-lg bg-[var(--color-error)] text-white text-body-md font-semibold hover:bg-[var(--color-error)]/90 transition-colors disabled:opacity-60">
+                {deleteClient.isPending ? "Eliminando..." : "Eliminar"}
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Modal confirmar eliminar ficha */}
       {recordDeleteTarget && (
