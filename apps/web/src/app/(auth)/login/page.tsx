@@ -45,7 +45,7 @@ export default function LoginPage() {
         return;
       }
 
-      // Token viene como httpOnly cookie — solo guardamos datos de display
+      localStorage.setItem("gm_token", data.token);
       localStorage.setItem("gm_user", JSON.stringify(data.user));
 
       if (data.user.role === "SUPER_ADMIN") {

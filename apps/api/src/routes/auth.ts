@@ -68,6 +68,7 @@ auth.post("/login", async (c) => {
     );
 
     return c.json({
+      token,
       user: {
         id: user.id,
         name: user.name,
@@ -104,6 +105,7 @@ auth.post("/login", async (c) => {
     );
 
     return c.json({
+      token,
       user: {
         id: superAdmin.id,
         name: superAdmin.name,
