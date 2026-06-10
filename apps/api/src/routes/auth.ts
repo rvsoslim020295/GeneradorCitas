@@ -245,4 +245,42 @@ auth.get("/me", requireAuth, async (c) => {
   });
 });
 
+// ─── GET /auth/test-email?to=EMAIL ───────────────────────────────────────────
+auth.get("/test-email", async (c) => {
+  const to = c.req.query("to");
+  if (!to) return c.json({ error: "Falta ?to=email" }, 400);
+
+  const smtpConfig = {
+    host: process.env.SMTP_HOST ?? "smtp.gmail.com",
+    port: Number(process.env.SMTP_PORT ?? 465),
+    secure: Number(process.env.SMTP_PORT ?? 465) === 465,
+    user: process.env.SMTP_USER ?? "(no configurado)",
+    pass: process.env.SMTP_PASS ? "***configurado***" : "(no configurado)",
+    appUrl: process.env.APP_URL ?? "(no configurado)",
+    family: 4,
+  };
+
+  try {
+    const nodemailer = await import("nodemailer");
+    const t = nodemailer.default.createTransport({
+      host: smtpConfig.host,
+      port: smtpConfig.port,
+      secure: smtpConfig.secure,
+      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
+      connectionTimeout: 10000,
+      socketTimeout: 10000,
+      family: 4,
+    } as any);
+    await t.sendMail({
+      from: `"GlowManager Test" <${process.env.SMTP_USER}>`,
+      to,
+      subject: "Test SMTP GlowManager",
+      text: "Si ves este correo, el SMTP funciona correctamente.",
+    });
+    return c.json({ ok: true, config: smtpConfig });
+  } catch (err: any) {
+    return c.json({ ok: false, error: err.message, code: err.code, config: smtpConfig }, 500);
+  }
+});
+
 export default auth;
