@@ -14,7 +14,7 @@ import {
   useCollaborator, useCollaboratorAbsences,
   useUpdateCollaborator, useDeleteCollaborator,
   useAddAbsence, useDeleteAbsence,
-  useSettings,
+  useSettings, useServices,
 } from "@/lib/api/hooks";
 import { useRouter } from "next/navigation";
 
@@ -22,13 +22,6 @@ const DAY_KEYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 const DAY_LABELS: Record<string, string> = {
   Mon: "Lun", Tue: "Mar", Wed: "Mié", Thu: "Jue", Fri: "Vie", Sat: "Sáb", Sun: "Dom",
 };
-
-const ALL_SPECIALTIES = [
-  "Corte Hombre", "Corte Mujer", "Barba", "Coloración", "Balayage",
-  "Mechas", "Tintes", "Tratamiento", "Uñas", "Peinado", "Extensiones",
-  "Depilación", "Maquillaje", "Masaje", "Facial", "Alisado",
-  "Permanente", "Keratina", "Hidratación", "Cejas", "Pestañas",
-];
 
 type DaySchedule = { enabled: boolean; start: string; end: string };
 type Schedule = Record<string, DaySchedule>;
@@ -66,6 +59,8 @@ export default function CollaboratorProfilePage() {
   const [absFullDay, setAbsFullDay] = useState(true);
 
   const { data: settings } = useSettings();
+  const { data: servicesData } = useServices();
+  const ALL_SPECIALTIES = (servicesData?.services ?? []).map((s) => s.name);
   const bizOpen  = settings?.openTime  ?? "00:00";
   const bizClose = settings?.closeTime ?? "23:59";
 

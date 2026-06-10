@@ -10,14 +10,7 @@ import {
 import { RoleSelector } from "../_components/role-selector";
 import { Sidebar } from "@/components/layout/sidebar";
 import { TopBar } from "@/components/layout/top-bar";
-import { useCreateCollaborator } from "@/lib/api/hooks";
-
-const ALL_SPECIALTIES = [
-  "Corte Hombre", "Corte Mujer", "Barba", "Coloración", "Balayage",
-  "Mechas", "Tintes", "Tratamiento", "Uñas", "Peinado", "Extensiones",
-  "Depilación", "Maquillaje", "Masaje", "Facial", "Alisado",
-  "Permanente", "Keratina", "Hidratación", "Cejas", "Pestañas",
-];
+import { useCreateCollaborator, useServices } from "@/lib/api/hooks";
 
 export default function NuevoColaboradorPage() {
   const router = useRouter();
@@ -39,6 +32,8 @@ export default function NuevoColaboradorPage() {
   const searchRef = useRef<HTMLInputElement>(null);
 
   const createCollaborator = useCreateCollaborator();
+  const { data: servicesData } = useServices();
+  const ALL_SPECIALTIES = (servicesData?.services ?? []).map((s) => s.name);
 
   useEffect(() => {
     if (panelOpen) setTimeout(() => searchRef.current?.focus(), 50);
