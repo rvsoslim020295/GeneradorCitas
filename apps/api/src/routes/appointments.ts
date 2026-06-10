@@ -15,6 +15,10 @@ async function logEvent(appointmentId: string, type: string, description: string
   await prisma.appointmentEvent.create({ data: { appointmentId, type, description } });
 }
 
+// Error centinela para abortar una transacción cuando la cita ya fue cobrada
+// (la carrera la gana otra petición). Se traduce a 400 fuera de la transacción.
+class AlreadyPaidError extends Error {}
+
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "Pendiente", CONFIRMED: "Confirmada", IN_PROGRESS: "En progreso",
   COMPLETED: "Completada", CANCELLED: "Cancelada", NO_SHOW: "No se presentó", RESCHEDULED: "Reagendada",
@@ -324,36 +328,44 @@ appointments.post("/:id/payment", async (c) => {
   const { tipPercent, paymentMethod } = parsed.data;
   const totalWithTip = existing.price * (1 + tipPercent);
 
-  // Usamos una transacción para que todo se actualice junto o nada se actualice
-  const result = await prisma.$transaction(async (tx) => {
-    const appointment = await tx.appointment.update({
-      where: { id },
-      data: {
-        tipPercent,
-        paymentMethod,
-        paidAmount: totalWithTip,
-        // El status NO cambia aquí — cobrar y completar son acciones independientes
-      },
-      include: appointmentInclude,
+  // El guard anti-doble-cobro se aplica DENTRO de la transacción con un
+  // updateMany condicional (paidAmount: null). Si dos pagos concurrentes llegan
+  // a la vez, solo uno actualiza (count===1); el otro aborta (auditoría 2.2).
+  // El evento de pago se registra en la misma transacción (auditoría 2.9).
+  try {
+    const result = await prisma.$transaction(async (tx) => {
+      const upd = await tx.appointment.updateMany({
+        where: { id, businessId, paidAmount: null, status: { notIn: ["CANCELLED", "NO_SHOW"] } },
+        data: { tipPercent, paymentMethod, paidAmount: totalWithTip },
+      });
+      if (upd.count === 0) throw new AlreadyPaidError();
+
+      await tx.client.update({
+        where: { id: existing.clientId },
+        data: {
+          totalVisits: { increment: 1 },
+          totalSpent: { increment: totalWithTip },
+        },
+      });
+
+      await tx.appointmentEvent.create({
+        data: {
+          appointmentId: id,
+          type: "PAYMENT_REGISTERED",
+          description: `Pago registrado: S/${totalWithTip.toFixed(2)} vía ${paymentMethod}`,
+        },
+      });
+
+      return tx.appointment.findUnique({ where: { id }, include: appointmentInclude });
     });
 
-    // Actualiza las métricas acumuladas del cliente
-    await tx.client.update({
-      where: { id: existing.clientId },
-      data: {
-        totalVisits: { increment: 1 },
-        totalSpent: { increment: totalWithTip },
-      },
-    });
-
-    return appointment;
-  });
-
-  await logEvent(id, "PAYMENT_REGISTERED",
-    `Pago registrado: S/${totalWithTip.toFixed(2)} vía ${paymentMethod}`
-  );
-
-  return c.json(result);
+    return c.json(result);
+  } catch (e) {
+    if (e instanceof AlreadyPaidError) {
+      return c.json({ error: "Esta cita ya fue cobrada" }, 400);
+    }
+    throw e;
+  }
 });
 
 // ─── POST /appointments/:id/deposit ──────────────────────────────────────────

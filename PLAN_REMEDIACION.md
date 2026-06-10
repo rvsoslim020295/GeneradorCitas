@@ -51,14 +51,14 @@ Race conditions y consistencia financiera. Requiere pruebas de concurrencia.
 
 | Estado | ID | Hallazgo | Archivo |
 |:--:|---|---|---|
-| ☐ | 2.2 | Doble cobro: guard dentro de transacción (updateMany condicional) | `routes/appointments.ts` |
+| ☑ | 2.2 | Doble cobro: guard dentro de transacción (updateMany condicional) | `routes/appointments.ts` |
 | ☐ | 2.1 | TOCTOU doble reserva: lock/constraint de exclusión | `appointments.ts` + schema |
-| ☐ | 2.9 | `logEvent` dentro de la transacción + try/catch | `routes/appointments.ts` |
-| ☐ | 8.2 | Fusión de clientes destruye fichas clínicas | `routes/clients.ts` |
-| ☐ | 9.1 | Paquete: `deleteMany`+`createMany` sin transacción | `routes/packages.ts` |
-| ☐ | 6.1 | Orden de borrado de negocio viola FKs | `routes/admin.ts` + schema (`onDelete`) |
+| ☑ | 2.9 | `logEvent` (pago) dentro de la transacción | `routes/appointments.ts` |
+| ☑ | 8.2 | Fusión de clientes destruye fichas clínicas | `routes/clients.ts` |
+| ☑ | 9.1 | Paquete: `deleteMany`+`createMany` sin transacción | `routes/packages.ts` |
+| ☑ | 6.1 | Orden de borrado de negocio viola FKs | `routes/admin.ts` |
 | ☐ | 2.5 | Dinero en `Float` → migrar a `Decimal` | schema + cálculos |
-| ☐ | 4.4 | check-then-act de límites sin transacción | varios routes |
+| ☐ | 4.4 | check-then-act de límites sin transacción (se hará junto a 2.1) | varios routes |
 
 **Criterio de salida:** doble clic / reintentos no producen doble cobro ni doble reserva; ninguna fusión o borrado pierde datos; el dinero cuadra al centavo.
 

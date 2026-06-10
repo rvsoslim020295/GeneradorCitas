@@ -313,6 +313,13 @@ clients.post("/merge", async (c) => {
       data:  { clientId: keepId },
     });
 
+    // Mover las fichas técnicas antes de borrar el duplicado: si no, el
+    // onDelete:Cascade de ClientRecord las destruiría (auditoría 8.2).
+    await tx.clientRecord.updateMany({
+      where: { clientId: deleteId },
+      data:  { clientId: keepId },
+    });
+
     // Sumar métricas
     await tx.client.update({
       where: { id: keepId },

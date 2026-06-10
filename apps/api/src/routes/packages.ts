@@ -116,7 +116,7 @@ packages.patch("/:id", async (c) => {
 
   const { serviceIds, ...rest } = parsed.data;
 
-  // Si se actualizan los servicios, reemplazar las relaciones
+  // Validación (solo lectura) antes de tocar nada
   if (serviceIds) {
     const validServices = await prisma.service.findMany({
       where: { id: { in: serviceIds }, businessId },
@@ -125,17 +125,22 @@ packages.patch("/:id", async (c) => {
     if (validServices.length !== serviceIds.length) {
       return c.json({ error: "Uno o más servicios no son válidos" }, 400);
     }
-
-    await prisma.packageService.deleteMany({ where: { packageId: id } });
-    await prisma.packageService.createMany({
-      data: serviceIds.map((serviceId) => ({ packageId: id, serviceId })),
-    });
   }
 
-  const pkg = await prisma.package.update({
-    where: { id },
-    data: rest,
-    include: packageInclude,
+  // Reemplazo de servicios + update en una sola transacción: si algo falla, el
+  // paquete no queda sin servicios (auditoría 9.1).
+  const pkg = await prisma.$transaction(async (tx) => {
+    if (serviceIds) {
+      await tx.packageService.deleteMany({ where: { packageId: id } });
+      await tx.packageService.createMany({
+        data: serviceIds.map((serviceId) => ({ packageId: id, serviceId })),
+      });
+    }
+    return tx.package.update({
+      where: { id },
+      data: rest,
+      include: packageInclude,
+    });
   });
 
   return c.json(pkg);

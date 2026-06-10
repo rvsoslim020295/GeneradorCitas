@@ -165,15 +165,20 @@ admin.delete("/businesses/:id", async (c) => {
   const business = await prisma.business.findUnique({ where: { id } });
   if (!business) return c.json({ error: "Negocio no encontrado" }, 404);
 
-  // Eliminar en cascada: el schema debe tener onDelete: Cascade en las relaciones
-  // Por seguridad eliminamos primero registros dependientes manualmente
+  // Orden de borrado respetando las FKs (auditoría 6.1):
+  //  - appointment refiere a client/collaborator/service → va primero
+  //    (AppointmentEvent cae por onDelete:Cascade sobre appointment)
+  //  - packageService refiere a service (Restrict) → antes que service
+  //  - user refiere a collaborator (Restrict) → antes que collaborator
+  //  - client primero que nada de su lado (ClientRecord cae por Cascade)
   await prisma.$transaction([
     prisma.appointment.deleteMany({ where: { businessId: id } }),
-    prisma.client.deleteMany({ where: { businessId: id } }),
-    prisma.service.deleteMany({ where: { businessId: id } }),
-    prisma.collaborator.deleteMany({ where: { businessId: id } }),
+    prisma.packageService.deleteMany({ where: { package: { businessId: id } } }),
     prisma.package.deleteMany({ where: { businessId: id } }),
     prisma.user.deleteMany({ where: { businessId: id } }),
+    prisma.collaborator.deleteMany({ where: { businessId: id } }),
+    prisma.client.deleteMany({ where: { businessId: id } }),
+    prisma.service.deleteMany({ where: { businessId: id } }),
     prisma.business.delete({ where: { id } }),
   ]);
 
