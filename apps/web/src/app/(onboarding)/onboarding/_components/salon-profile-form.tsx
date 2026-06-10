@@ -2,8 +2,7 @@
 
 import { useState } from "react";
 import { Store, Scissors, ChevronDown, ArrowRight, AlertCircle } from "lucide-react";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { apiFetch } from "@/lib/api/client";
 
 type Props = {
   onNext: () => void;
@@ -28,19 +27,16 @@ export function SalonProfileForm({ onNext }: Props) {
 
     setLoading(true);
     try {
-      await fetch(`${API_URL}/settings/business`, {
+      await apiFetch("/settings/business", {
         method: "PATCH",
-        credentials: "include",
-        headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ name, type }),
       });
+      onNext();
     } catch {
-      // Si falla silenciosamente, igualmente navegamos al dashboard
+      setError("Error al guardar. Intenta de nuevo.");
     } finally {
       setLoading(false);
     }
-
-    onNext();
   }
 
   return (

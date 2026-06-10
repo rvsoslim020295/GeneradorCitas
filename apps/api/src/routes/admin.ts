@@ -157,4 +157,26 @@ admin.patch("/businesses/:id/suspend", async (c) => {
   return c.json(business);
 });
 
+// ─── DELETE /admin/businesses/:id ────────────────────────────────────────────
+admin.delete("/businesses/:id", async (c) => {
+  const { id } = c.req.param();
+
+  const business = await prisma.business.findUnique({ where: { id } });
+  if (!business) return c.json({ error: "Negocio no encontrado" }, 404);
+
+  // Eliminar en cascada: el schema debe tener onDelete: Cascade en las relaciones
+  // Por seguridad eliminamos primero registros dependientes manualmente
+  await prisma.$transaction([
+    prisma.appointment.deleteMany({ where: { businessId: id } }),
+    prisma.client.deleteMany({ where: { businessId: id } }),
+    prisma.service.deleteMany({ where: { businessId: id } }),
+    prisma.collaborator.deleteMany({ where: { businessId: id } }),
+    prisma.package.deleteMany({ where: { businessId: id } }),
+    prisma.user.deleteMany({ where: { businessId: id } }),
+    prisma.business.delete({ where: { id } }),
+  ]);
+
+  return c.json({ ok: true });
+});
+
 export default admin;

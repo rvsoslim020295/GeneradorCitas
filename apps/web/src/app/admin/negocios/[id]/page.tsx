@@ -2,7 +2,7 @@
 
 import { useEffect, useState, useCallback, useRef } from "react";
 import { useRouter, useParams } from "next/navigation";
-import { ArrowLeft, Building2, Users, Calendar, Scissors, ShieldOff, ShieldCheck, Save, Sun, Moon, CalendarDays } from "lucide-react";
+import { ArrowLeft, Building2, Users, Calendar, Scissors, ShieldOff, ShieldCheck, Save, Sun, Moon, CalendarDays, Trash2 } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
@@ -104,6 +104,29 @@ export default function AdminNegocioDetailPage() {
       message,
       onConfirm: () => executeSuspend(suspending),
     });
+  }
+
+  function handleDelete() {
+    if (!business) return;
+    setConfirmDialog({
+      message: `¿Eliminar permanentemente "${business.name}"? Se borrarán todos sus datos (usuarios, citas, clientes). Esta acción no se puede deshacer.`,
+      onConfirm: executeDelete,
+    });
+  }
+
+  async function executeDelete() {
+    try {
+      const token = typeof window !== "undefined" ? localStorage.getItem("gm_admin_token") : null;
+      const res = await fetch(`${API_URL}/admin/businesses/${id}`, {
+        method: "DELETE",
+        credentials: "include",
+        headers: token ? { Authorization: `Bearer ${token}` } : {},
+      });
+      if (!res.ok) throw new Error();
+      router.push("/admin/dashboard");
+    } catch {
+      showMsg("error", "Error al eliminar el negocio.");
+    }
   }
 
   async function executeSuspend(suspending: boolean) {
@@ -285,6 +308,22 @@ export default function AdminNegocioDetailPage() {
               }`}>
               {isSuspended ? <ShieldCheck size={15} strokeWidth={1.5} /> : <ShieldOff size={15} strokeWidth={1.5} />}
               {isSuspended ? "Reactivar" : "Suspender"}
+            </button>
+          </div>
+        </section>
+
+        {/* Eliminar negocio */}
+        <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-error)]/20 rounded-xl p-5">
+          <h2 className="text-label-md font-semibold text-[var(--color-error)] uppercase tracking-wider mb-1">Zona de peligro</h2>
+          <div className="flex items-center justify-between">
+            <div>
+              <p className="text-body-md font-semibold text-[var(--color-on-surface)]">Eliminar negocio</p>
+              <p className="text-[12px] text-[var(--color-on-surface-variant)]">Borra permanentemente todos los datos. El email quedará libre para re-registrarse.</p>
+            </div>
+            <button onClick={handleDelete}
+              className="flex items-center gap-2 text-label-md font-semibold px-4 py-2.5 rounded-lg bg-[var(--color-error)] text-[var(--color-on-error)] hover:opacity-90 transition-opacity">
+              <Trash2 size={15} strokeWidth={1.5} />
+              Eliminar
             </button>
           </div>
         </section>
