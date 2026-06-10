@@ -1,6 +1,6 @@
 # Estado del Proyecto — GlowManager
-**Fecha:** 9 de Junio 2026
-**Versión:** 12.1
+**Fecha:** 10 de Junio 2026
+**Versión:** 13.0
 **Repositorio:** https://github.com/rvsoslim020295/GeneradorCitas
 **Rama activa:** `main`
 
@@ -8,9 +8,9 @@
 
 ## 1. Resumen Ejecutivo
 
-GlowManager es un panel administrativo B2B para negocios de belleza (salones, barberías, spas, nail bars). Permite gestionar citas, clientes, colaboradores, servicios, paquetes, pagos y reportes desde una interfaz web orientada a dueños y recepcionistas en desktop.
+GlowManager es un panel administrativo B2B para negocios de belleza (salones, barberías, spas, nail bars). Permite gestionar citas, clientes, colaboradores, servicios, paquetes, pagos y reportes desde una interfaz web orientada a dueños y recepcionistas.
 
-**Estado actual:** ✅ MVP 100% en producción y funcional. Login, registro, verificación de email, dashboard, clientes, servicios, colaboradores operativos. Emails vía Brevo API.
+**Estado actual:** ✅ MVP en producción. Login, registro, verificación de email, onboarding, dashboard, clientes, servicios, colaboradores, agenda, reportes, paquetes operativos. Responsive para móvil implementado. Recuperación de contraseña funcional.
 
 ---
 
@@ -25,156 +25,7 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
 
 ---
 
-## 3. Todo lo resuelto en esta sesión (v12.x)
-
-### 3.1 Backend Railway no respondía (502)
-- **Causa raíz:** Railway proxy apuntaba a puerto 3001, app escuchaba en 3000
-- **Fix:** Variable `PORT=3000` + Railway Networking → Port 3000
-- **Fix adicional:** `hostname: "0.0.0.0"` en `serve()` de Hono
-
-### 3.2 CORS bloqueado
-- **Causa:** middleware `hono/cors` no enviaba headers en Railway
-- **Fix:** middleware CORS manual con headers explícitos + `app.options("*", ...)`
-
-### 3.3 Prisma — dependencias de Prisma 7
-- **Causa:** `@prisma/adapter-pg` y `@prisma/client-runtime-utils` (Prisma 7) incompatibles
-- **Fix:** eliminados ambos paquetes, `PrismaClient()` estándar sin driver adapter
-
-### 3.4 Auth cross-domain (cookie no funcionaba entre Vercel y Railway)
-- **Causa:** cookies `SameSite=Lax` bloqueadas cross-domain; middleware Next.js verificaba cookie server-side sin acceso a localStorage
-- **Fix completo:**
-  1. Cookies cambiadas a `SameSite=None; Secure`
-  2. Backend devuelve `token` en body del login y verify-email
-  3. Frontend guarda token en `localStorage("gm_token")` + `document.cookie("gm_token")` para que el middleware de Next.js la lea
-  4. `apiFetch` envía `Authorization: Bearer TOKEN` en todas las peticiones
-  5. `requireSuperAdmin` middleware actualizado para aceptar Authorization header
-  6. Sidebar corregido para usar `apiFetch` (enviaba `/auth/me` sin token)
-
-### 3.5 SMTP bloqueado en Railway
-- **Causa:** Railway bloquea puerto 587 (ETIMEDOUT) y resuelve smtp.gmail.com con IPv6 (ENETUNREACH)
-- **Fix:** puerto 465 con SSL + `family: 4` para forzar IPv4
-- **Variable Railway:** `SMTP_PORT=465`
-- **Estado:** pendiente confirmar entrega real de emails de verificación
-
-### 3.6 Registro colgado
-- **Causa:** `sendVerificationEmail` sin timeout bloqueaba la respuesta indefinidamente
-- **Fix:** `connectionTimeout: 10000` y `socketTimeout: 10000` en nodemailer
-
-### 3.7 Clientes no aparecían en el listado
-- **Causa:** `historyFilter` en `GET /clients` ocultaba clientes sin citas (bug de lógica — el filtro de historial no debe afectar visibilidad)
-- **Fix:** eliminado `historyFilter` del listado de clientes
-
-### 3.8 Especialidades de colaborador hardcodeadas
-- **Causa:** lista `ALL_SPECIALTIES` con 20 valores hardcodeados en lugar de usar servicios reales
-- **Fix:** `useServices()` en páginas de nuevo y edición de colaborador — ahora muestra los servicios que el negocio haya creado
-
-### 3.9 Verificación de email no autenticaba al usuario
-- **Causa:** `/auth/verify-email` no devolvía token en el body, frontend no seteaba cookie
-- **Fix:** endpoint devuelve `{ token, user }`, frontend setea localStorage + cookie igual que el login
-
-### 3.10 Banner de trial no aparecía
-- **Causa:** sidebar hacía fetch directo a `/auth/me` sin `Authorization` header
-- **Fix:** sidebar usa `apiFetch` que incluye el token automáticamente
-
----
-
-## 4. Arquitectura Auth (v12.x)
-
-```
-LOGIN FLOW:
-  POST /auth/login → { token, user }
-  → localStorage("gm_token") = token
-  → document.cookie("gm_token") = token   ← para Next.js middleware (server-side)
-  → router.push("/dashboard")
-
-REQUESTS:
-  apiFetch("/cualquier-ruta")
-  → Authorization: Bearer <localStorage("gm_token")>
-
-NEXT.JS MIDDLEWARE (server-side):
-  Lee cookies.get("gm_token")
-  → Si existe: deja pasar
-  → Si no: redirect /login
-
-BACKEND MIDDLEWARES:
-  requireAuth        → lee Authorization header || cookie "gm_token"
-  requireSuperAdmin  → lee Authorization header || cookie "gm_admin_token"
-```
-
----
-
-## 5. Configuración Railway
-
-| Variable | Valor |
-|---|---|
-| `PORT` | `3000` |
-| `SMTP_PORT` | `465` |
-| `SMTP_HOST` | `smtp.gmail.com` |
-| `NODE_ENV` | `production` |
-| `TZ` | `America/Lima` |
-| Railway Networking | Port `3000` |
-
-**Build:** `pnpm exec prisma generate && pnpm --filter api run build`
-**Start:** `node /app/apps/api/dist/index.js`
-
----
-
-## 6. Configuración Vercel
-
-| Variable | Valor |
-|---|---|
-| `NEXT_PUBLIC_API_URL` | `https://generadorcitas-production.up.railway.app` |
-
----
-
-## 7. Estado de flujos en producción
-
-| Flujo | Estado | Notas |
-|---|---|---|
-| Login usuario | ✅ | Token en localStorage + cookie |
-| Login super admin | ✅ | Mismo mecanismo |
-| Registro | ✅ | Cuenta creada, email pendiente confirmar |
-| Email verificación | ✅ | Brevo API HTTP — funciona en Railway |
-| Onboarding negocio (4 pasos) | ✅ | Funciona después de verificar email |
-| Dashboard | ✅ | Carga correctamente |
-| Clientes | ✅ | CRUD completo, listado corregido |
-| Colaboradores | ✅ | Especialidades desde servicios reales |
-| Servicios | ✅ | CRUD completo |
-| Agenda / Citas | ✅ | |
-| Paquetes | ✅ | |
-| Reportes | ✅ | |
-| Banner trial | ✅ | Muestra días restantes en sidebar |
-| Plan vencido | ✅ | Bloquea y redirige a /plan-vencido |
-| Panel Super Admin | ✅ | |
-
----
-
-## 8. Bugs / Deuda Técnica Pendiente
-
-### Crítico
-| Item | Descripción |
-|---|---|
-| ~~Emails de verificación~~ | ✅ Resuelto — migrado a Brevo API HTTP (Railway bloquea todos los puertos SMTP) |
-
-### Media prioridad
-| Item | Descripción |
-|---|---|
-| **Onboarding saltado manualmente** | Usuarios verificados via Console no configuran su negocio (nombre, tipo vacíos). Agregar aviso o redirect en dashboard si `business.name` está vacío |
-| **WhatsApp botón en ficha técnica** | Enviar resumen de tratamiento al cliente vía wa.me |
-| **Comisiones por colaborador** | % sobre servicios atendidos |
-| **Foto de resultado por cita** | Portafolio del negocio |
-
-### Baja prioridad
-| Item | Descripción |
-|---|---|
-| **Pagos automáticos (Culqi)** | Activación de plan es manual hoy |
-| **Drag & drop en calendario** | Evaluar FullCalendar |
-| **Responsividad móvil** | Solo desktop |
-| **`audit_log`** | Trazabilidad de acciones críticas |
-
----
-
-## 9. Stack Tecnológico
+## 3. Stack Tecnológico
 
 ### Frontend (`apps/web`)
 | Capa | Tecnología |
@@ -184,6 +35,7 @@ BACKEND MIDDLEWARES:
 | Estilos | Tailwind CSS 4.x + Material Design 3 tokens |
 | Data fetching | TanStack Query v5 |
 | Íconos | Lucide React |
+| Deploy | Vercel (auto-deploy en push a main) |
 
 ### Backend (`apps/api`)
 | Capa | Tecnología |
@@ -192,22 +44,247 @@ BACKEND MIDDLEWARES:
 | ORM | Prisma 6.x |
 | Base de datos | PostgreSQL (Railway) |
 | Auth | JWT — Authorization header + cookie fallback |
-| Email | Nodemailer (Gmail SMTP, puerto 465 SSL, IPv4 forzado) |
+| Email | Brevo API HTTP (puerto 443 — Railway bloquea SMTP) |
 | Storage | Supabase Storage (bucket `logos`) |
 | Runtime | Node.js v22 |
-| Scheduler | node-cron (recordatorios WhatsApp) |
+| Deploy | Railway (auto-deploy en push a main) |
+
+### Monorepo
+```
+GeneradorCitas/
+├── apps/
+│   ├── web/        ← Next.js (frontend)
+│   └── api/        ← Hono.js (backend)
+├── prisma/         ← Schema compartido
+└── pnpm-workspace.yaml
+```
 
 ---
 
-## 10. Comandos útiles
+## 4. Proveedores y Conexiones
+
+| Proveedor | Uso | Conexión | Plan |
+|---|---|---|---|
+| **Vercel** | Frontend | Variable `NEXT_PUBLIC_API_URL` apunta a Railway | Gratis |
+| **Railway** | Backend + PostgreSQL | `DATABASE_URL` interno | Hobby |
+| **Brevo** | Emails transaccionales | API HTTP con `BREVO_API_KEY` | Gratis (300/día) |
+| **Supabase** | Storage de logos | SDK con `SUPABASE_URL` + `SUPABASE_SERVICE_KEY` | Gratis |
+
+> ⚠️ Railway bloquea todos los puertos SMTP salientes (25, 465, 587). Por eso se usa Brevo API HTTP.
+
+---
+
+## 5. Arquitectura de Auth
+
+```
+LOGIN:
+  POST /auth/login → { token, user }
+  → localStorage("gm_token") = token
+  → document.cookie("gm_token") = token  ← para Next.js middleware
+  → router.push("/dashboard")
+
+REQUESTS:
+  apiFetch("/ruta") → Authorization: Bearer <token>
+
+LOGOUT:
+  window.location.href = "/api/logout"
+  → Next.js API route borra cookie server-side
+  → redirect /login
+
+NEXT.JS MIDDLEWARE:
+  /api/* → bypass (no interferir)
+  /admin/* → bypass (lógica propia)
+  token && ruta pública → redirect /dashboard
+  adminToken && ruta pública → redirect /admin/dashboard
+  !token && ruta protegida → redirect /login
+
+BACKEND:
+  requireAuth → lee Authorization header || cookie "gm_token"
+  requireSuperAdmin → lee Authorization header || cookie "gm_admin_token"
+```
+
+---
+
+## 6. Variables de Entorno
+
+### Railway (Producción)
+| Variable | Descripción |
+|---|---|
+| `PORT` | `3000` |
+| `DATABASE_URL` | PostgreSQL Railway (interno) |
+| `JWT_SECRET` | Secret para JWT de usuarios |
+| `ADMIN_JWT_SECRET` | Secret para JWT de super admin |
+| `BREVO_API_KEY` | Ver en Railway → Variables (no almacenar en código) |
+| `BREVO_SENDER_EMAIL` | `glowmanager95@gmail.com` |
+| `BREVO_SENDER_NAME` | `GlowManager` |
+| `APP_URL` | `https://glowmanager-web.vercel.app` |
+| `SUPABASE_URL` | URL del proyecto Supabase |
+| `SUPABASE_SERVICE_KEY` | Service key de Supabase |
+| `NODE_ENV` | `production` |
+| `TZ` | `America/Lima` |
+
+### Local (`apps/api/.env`) — NO se sube a GitHub
+| Variable | Valor local |
+|---|---|
+| `PORT` | `3001` |
+| `DATABASE_URL` | PostgreSQL local |
+| `APP_URL` | `http://localhost:3000` |
+| `BREVO_API_KEY` | igual que producción |
+| `BREVO_SENDER_EMAIL` | `glowmanager95@gmail.com` |
+
+### Vercel (Producción)
+| Variable | Valor |
+|---|---|
+| `NEXT_PUBLIC_API_URL` | `https://generadorcitas-production.up.railway.app` |
+
+---
+
+## 7. Build y Deploy
+
+### Railway
+```
+Build:  pnpm exec prisma migrate deploy && pnpm exec prisma generate && pnpm --filter api run build
+Start:  node /app/apps/api/dist/index.js
+```
+
+> ⚠️ **IMPORTANTE:** El Build Command de Railway debe incluir `prisma migrate deploy` al inicio para aplicar migraciones automáticamente. Si no está así, actualízalo en Railway → Settings → Build Command.
+
+### Vercel
+Auto-deploy en push a `main`. No requiere configuración adicional.
+
+---
+
+## 8. Todo lo resuelto en esta sesión (v13.x)
+
+### 8.1 Emails — Migración de Gmail SMTP a Brevo
+- **Causa:** Railway bloquea todos los puertos SMTP salientes
+- **Fix:** Migración a Brevo API HTTP (fetch nativo, sin paquetes npm)
+- **Diagnóstico:** Endpoint `/auth/test-email?to=EMAIL` para probar envíos
+
+### 8.2 Logout no funcionaba
+- **Causa:** Cookies seteadas con `SameSite=Lax` vía JS no se podían borrar con atributos distintos. El middleware interceptaba la navegación a `/login` y redirigía de vuelta.
+- **Fix:** Ruta API `/api/logout` en Next.js que borra cookies server-side. Middleware excluye `/api/*` para no interferir.
+
+### 8.3 Onboarding no guardaba datos del negocio
+- **Causa:** `salon-profile-form.tsx` usaba `fetch` directo sin `Authorization` header
+- **Fix:** Reemplazado por `apiFetch` que incluye el token automáticamente
+
+### 8.4 Eliminar negocio en panel super admin
+- **Nuevo:** Endpoint `DELETE /admin/businesses/:id` con borrado en cascada
+- **Frontend:** Sección "Zona de peligro" con botón rojo y confirmación
+- **Efecto:** El email queda libre para re-registrarse
+
+### 8.5 Sidebar responsive en móvil
+- **Nuevo:** Sidebar se oculta en móvil, aparece como overlay con botón hamburger ☰
+- **Contexto:** `SidebarProvider` en layouts de `(dashboard)` y `(agenda)`
+- **Cierre:** Se cierra automáticamente al navegar entre páginas
+
+### 8.6 Responsive completo en páginas
+- `md:ml-64` en todas las páginas (22 archivos corregidos)
+- Búsquedas: `w-96` → `w-full md:w-96`
+- Headers: `flex-wrap` en móvil, `px-4 md:px-6`
+- Dashboard grid: `grid-cols-12` → `grid-cols-1 md:grid-cols-12`
+- Stats: 2 columnas en móvil, 4 en desktop
+
+### 8.7 Validaciones en Registro
+- Teléfono: exactamente 9 dígitos numéricos (obligatorio)
+- Correo: formato válido con regex (obligatorio)
+- DNI y RUC: ahora **opcionales** (se pueden llenar en configuración después)
+- Nombre, apellido, contraseña: obligatorios con mensajes específicos por campo
+- Campos con error se marcan con borde rojo
+
+### 8.8 Mensajes de error específicos en Login
+- Correo no registrado → "No existe una cuenta con ese correo electrónico."
+- Contraseña incorrecta → "Contraseña incorrecta. Inténtalo de nuevo."
+- Backend devuelve `code: "EMAIL_NOT_FOUND"` y `code: "WRONG_PASSWORD"`
+
+### 8.9 Validación profunda de correo en Registro
+- **Capa 1:** Regex de formato
+- **Capa 2:** Lista de 100k+ dominios desechables (paquete `disposable-email-domains`)
+- **Capa 3:** Verificación de registros MX (dns nativo de Node.js)
+- **Capa 4 (opcional):** UserCheck API — 1000/mes gratis, sin tarjeta (pendiente configurar)
+- Variable: `USERCHECK_API_KEY` (opcional en `.env` y Railway)
+
+### 8.10 Recuperación de contraseña
+- **Nuevo flujo completo:** Solicitar → Email con link → Resetear
+- Endpoint `POST /auth/forgot-password`: genera token, envía email, expira en 1 hora
+- Endpoint `POST /auth/reset-password`: valida token, actualiza contraseña
+- Páginas `/recuperar-contrasena` y `/resetear-contrasena` reescritas en español
+- Token de reset guardado en BD: campos `passwordResetToken` y `passwordResetExpires`
+- Indicadores visuales en tiempo real (longitud y coincidencia de contraseñas)
+- Redirige automáticamente al login 3 segundos después de actualizar
+
+### 8.11 Fix 500 en producción
+- **Causa:** `createRequire` de `disposable-email-domains` fallaba en Railway (ESM)
+- **Fix:** Cambio a `import disposableDomains from "disposable-email-domains"` (ESM nativo)
+
+---
+
+## 9. Estado de flujos en producción
+
+| Flujo | Estado | Notas |
+|---|---|---|
+| Login usuario | ✅ | Mensajes de error específicos |
+| Login super admin | ✅ | |
+| Logout | ✅ | Vía `/api/logout` server-side |
+| Registro | ✅ | Validaciones completas, DNI/RUC opcionales |
+| Validación de email | ✅ | MX + desechables |
+| Email verificación | ✅ | Brevo API HTTP |
+| Recuperar contraseña | ✅ | Email con link, expira 1h |
+| Onboarding negocio (4 pasos) | ✅ | Guarda datos correctamente |
+| Dashboard | ✅ | Responsive móvil |
+| Clientes | ✅ | CRUD completo, responsive |
+| Colaboradores | ✅ | Especialidades desde servicios reales |
+| Servicios | ✅ | CRUD completo |
+| Agenda / Citas | ✅ | |
+| Paquetes | ✅ | |
+| Reportes | ✅ | |
+| Banner trial | ✅ | Muestra días restantes en sidebar |
+| Plan vencido | ✅ | Bloquea y redirige a /plan-vencido |
+| Panel Super Admin | ✅ | Incluye eliminar negocio |
+| Sidebar móvil | ✅ | Hamburger + overlay |
+| Responsive general | ✅ | Todas las páginas adaptadas |
+
+---
+
+## 10. Bugs / Pendientes
+
+### Crítico
+| Item | Descripción |
+|---|---|
+| **Build Command Railway** | Verificar que incluya `prisma migrate deploy` para aplicar campos `passwordResetToken` y `passwordResetExpires` en producción |
+
+### Media prioridad
+| Item | Descripción |
+|---|---|
+| **UserCheck API** | Configurar `USERCHECK_API_KEY` en Railway para validación profunda de buzones (1000/mes gratis, sin tarjeta) → https://www.usercheck.com |
+| **Onboarding saltado** | Usuarios verificados manualmente no configuran su negocio. Agregar redirect en dashboard si `business.name` está vacío |
+| **Responsive avanzado** | Algunas páginas internas (detalles de cita, colaborador) pueden necesitar ajustes adicionales en pantallas muy pequeñas |
+
+### Baja prioridad
+| Item | Descripción |
+|---|---|
+| **WhatsApp botón** | Enviar resumen de tratamiento al cliente vía wa.me |
+| **Comisiones** | % sobre servicios por colaborador |
+| **Foto de resultado** | Portafolio del negocio por cita |
+| **Pagos automáticos (Culqi)** | Activación de plan es manual hoy |
+| **Drag & drop en calendario** | Evaluar FullCalendar |
+| **`audit_log`** | Trazabilidad de acciones críticas |
+
+---
+
+## 11. Comandos Útiles
 
 ```bash
 # Dev local
-pnpm --filter web dev       # :3000
-pnpm --filter api dev       # :3001
+pnpm --filter web dev       # Frontend :3000
+pnpm --filter api dev       # Backend :3001
 
 # Build
 pnpm exec prisma generate && pnpm --filter api run build
+
+# Test email en producción
+curl "https://generadorcitas-production.up.railway.app/auth/test-email?to=TU_EMAIL"
 
 # Verificar usuario manualmente (Railway Console)
 node -e "import('/app/apps/api/dist/lib/prisma.js').then(async ({default: p}) => {
@@ -220,31 +297,24 @@ node -e "import('/app/apps/api/dist/lib/prisma.js').then(async ({default: p}) =>
   const u = await p.user.findUnique({ where:{email:'EMAIL'}, select:{emailVerificationToken:true} });
   console.log('TOKEN:', u?.emailVerificationToken); process.exit(0);
 });"
-
-# Generar nuevo token de verificación (Railway Console)
-node -e "import('/app/apps/api/dist/lib/prisma.js').then(async ({default: p}) => {
-  const {randomBytes} = await import('crypto');
-  const t = randomBytes(32).toString('hex');
-  await p.user.update({ where:{email:'EMAIL'}, data:{emailVerified:false, emailVerificationToken:t} });
-  console.log('TOKEN:',t); process.exit(0);
-});"
 ```
 
 ---
 
-## 11. Commits clave de esta sesión
+## 12. Commits Clave de Esta Sesión
 
 | Commit | Descripción |
 |---|---|
-| `33e93c5` | fix: eliminar dependencias Prisma 7 |
-| `7b70ae1` | fix: CORS manual con headers explícitos |
-| `35bbdf9` | fix: servidor escucha en 0.0.0.0 |
-| `b2d919c` | fix: auth por Authorization header |
-| `795f40d` | fix: admin auth acepta Authorization header |
-| `c2bb597` | fix: SMTP puerto 465 SSL |
-| `a98e1a1` | fix: forzar IPv4 en SMTP |
-| `ce0dde0` | fix: cookie JS para middleware Next.js |
-| `9d0c60f` | fix: eliminar historyFilter del listado de clientes |
-| `8aeaeaf` | fix: especialidades colaborador desde servicios reales |
-| `05dd53d` | fix: verify-email devuelve token y frontend setea cookie |
-| `075fe3d` | fix: sidebar usa apiFetch para /auth/me |
+| `3dcfdf4` | debug: endpoint /auth/test-email para diagnosticar SMTP |
+| `9ae243d` | fix: pre-resolver smtp.gmail.com a IPv4 con dns.lookup |
+| `7e99a1d` | fix: migrar emails a Brevo API HTTP |
+| `0563542` | docs: email verificación resuelto con Brevo |
+| `a71d8c0` | fix: onboarding usa apiFetch + DELETE business en admin |
+| `d9ad921` | fix: logout + sidebar responsive con hamburger |
+| `f832db7` | fix: logout vía ruta API Next.js server-side |
+| `eb69677` | fix: middleware excluye /api/, logout definitivo |
+| `f7b6bf5` | feat: validación profunda email, mensajes login, DNI/RUC opcionales |
+| `49a9f59` | fix: md:ml-64 en todas las páginas |
+| `4ed389e` | feat: recuperar/resetear contraseña en español + funcional |
+| `b09ac72` | fix: responsive completo — headers wrap, grids móvil |
+| `43684d7` | fix: import ESM disposable-email-domains + migración password reset |
