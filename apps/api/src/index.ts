@@ -24,11 +24,10 @@ app.use("*", async (c, next) => {
   c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
   c.header("Access-Control-Allow-Credentials", "true");
   c.header("Vary", "Origin");
-  if (c.req.method === "OPTIONS") {
-    return new Response(null, { status: 204 });
-  }
   await next();
 });
+
+app.options("*", (c) => c.text("", 200));
 
 // Health check — útil para saber si el servidor está corriendo
 app.get("/health", (c) => c.json({ status: "ok", service: "GlowManager API" }));
