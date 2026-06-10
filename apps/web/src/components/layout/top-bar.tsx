@@ -79,7 +79,7 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
   function handleLogout() {
     localStorage.removeItem("gm_user");
     localStorage.removeItem("gm_token");
-    // Redirigir a la ruta API de Next.js que borra la cookie server-side
+    localStorage.removeItem("gm_admin_token");
     window.location.href = "/api/logout";
   }
 

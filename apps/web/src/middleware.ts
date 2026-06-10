@@ -12,8 +12,9 @@ const PUBLIC_ROUTES = [
 export function middleware(req: NextRequest) {
   const { pathname } = req.nextUrl;
 
-  // Las rutas /admin tienen su propia lógica de auth — no interferir
+  // Las rutas /admin y /api tienen su propia lógica — no interferir
   if (pathname.startsWith("/admin")) return NextResponse.next();
+  if (pathname.startsWith("/api/")) return NextResponse.next();
 
   const token = req.cookies.get("gm_token")?.value;
   const adminToken = req.cookies.get("gm_admin_token")?.value;

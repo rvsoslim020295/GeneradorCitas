@@ -79,10 +79,11 @@ export default function AdminDashboardPage() {
     fetchData();
   }, [fetchData]);
 
-  async function handleLogout() {
-    await fetch(`${API_URL}/admin/auth/logout`, { method: "POST", credentials: "include" });
+  function handleLogout() {
     localStorage.removeItem("gm_admin");
-    router.push("/login");
+    localStorage.removeItem("gm_admin_token");
+    localStorage.removeItem("gm_token");
+    window.location.href = "/api/logout";
   }
 
   const filteredBusinesses = useMemo(() => {
