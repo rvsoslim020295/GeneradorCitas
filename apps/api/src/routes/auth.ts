@@ -6,6 +6,7 @@ import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth, JWT_SECRET } from "../middleware/auth.js";
 import { requirePlanAccess } from "../middleware/plan-access.js";
+import { loginLimiter, passwordResetLimiter } from "../lib/rate-limit.js";
 import { ADMIN_JWT_SECRET, requireSuperAdmin } from "../middleware/admin-auth.js";
 import { sendVerificationEmail, sendPasswordResetEmail } from "../lib/mailer.js";
 import { validateEmailDeep } from "../lib/email-validator.js";
@@ -33,7 +34,7 @@ const registerSchema = z.object({
 });
 
 // ─── POST /auth/login ─────────────────────────────────────────────────────────
-auth.post("/login", async (c) => {
+auth.post("/login", loginLimiter, async (c) => {
   const body = await c.req.json().catch(() => null);
   const parsed = loginSchema.safeParse(body);
 
@@ -297,7 +298,7 @@ auth.get("/test-email", requireSuperAdmin, async (c) => {
 });
 
 // ─── POST /auth/forgot-password ──────────────────────────────────────────────
-auth.post("/forgot-password", async (c) => {
+auth.post("/forgot-password", passwordResetLimiter, async (c) => {
   const body = await c.req.json().catch(() => null);
   const email = body?.email?.trim()?.toLowerCase();
   if (!email) return c.json({ error: "El correo es requerido." }, 400);
@@ -327,7 +328,7 @@ auth.post("/forgot-password", async (c) => {
 });
 
 // ─── POST /auth/reset-password ────────────────────────────────────────────────
-auth.post("/reset-password", async (c) => {
+auth.post("/reset-password", passwordResetLimiter, async (c) => {
   const body = await c.req.json().catch(() => null);
   const { token, password } = body ?? {};
 

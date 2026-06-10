@@ -4,11 +4,12 @@ import jwt from "jsonwebtoken";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireSuperAdmin, ADMIN_JWT_SECRET } from "../middleware/admin-auth.js";
+import { loginLimiter } from "../lib/rate-limit.js";
 
 const admin = createRouter();
 
 // ─── POST /admin/auth/login ───────────────────────────────────────────────────
-admin.post("/auth/login", async (c) => {
+admin.post("/auth/login", loginLimiter, async (c) => {
   const body = await c.req.json().catch(() => null);
   const parsed = z.object({
     email: z.string().email(),

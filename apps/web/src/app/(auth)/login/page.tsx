@@ -35,6 +35,11 @@ export default function LoginPage() {
 
       const data = await res.json();
 
+      if (res.status === 429) {
+        setError("Demasiados intentos. Espera unos minutos e inténtalo de nuevo.");
+        return;
+      }
+
       if (res.status === 403) {
         if (data.code === "PLAN_SUSPENDED") {
           setError("Tu cuenta ha sido suspendida. Contacta a soporte para reactivarla.");
