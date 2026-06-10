@@ -18,11 +18,17 @@ import { startReminderScheduler } from "./lib/reminder-scheduler.js";
 
 const app = new Hono();
 
-// CORS: permite que el frontend en localhost:3000 llame a la API en localhost:3001
+const ALLOWED_ORIGINS = [
+  process.env.FRONTEND_URL,
+  process.env.APP_URL,
+  "http://localhost:3000",
+  "http://localhost:3001",
+].filter(Boolean) as string[];
+
 app.use(
   "*",
   cors({
-    origin: process.env.FRONTEND_URL ?? "http://localhost:3000",
+    origin: (origin) => (ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]),
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
