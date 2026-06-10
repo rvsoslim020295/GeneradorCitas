@@ -11,9 +11,16 @@ export type AdminPayload = {
 export const requireSuperAdmin = createMiddleware<{
   Variables: { admin: AdminPayload };
 }>(async (c, next) => {
+  const authHeader = c.req.header("Authorization");
   const cookieHeader = c.req.header("Cookie") ?? "";
-  const match = cookieHeader.match(/(?:^|;\s*)gm_admin_token=([^;]+)/);
-  const token = match ? match[1] : null;
+
+  let token: string | null = null;
+  if (authHeader?.startsWith("Bearer ")) {
+    token = authHeader.slice(7);
+  } else {
+    const match = cookieHeader.match(/(?:^|;\s*)gm_admin_token=([^;]+)/);
+    if (match) token = match[1];
+  }
 
   if (!token) {
     return c.json({ error: "Acceso no autorizado" }, 401);

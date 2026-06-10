@@ -49,9 +49,11 @@ export default function AdminDashboardPage() {
   const fetchData = useCallback(async () => {
     setLoading(true);
     try {
+      const token = localStorage.getItem("gm_token") ?? "";
+      const headers = { Authorization: `Bearer ${token}` };
       const [bRes, sRes] = await Promise.all([
-        fetch(`${API_URL}/admin/businesses`, { credentials: "include" }),
-        fetch(`${API_URL}/admin/stats`, { credentials: "include" }),
+        fetch(`${API_URL}/admin/businesses`, { credentials: "include", headers }),
+        fetch(`${API_URL}/admin/stats`, { credentials: "include", headers }),
       ]);
 
       if (bRes.status === 401 || sRes.status === 401) {
