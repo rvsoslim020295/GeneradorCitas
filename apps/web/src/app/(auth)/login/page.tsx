@@ -47,8 +47,12 @@ export default function LoginPage() {
 
       localStorage.setItem("gm_token", data.token);
       localStorage.setItem("gm_user", JSON.stringify(data.user));
+      const maxAgeCookie = rememberMe ? 60 * 60 * 24 * 30 : 60 * 60 * 24 * 7;
       if (data.user.role === "SUPER_ADMIN") {
         localStorage.setItem("gm_admin", JSON.stringify(data.user));
+        document.cookie = `gm_admin_token=${data.token}; path=/; SameSite=Lax; max-age=${maxAgeCookie}`;
+      } else {
+        document.cookie = `gm_token=${data.token}; path=/; SameSite=Lax; max-age=${maxAgeCookie}`;
       }
 
       if (data.user.role === "SUPER_ADMIN") {

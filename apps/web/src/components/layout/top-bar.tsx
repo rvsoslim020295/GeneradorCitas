@@ -76,6 +76,8 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
 
   async function handleLogout() {
     localStorage.removeItem("gm_user");
+    localStorage.removeItem("gm_token");
+    document.cookie = "gm_token=; path=/; max-age=0";
     await fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" }).catch(() => {});
     router.push("/login");
   }
