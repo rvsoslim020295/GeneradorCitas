@@ -2,6 +2,7 @@ import nodemailer from "nodemailer";
 
 const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
 const transporter = nodemailer.createTransport({
   host: process.env.SMTP_HOST ?? "smtp.gmail.com",
   port: Number(process.env.SMTP_PORT ?? 465),
@@ -10,9 +11,10 @@ const transporter = nodemailer.createTransport({
     user: process.env.SMTP_USER,
     pass: process.env.SMTP_PASS,
   },
-  connectionTimeout: 8000,
-  socketTimeout: 8000,
-});
+  connectionTimeout: 10000,
+  socketTimeout: 10000,
+  family: 4,
+} as any);
 
 export async function sendVerificationEmail(email: string, token: string, name: string) {
   const verifyUrl = `${APP_URL}/verificar-email?token=${token}`;
