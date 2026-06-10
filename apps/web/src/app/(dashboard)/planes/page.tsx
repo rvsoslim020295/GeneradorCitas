@@ -93,7 +93,7 @@ export default function PlanesPage() {
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-surface-container-low)]">
       <Sidebar activePath="/planes" />
 
-      <div className="ml-64 flex flex-1 flex-col overflow-hidden">
+      <div className="md:ml-64 flex flex-1 flex-col overflow-hidden">
         <TopBar hideSearch />
 
         <main className="flex-1 overflow-y-auto pt-16">

@@ -111,7 +111,7 @@ export default function DashboardPage() {
     return (
       <>
         <Sidebar activePath="/dashboard" />
-        <main className="flex-1 ml-64 flex items-center justify-center bg-[var(--color-background)]">
+        <main className="flex-1 md:ml-64 flex items-center justify-center bg-[var(--color-background)]">
           <div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
         </main>
       </>
@@ -121,7 +121,7 @@ export default function DashboardPage() {
   return (
     <>
       <Sidebar activePath="/dashboard" />
-      <main className="flex-1 ml-64 flex flex-col h-full bg-[var(--color-background)] relative">
+      <main className="flex-1 md:ml-64 flex flex-col h-full bg-[var(--color-background)] relative">
         <TopBar />
 
         {statusDrawer && (

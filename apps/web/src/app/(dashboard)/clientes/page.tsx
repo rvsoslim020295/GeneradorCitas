@@ -56,7 +56,7 @@ export default function ClientesPage() {
     <>
       <Sidebar activePath="/clientes" />
 
-      <main className="flex-1 ml-64 flex flex-col h-full bg-[var(--color-background)] relative overflow-hidden">
+      <main className="flex-1 md:ml-64 flex flex-col h-full bg-[var(--color-background)] relative overflow-hidden">
         <TopBar hideSearch />
 
         <div className="flex flex-col flex-1 overflow-hidden pt-16">

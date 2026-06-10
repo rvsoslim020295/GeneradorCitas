@@ -70,7 +70,7 @@ export default function NuevoServicioPage() {
     <>
       <Sidebar activePath="/servicios" />
 
-      <main className="flex-1 ml-64 flex flex-col h-full bg-[var(--color-background)] overflow-hidden">
+      <main className="flex-1 md:ml-64 flex flex-col h-full bg-[var(--color-background)] overflow-hidden">
         <TopBar />
 
         <div className="flex flex-col flex-1 overflow-y-auto pt-16" style={{ scrollbarWidth: "thin" }}>

@@ -157,7 +157,7 @@ export default function UsuariosSistemaPage() {
   if (isLoading) return (
     <>
       <Sidebar activePath="/configuracion" />
-      <main className="flex-1 ml-64 flex items-center justify-center bg-[var(--color-background)]">
+      <main className="flex-1 md:ml-64 flex items-center justify-center bg-[var(--color-background)]">
         <div className="w-8 h-8 border-2 border-[var(--color-primary)] border-t-transparent rounded-full animate-spin" />
       </main>
     </>
@@ -166,7 +166,7 @@ export default function UsuariosSistemaPage() {
   return (
     <>
       <Sidebar activePath="/configuracion" />
-      <main className="flex-1 ml-64 flex flex-col h-full bg-[var(--color-background)] overflow-hidden">
+      <main className="flex-1 md:ml-64 flex flex-col h-full bg-[var(--color-background)] overflow-hidden">
         <TopBar />
         <div className="flex-1 overflow-y-auto overflow-x-visible pt-16" style={{ scrollbarWidth: "thin" }}>
           <div className="max-w-2xl mx-auto px-6 py-6 space-y-6">

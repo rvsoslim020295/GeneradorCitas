@@ -87,7 +87,7 @@ export function PackageForm({ packageId }: Props) {
   return (
     <div className="flex h-screen w-screen overflow-hidden">
       <Sidebar activePath="/paquetes" />
-      <div className="ml-64 flex flex-1 flex-col overflow-hidden">
+      <div className="md:ml-64 flex flex-1 flex-col overflow-hidden">
         <TopBar hideSearch />
         <main className="flex-1 overflow-y-auto pt-16">
 

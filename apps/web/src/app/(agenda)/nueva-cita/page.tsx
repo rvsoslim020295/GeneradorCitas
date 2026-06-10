@@ -12,7 +12,7 @@ export default async function NuevaCitaPage({
     <>
       <Sidebar activePath="/agenda" />
 
-      <main className="flex-1 ml-64 flex flex-col h-full bg-[var(--color-surface-bright)] relative overflow-hidden">
+      <main className="flex-1 md:ml-64 flex flex-col h-full bg-[var(--color-surface-bright)] relative overflow-hidden">
         <TopBar searchPlaceholder="Buscar citas, clientes..." />
 
         {/* Fondo difuminado simulando la agenda */}
