@@ -1,6 +1,6 @@
 # Estado del Proyecto — GlowManager
 **Fecha:** 10 de Junio 2026
-**Versión:** 13.0
+**Versión:** 14.0
 **Repositorio:** https://github.com/rvsoslim020295/GeneradorCitas
 **Rama activa:** `main`
 
@@ -10,7 +10,7 @@
 
 GlowManager es un panel administrativo B2B para negocios de belleza (salones, barberías, spas, nail bars). Permite gestionar citas, clientes, colaboradores, servicios, paquetes, pagos y reportes desde una interfaz web orientada a dueños y recepcionistas.
 
-**Estado actual:** ✅ MVP en producción. Login, registro, verificación de email, onboarding, dashboard, clientes, servicios, colaboradores, agenda, reportes, paquetes operativos. Responsive para móvil implementado. Recuperación de contraseña funcional.
+**Estado actual:** ✅ MVP en producción. Login, registro, verificación de email, onboarding, dashboard, clientes, servicios, colaboradores, agenda, reportes, paquetes operativos. Responsive completo para móvil implementado. Recuperación de contraseña funcional.
 
 ---
 
@@ -141,125 +141,118 @@ BACKEND:
 
 ## 7. Build y Deploy
 
-### Railway
+### Railway — Configuración correcta (v14.0)
 ```
-Build:  pnpm exec prisma migrate deploy && pnpm exec prisma generate && pnpm --filter api run build
-Start:  node /app/apps/api/dist/index.js
+Build Command:      pnpm exec prisma generate && pnpm --filter api run build
+Pre-Deploy Command: pnpm exec prisma migrate deploy
+Start Command:      node /app/apps/api/dist/index.js
 ```
 
-> ⚠️ **IMPORTANTE:** El Build Command de Railway debe incluir `prisma migrate deploy` al inicio para aplicar migraciones automáticamente. Si no está así, actualízalo en Railway → Settings → Build Command.
+> ⚠️ **IMPORTANTE:** `prisma migrate deploy` debe ir en **Pre-Deploy Command**, NO en Build Command.
+> Railway no tiene acceso a la red privada (PostgreSQL) durante el build, solo durante pre-deploy.
+> Si se pone en Build Command, el deploy falla con error de conexión.
 
 ### Vercel
 Auto-deploy en push a `main`. No requiere configuración adicional.
 
 ---
 
-## 8. Todo lo resuelto en esta sesión (v13.x)
+## 8. Migraciones de Base de Datos
 
-### 8.1 Emails — Migración de Gmail SMTP a Brevo
-- **Causa:** Railway bloquea todos los puertos SMTP salientes
-- **Fix:** Migración a Brevo API HTTP (fetch nativo, sin paquetes npm)
-- **Diagnóstico:** Endpoint `/auth/test-email?to=EMAIL` para probar envíos
+### Estado actual
+La BD de producción fue creada inicialmente sin historial de migraciones de Prisma (probablemente con `prisma db push`). Esto causa el error `P3005` cuando se intenta correr `prisma migrate deploy`.
 
-### 8.2 Logout no funcionaba
-- **Causa:** Cookies seteadas con `SameSite=Lax` vía JS no se podían borrar con atributos distintos. El middleware interceptaba la navegación a `/login` y redirigía de vuelta.
-- **Fix:** Ruta API `/api/logout` en Next.js que borra cookies server-side. Middleware excluye `/api/*` para no interferir.
+### Cómo hacer el baseline (una sola vez)
+Si Railway falla con `P3005`, correr esto en la **Console de Railway**:
 
-### 8.3 Onboarding no guardaba datos del negocio
-- **Causa:** `salon-profile-form.tsx` usaba `fetch` directo sin `Authorization` header
-- **Fix:** Reemplazado por `apiFetch` que incluye el token automáticamente
+```bash
+for m in 20260604235632_init_auth 20260605001723_add_client 20260605002226_add_collaborator 20260605003106_add_service 20260605003755_add_appointment 20260605004840_add_payment_fields 20260605010104_add_business_settings 20260605010952_add_trial 20260605030403_add_client_lastname_dni 20260605142527_add_avatar_url_to_collaborator 20260605143343_fix_service_collaborator_fields 20260605152210_add_deposit_amount_to_appointment 20260605154104_add_collaborator_lastname_document 20260605154508_add_collaborator_phone; do pnpm exec prisma migrate resolve --applied $m; done && pnpm exec prisma migrate deploy
+```
 
-### 8.4 Eliminar negocio en panel super admin
-- **Nuevo:** Endpoint `DELETE /admin/businesses/:id` con borrado en cascada
-- **Frontend:** Sección "Zona de peligro" con botón rojo y confirmación
-- **Efecto:** El email queda libre para re-registrarse
-
-### 8.5 Sidebar responsive en móvil
-- **Nuevo:** Sidebar se oculta en móvil, aparece como overlay con botón hamburger ☰
-- **Contexto:** `SidebarProvider` en layouts de `(dashboard)` y `(agenda)`
-- **Cierre:** Se cierra automáticamente al navegar entre páginas
-
-### 8.6 Responsive completo en páginas
-- `md:ml-64` en todas las páginas (22 archivos corregidos)
-- Búsquedas: `w-96` → `w-full md:w-96`
-- Headers: `flex-wrap` en móvil, `px-4 md:px-6`
-- Dashboard grid: `grid-cols-12` → `grid-cols-1 md:grid-cols-12`
-- Stats: 2 columnas en móvil, 4 en desktop
-
-### 8.7 Validaciones en Registro
-- Teléfono: exactamente 9 dígitos numéricos (obligatorio)
-- Correo: formato válido con regex (obligatorio)
-- DNI y RUC: ahora **opcionales** (se pueden llenar en configuración después)
-- Nombre, apellido, contraseña: obligatorios con mensajes específicos por campo
-- Campos con error se marcan con borde rojo
-
-### 8.8 Mensajes de error específicos en Login
-- Correo no registrado → "No existe una cuenta con ese correo electrónico."
-- Contraseña incorrecta → "Contraseña incorrecta. Inténtalo de nuevo."
-- Backend devuelve `code: "EMAIL_NOT_FOUND"` y `code: "WRONG_PASSWORD"`
-
-### 8.9 Validación profunda de correo en Registro
-- **Capa 1:** Regex de formato
-- **Capa 2:** Lista de 100k+ dominios desechables (paquete `disposable-email-domains`)
-- **Capa 3:** Verificación de registros MX (dns nativo de Node.js)
-- **Capa 4 (opcional):** UserCheck API — 1000/mes gratis, sin tarjeta (pendiente configurar)
-- Variable: `USERCHECK_API_KEY` (opcional en `.env` y Railway)
-
-### 8.10 Recuperación de contraseña
-- **Nuevo flujo completo:** Solicitar → Email con link → Resetear
-- Endpoint `POST /auth/forgot-password`: genera token, envía email, expira en 1 hora
-- Endpoint `POST /auth/reset-password`: valida token, actualiza contraseña
-- Páginas `/recuperar-contrasena` y `/resetear-contrasena` reescritas en español
-- Token de reset guardado en BD: campos `passwordResetToken` y `passwordResetExpires`
-- Indicadores visuales en tiempo real (longitud y coincidencia de contraseñas)
-- Redirige automáticamente al login 3 segundos después de actualizar
-
-### 8.11 Fix 500 en producción
-- **Causa:** `createRequire` de `disposable-email-domains` fallaba en Railway (ESM)
-- **Fix:** Cambio a `import disposableDomains from "disposable-email-domains"` (ESM nativo)
+Esto marca las 14 migraciones anteriores como ya aplicadas y ejecuta solo la nueva (`add_password_reset_fields`).
 
 ---
 
-## 9. Estado de flujos en producción
+## 9. Todo lo resuelto hasta v14.0
+
+### v13.x (sesión anterior)
+- Migración de emails a Brevo API HTTP
+- Logout vía ruta Next.js server-side
+- Onboarding guardaba datos correctamente
+- Eliminar negocio en panel super admin
+- Sidebar responsive con hamburger en móvil
+- Responsive general en 22+ páginas (`md:ml-64`, headers, grids)
+- Validaciones completas en registro (teléfono, email, DNI/RUC opcionales)
+- Mensajes de error específicos en login (`EMAIL_NOT_FOUND`, `WRONG_PASSWORD`)
+- Validación profunda de email (disposable + MX)
+- Recuperación de contraseña completa (forgot → email → reset)
+
+### v14.0 (sesión actual)
+
+#### 9.1 Responsive avanzado en páginas de detalle
+- **Reportes:** KPI de ingresos `grid-cols-3` → `grid-cols-1 sm:grid-cols-3` (se veía aplastado en móvil). Header con `flex-wrap` para que el select y botón de exportar no se superpongan.
+- **Colaboradores (editar):** Filas de horario laboral con `flex-wrap` y `flex-1` en inputs de hora — ya no se salen en pantallas < 400px.
+- **Colaboradores (editar):** Grid Nombre/Apellido → `grid-cols-1 sm:grid-cols-2`. Padding lateral `px-4 md:px-6`.
+- **Clientes (perfil):** Grids de edición de contacto y ficha técnica → `grid-cols-1 sm:grid-cols-2`. Padding `px-4 md:px-6`.
+- **Agenda toolbar:** Eliminado `min-w-[220px]` del título de fecha que forzaba ancho. Padding y gaps responsivos.
+- **Configuración negocio:** Grid RUC/Teléfono → `grid-cols-1 sm:grid-cols-2`.
+
+#### 9.2 Fix Node.js v22.22.3 — ERR_IMPORT_ATTRIBUTE_MISSING
+- **Causa:** Node.js v22.22.3 exige `with { type: "json" }` para importar JSON vía ESM. El paquete `disposable-email-domains` exporta un JSON puro (`index.json`) sin soporte para import attributes.
+- **Fix:** En `email-validator.ts`, se reemplazó el `import` directo por `createRequire.resolve()` + `readFileSync` + `JSON.parse`. Así nunca pasa por el sistema de import ESM.
+- **Archivo:** `apps/api/src/lib/email-validator.ts`
+
+#### 9.3 Fix Railway — Build Command vs Pre-Deploy Command
+- **Causa:** `prisma migrate deploy` necesita conectarse a PostgreSQL, pero Railway no tiene acceso a la red privada durante el **build** (solo durante pre-deploy y runtime).
+- **Fix:** Mover `prisma migrate deploy` de Build Command a **Pre-Deploy Command**.
+- **Build Command actual:** `pnpm exec prisma generate && pnpm --filter api run build`
+- **Pre-Deploy Command:** `pnpm exec prisma migrate deploy`
+
+#### 9.4 Baseline de migraciones pendiente
+- La BD de producción no tiene historial de migraciones (`_prisma_migrations` vacío → error `P3005`).
+- Pendiente correr el comando de baseline en Railway Console (ver sección 8).
+
+---
+
+## 10. Estado de flujos en producción
 
 | Flujo | Estado | Notas |
 |---|---|---|
-| Login usuario | ✅ | Mensajes de error específicos |
-| Login super admin | ✅ | |
+| Login usuario | ⚠️ | Falla con 500 hasta que se aplique la migración `add_password_reset_fields` |
+| Login super admin | ⚠️ | Mismo problema |
 | Logout | ✅ | Vía `/api/logout` server-side |
 | Registro | ✅ | Validaciones completas, DNI/RUC opcionales |
-| Validación de email | ✅ | MX + desechables |
+| Validación de email | ✅ | MX + desechables (fix Node 22.22 incluido) |
 | Email verificación | ✅ | Brevo API HTTP |
-| Recuperar contraseña | ✅ | Email con link, expira 1h |
+| Recuperar contraseña | ✅ (código) | Requiere migración en BD para funcionar |
 | Onboarding negocio (4 pasos) | ✅ | Guarda datos correctamente |
 | Dashboard | ✅ | Responsive móvil |
-| Clientes | ✅ | CRUD completo, responsive |
-| Colaboradores | ✅ | Especialidades desde servicios reales |
+| Clientes | ✅ | CRUD completo, responsive avanzado |
+| Colaboradores | ✅ | Horario laboral responsive en móvil |
 | Servicios | ✅ | CRUD completo |
-| Agenda / Citas | ✅ | |
+| Agenda / Citas | ✅ | Toolbar responsive |
 | Paquetes | ✅ | |
-| Reportes | ✅ | |
+| Reportes | ✅ | KPIs responsivos en móvil |
 | Banner trial | ✅ | Muestra días restantes en sidebar |
 | Plan vencido | ✅ | Bloquea y redirige a /plan-vencido |
 | Panel Super Admin | ✅ | Incluye eliminar negocio |
 | Sidebar móvil | ✅ | Hamburger + overlay |
-| Responsive general | ✅ | Todas las páginas adaptadas |
+| Responsive general | ✅ | Todas las páginas adaptadas incluyendo detalles |
 
 ---
 
-## 10. Bugs / Pendientes
+## 11. Bugs / Pendientes
 
 ### Crítico
 | Item | Descripción |
 |---|---|
-| **Build Command Railway** | Verificar que incluya `prisma migrate deploy` para aplicar campos `passwordResetToken` y `passwordResetExpires` en producción |
+| **Baseline migraciones Railway** | Correr el comando de baseline en Railway Console (sección 8) para aplicar `add_password_reset_fields`. Sin esto, el login falla con 500. |
 
 ### Media prioridad
 | Item | Descripción |
 |---|---|
 | **UserCheck API** | Configurar `USERCHECK_API_KEY` en Railway para validación profunda de buzones (1000/mes gratis, sin tarjeta) → https://www.usercheck.com |
 | **Onboarding saltado** | Usuarios verificados manualmente no configuran su negocio. Agregar redirect en dashboard si `business.name` está vacío |
-| **Responsive avanzado** | Algunas páginas internas (detalles de cita, colaborador) pueden necesitar ajustes adicionales en pantallas muy pequeñas |
 
 ### Baja prioridad
 | Item | Descripción |
@@ -273,7 +266,7 @@ Auto-deploy en push a `main`. No requiere configuración adicional.
 
 ---
 
-## 11. Comandos Útiles
+## 12. Comandos Útiles
 
 ```bash
 # Dev local
@@ -297,11 +290,21 @@ node -e "import('/app/apps/api/dist/lib/prisma.js').then(async ({default: p}) =>
   const u = await p.user.findUnique({ where:{email:'EMAIL'}, select:{emailVerificationToken:true} });
   console.log('TOKEN:', u?.emailVerificationToken); process.exit(0);
 });"
+
+# Baseline de migraciones (Railway Console — solo si hay error P3005)
+for m in 20260604235632_init_auth 20260605001723_add_client 20260605002226_add_collaborator 20260605003106_add_service 20260605003755_add_appointment 20260605004840_add_payment_fields 20260605010104_add_business_settings 20260605010952_add_trial 20260605030403_add_client_lastname_dni 20260605142527_add_avatar_url_to_collaborator 20260605143343_fix_service_collaborator_fields 20260605152210_add_deposit_amount_to_appointment 20260605154104_add_collaborator_lastname_document 20260605154508_add_collaborator_phone; do pnpm exec prisma migrate resolve --applied $m; done && pnpm exec prisma migrate deploy
 ```
 
 ---
 
-## 12. Commits Clave de Esta Sesión
+## 13. Commits Clave de Esta Sesión (v14.0)
+
+| Commit | Descripción |
+|---|---|
+| `f66a568` | fix: responsive avanzado — grids, toolbar y horario en móvil |
+| `5bc208a` | fix: leer disposable-email-domains con readFileSync — evita ERR_IMPORT_ATTRIBUTE_MISSING en Node 22.22 |
+
+## 14. Commits Clave Históricos (v13.x)
 
 | Commit | Descripción |
 |---|---|
