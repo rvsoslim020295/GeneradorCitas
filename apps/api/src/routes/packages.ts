@@ -64,21 +64,10 @@ packages.post("/", async (c) => {
     return c.json({ error: parsed.error.issues[0]?.message ?? "Datos inválidos" }, 400);
   }
 
-  // ── Límite de paquetes según plan ─────────────────────────────────────────
   const business = await prisma.business.findUnique({ where: { id: businessId } });
   const limits = getLimits(business?.plan ?? "BASIC");
 
-  if (limits.maxPackages !== -1) {
-    const count = await prisma.package.count({ where: { businessId, isActive: true } });
-    if (count >= limits.maxPackages) {
-      return c.json({
-        error: `Tu plan permite máximo ${limits.maxPackages} paquete${limits.maxPackages !== 1 ? "s" : ""}. Actualiza tu plan para crear más.`,
-        code: "PLAN_LIMIT_PACKAGES",
-      }, 403);
-    }
-  }
-
-  // Verificar que todos los servicios pertenezcan al negocio
+  // Verificar que todos los servicios pertenezcan al negocio (solo lectura)
   const { serviceIds, ...rest } = parsed.data;
   const validServices = await prisma.service.findMany({
     where: { id: { in: serviceIds }, businessId },
@@ -88,18 +77,35 @@ packages.post("/", async (c) => {
     return c.json({ error: "Uno o más servicios no son válidos" }, 400);
   }
 
-  const pkg = await prisma.package.create({
-    data: {
-      ...rest,
-      businessId,
-      services: {
-        create: serviceIds.map((serviceId) => ({ serviceId })),
+  // Conteo del límite + creación serializados con advisory lock por negocio
+  // para que la concurrencia no supere el límite del plan (auditoría 4.4).
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`pkg:${businessId}`}))`;
+
+    if (limits.maxPackages !== -1) {
+      const count = await tx.package.count({ where: { businessId, isActive: true } });
+      if (count >= limits.maxPackages) return { limited: true as const };
+    }
+
+    const pkg = await tx.package.create({
+      data: {
+        ...rest,
+        businessId,
+        services: { create: serviceIds.map((serviceId) => ({ serviceId })) },
       },
-    },
-    include: packageInclude,
+      include: packageInclude,
+    });
+    return { limited: false as const, pkg };
   });
 
-  return c.json(pkg, 201);
+  if (result.limited) {
+    return c.json({
+      error: `Tu plan permite máximo ${limits.maxPackages} paquete${limits.maxPackages !== 1 ? "s" : ""}. Actualiza tu plan para crear más.`,
+      code: "PLAN_LIMIT_PACKAGES",
+    }, 403);
+  }
+
+  return c.json(result.pkg, 201);
 });
 
 // ─── PATCH /packages/:id ──────────────────────────────────────────────────────

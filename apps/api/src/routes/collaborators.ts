@@ -88,29 +88,38 @@ collaborators.post("/", async (c) => {
   const business = await prisma.business.findUnique({ where: { id: businessId } });
   const limits = getLimits(business?.plan ?? "BASIC");
 
-  if (limits.maxCollaborators !== -1) {
-    const count = await prisma.collaborator.count({ where: { businessId, isActive: true } });
-    if (count >= limits.maxCollaborators) {
-      return c.json({
-        error: `Tu plan ${business?.plan ?? "actual"} permite máximo ${limits.maxCollaborators} colaborador${limits.maxCollaborators !== 1 ? "es" : ""}. Actualiza tu plan para agregar más.`,
-        code: "PLAN_LIMIT_COLLABORATORS",
-      }, 403);
-    }
-  }
+  // Conteo + creación serializados con advisory lock por negocio para que la
+  // concurrencia no supere el límite del plan (auditoría 4.4).
+  const result = await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`collab:${businessId}`}))`;
 
-  const collaborator = await prisma.collaborator.create({
-    data: {
-      ...parsed.data,
-      schedule: parsed.data.schedule ?? buildDefaultSchedule(
-        business?.openTime  ?? "09:00",
-        business?.closeTime ?? "18:00",
-        business?.operatingDays ?? ["Mon", "Tue", "Wed", "Thu", "Fri"],
-      ),
-      businessId,
-    },
+    if (limits.maxCollaborators !== -1) {
+      const count = await tx.collaborator.count({ where: { businessId, isActive: true } });
+      if (count >= limits.maxCollaborators) return { limited: true as const };
+    }
+
+    const collaborator = await tx.collaborator.create({
+      data: {
+        ...parsed.data,
+        schedule: parsed.data.schedule ?? buildDefaultSchedule(
+          business?.openTime  ?? "09:00",
+          business?.closeTime ?? "18:00",
+          business?.operatingDays ?? ["Mon", "Tue", "Wed", "Thu", "Fri"],
+        ),
+        businessId,
+      },
+    });
+    return { limited: false as const, collaborator };
   });
 
-  return c.json(collaborator, 201);
+  if (result.limited) {
+    return c.json({
+      error: `Tu plan ${business?.plan ?? "actual"} permite máximo ${limits.maxCollaborators} colaborador${limits.maxCollaborators !== 1 ? "es" : ""}. Actualiza tu plan para agregar más.`,
+      code: "PLAN_LIMIT_COLLABORATORS",
+    }, 403);
+  }
+
+  return c.json(result.collaborator, 201);
 });
 
 // ─── PATCH /collaborators/:id ─────────────────────────────────────────────────

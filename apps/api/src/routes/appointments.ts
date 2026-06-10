@@ -19,6 +19,14 @@ async function logEvent(appointmentId: string, type: string, description: string
 // (la carrera la gana otra petición). Se traduce a 400 fuera de la transacción.
 class AlreadyPaidError extends Error {}
 
+// Error con respuesta HTTP para abortar una transacción y devolver un código y
+// cuerpo específicos fuera de ella (usado en la creación de citas con lock).
+class HttpError extends Error {
+  constructor(public status: 400 | 403 | 409 | 422, public body: Record<string, unknown>) {
+    super();
+  }
+}
+
 const STATUS_LABELS: Record<string, string> = {
   PENDING: "Pendiente", CONFIRMED: "Confirmada", IN_PROGRESS: "En progreso",
   COMPLETED: "Completada", CANCELLED: "Cancelada", NO_SHOW: "No se presentó", RESCHEDULED: "Reagendada",
@@ -178,70 +186,91 @@ appointments.post("/", async (c) => {
     }
   }
 
-  // Verificar cruce de horario del colaborador (excluye canceladas, no-shows, reagendadas y completadas)
-  const conflict = await prisma.appointment.findFirst({
-    where: {
-      collaboratorId,
-      businessId,
-      status: { notIn: ["CANCELLED", "NO_SHOW", "RESCHEDULED", "COMPLETED"] },
-      OR: [
-        // Nueva cita empieza dentro de una existente
-        { startTime: { lt: end }, endTime: { gt: start } },
-      ],
-    },
-    include: {
-      client: { select: { name: true, lastName: true } },
-      service: { select: { name: true } },
-    },
-  });
+  // ── Sección crítica serializada con advisory lock por negocio ─────────────
+  // Evita dobles reservas y superar el límite mensual bajo concurrencia
+  // (auditoría 2.1 / 4.4). Los chequeos de conflicto y la creación ocurren
+  // dentro del mismo lock+transacción, así dos peticiones simultáneas no pueden
+  // colarse entre el "verificar" y el "crear".
+  try {
+    const appointment = await prisma.$transaction(async (tx) => {
+      await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`appt:${businessId}`}))`;
 
-  if (conflict) {
-    const conflictStart = conflict.startTime.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
-    const conflictEnd   = conflict.endTime.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
-    const clientName    = [conflict.client.name, (conflict.client as { lastName?: string | null }).lastName].filter(Boolean).join(" ");
-    return c.json({
-      error: `El colaborador ya tiene una cita de ${conflictStart} a ${conflictEnd} con ${clientName} (${conflict.service.name}).`,
-      conflictId: conflict.id,
-    }, 409);
+      // Re-chequeo autoritativo del límite mensual dentro del lock (auditoría 4.4)
+      if (limits.maxAppointmentsPerMonth !== -1) {
+        const monthStart = new Date(start.getFullYear(), start.getMonth(), 1);
+        const monthEnd   = new Date(start.getFullYear(), start.getMonth() + 1, 1);
+        const monthCount = await tx.appointment.count({
+          where: { businessId, startTime: { gte: monthStart, lt: monthEnd }, status: { notIn: ["CANCELLED", "NO_SHOW"] } },
+        });
+        if (monthCount >= limits.maxAppointmentsPerMonth) {
+          throw new HttpError(403, {
+            error: `Has alcanzado el límite de ${limits.maxAppointmentsPerMonth} citas este mes. Actualiza tu plan para continuar.`,
+            code: "PLAN_LIMIT_APPOINTMENTS",
+          });
+        }
+      }
+
+      // Cruce de horario del colaborador (excluye canceladas, no-shows, reagendadas y completadas)
+      const conflict = await tx.appointment.findFirst({
+        where: {
+          collaboratorId,
+          businessId,
+          status: { notIn: ["CANCELLED", "NO_SHOW", "RESCHEDULED", "COMPLETED"] },
+          OR: [{ startTime: { lt: end }, endTime: { gt: start } }],
+        },
+        include: {
+          client: { select: { name: true, lastName: true } },
+          service: { select: { name: true } },
+        },
+      });
+      if (conflict) {
+        const conflictStart = conflict.startTime.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
+        const conflictEnd   = conflict.endTime.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
+        const clientName    = [conflict.client.name, (conflict.client as { lastName?: string | null }).lastName].filter(Boolean).join(" ");
+        throw new HttpError(409, {
+          error: `El colaborador ya tiene una cita de ${conflictStart} a ${conflictEnd} con ${clientName} (${conflict.service.name}).`,
+          conflictId: conflict.id,
+        });
+      }
+
+      // Cruce del cliente: no puede tener dos citas activas al mismo tiempo
+      const clientConflict = await tx.appointment.findFirst({
+        where: {
+          clientId: parsed.data.clientId,
+          businessId,
+          status: { notIn: ["CANCELLED", "NO_SHOW", "RESCHEDULED", "COMPLETED"] },
+          startTime: { lt: end },
+          endTime:   { gt: start },
+        },
+        include: {
+          service:      { select: { name: true } },
+          collaborator: { select: { name: true } },
+        },
+      });
+      if (clientConflict) {
+        const cs = clientConflict.startTime.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
+        const ce = clientConflict.endTime.toLocaleTimeString("es-MX",   { hour: "2-digit", minute: "2-digit", hour12: false });
+        throw new HttpError(409, {
+          error: `El cliente ya tiene una cita de ${cs} a ${ce} para ${clientConflict.service.name} con ${clientConflict.collaborator.name}.`,
+          conflictId: clientConflict.id,
+        });
+      }
+
+      const created = await tx.appointment.create({
+        data: { ...parsed.data, startTime: start, endTime: end, businessId },
+        include: appointmentInclude,
+      });
+      await tx.appointmentEvent.create({
+        data: { appointmentId: created.id, type: "CREATED", description: "Cita creada" },
+      });
+      return created;
+    });
+
+    return c.json(appointment, 201);
+  } catch (e) {
+    if (e instanceof HttpError) return c.json(e.body, e.status);
+    throw e;
   }
-
-  // Verificar cruce del cliente: no puede tener dos citas activas al mismo tiempo
-  const clientConflict = await prisma.appointment.findFirst({
-    where: {
-      clientId: parsed.data.clientId,
-      businessId,
-      status: { notIn: ["CANCELLED", "NO_SHOW", "RESCHEDULED", "COMPLETED"] },
-      startTime: { lt: end },
-      endTime:   { gt: start },
-    },
-    include: {
-      service:      { select: { name: true } },
-      collaborator: { select: { name: true } },
-    },
-  });
-
-  if (clientConflict) {
-    const cs = clientConflict.startTime.toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit", hour12: false });
-    const ce = clientConflict.endTime.toLocaleTimeString("es-MX",   { hour: "2-digit", minute: "2-digit", hour12: false });
-    return c.json({
-      error: `El cliente ya tiene una cita de ${cs} a ${ce} para ${clientConflict.service.name} con ${clientConflict.collaborator.name}.`,
-      conflictId: clientConflict.id,
-    }, 409);
-  }
-
-  const appointment = await prisma.appointment.create({
-    data: {
-      ...parsed.data,
-      startTime: start,
-      endTime: end,
-      businessId,
-    },
-    include: appointmentInclude,
-  });
-
-  await logEvent(appointment.id, "CREATED", "Cita creada");
-
-  return c.json(appointment, 201);
 });
 
 // ─── PATCH /appointments/:id/status ──────────────────────────────────────────
