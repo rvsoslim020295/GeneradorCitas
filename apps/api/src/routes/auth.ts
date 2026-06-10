@@ -198,7 +198,7 @@ auth.get("/verify-email", async (c) => {
     `gm_token=${jwt_token}; HttpOnly; SameSite=None; Path=/; Max-Age=604800; Secure`
   );
 
-  return c.json({ user: { id: user.id, name: user.name, email: user.email } });
+  return c.json({ token: jwt_token, user: { id: user.id, name: user.name, email: user.email } });
 });
 
 // ─── POST /auth/logout ───────────────────────────────────────────────────────

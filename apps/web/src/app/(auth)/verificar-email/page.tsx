@@ -28,8 +28,9 @@ function VerificarEmailContent() {
           setMessage(data.error ?? "El enlace es inválido o ya fue utilizado.");
           return;
         }
-        // Token viene como httpOnly cookie — solo guardamos datos de display
+        localStorage.setItem("gm_token", data.token);
         localStorage.setItem("gm_user", JSON.stringify(data.user));
+        document.cookie = `gm_token=${data.token}; path=/; SameSite=Lax; max-age=604800`;
         setStatus("success");
         setTimeout(() => router.push("/onboarding"), 2000);
       })
