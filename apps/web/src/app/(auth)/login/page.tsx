@@ -40,8 +40,18 @@ export default function LoginPage() {
         return;
       }
 
+      if (res.status === 404 || data.code === "EMAIL_NOT_FOUND") {
+        setError("No existe una cuenta con ese correo electrónico.");
+        return;
+      }
+
+      if (res.status === 401 || data.code === "WRONG_PASSWORD") {
+        setError("Contraseña incorrecta. Inténtalo de nuevo.");
+        return;
+      }
+
       if (!res.ok) {
-        setError(data.error ?? "Error al iniciar sesión");
+        setError(data.error ?? "Error al iniciar sesión.");
         return;
       }
 

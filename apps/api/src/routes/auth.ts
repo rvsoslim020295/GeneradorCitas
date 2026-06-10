@@ -7,6 +7,7 @@ import prisma from "../lib/prisma.js";
 import { requireAuth, JWT_SECRET } from "../middleware/auth.js";
 import { ADMIN_JWT_SECRET } from "../middleware/admin-auth.js";
 import { sendVerificationEmail } from "../lib/mailer.js";
+import { validateEmailDeep } from "../lib/email-validator.js";
 
 const auth = createRouter();
 
@@ -19,10 +20,10 @@ const loginSchema = z.object({
 const registerSchema = z.object({
   name: z.string().min(2),
   lastName: z.string().min(2),
-  dni: z.string().min(6),
-  ruc: z.string().min(11).max(11),
-  phone: z.string().min(6),
-  email: z.string().email(),
+  dni: z.string().length(8).optional().or(z.literal("")).transform(v => v || undefined),
+  ruc: z.string().length(11).optional().or(z.literal("")).transform(v => v || undefined),
+  phone: z.string().regex(/^\d{9}$/, "El teléfono debe tener exactamente 9 dígitos"),
+  email: z.string().email("Correo electrónico inválido"),
   password: z.string().min(6),
 });
 
@@ -50,7 +51,7 @@ auth.post("/login", async (c) => {
 
   if (user) {
     const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) return c.json({ error: "Credenciales incorrectas" }, 401);
+    if (!validPassword) return c.json({ error: "Contraseña incorrecta. Inténtalo de nuevo.", code: "WRONG_PASSWORD" }, 401);
 
     if (!user.emailVerified) {
       return c.json({ error: "Debes verificar tu correo electrónico antes de iniciar sesión." }, 403);
@@ -91,7 +92,7 @@ auth.post("/login", async (c) => {
 
   if (superAdmin) {
     const validPassword = await bcrypt.compare(password, superAdmin.password);
-    if (!validPassword) return c.json({ error: "Credenciales incorrectas" }, 401);
+    if (!validPassword) return c.json({ error: "Contraseña incorrecta. Inténtalo de nuevo.", code: "WRONG_PASSWORD" }, 401);
 
     const token = jwt.sign(
       { adminId: superAdmin.id, email: superAdmin.email },
@@ -115,7 +116,7 @@ auth.post("/login", async (c) => {
     });
   }
 
-  return c.json({ error: "Credenciales incorrectas" }, 401);
+  return c.json({ error: "No existe una cuenta con ese correo electrónico.", code: "EMAIL_NOT_FOUND" }, 404);
 });
 
 // ─── POST /auth/register ──────────────────────────────────────────────────────
@@ -128,6 +129,12 @@ auth.post("/register", async (c) => {
   }
 
   const { name, lastName, dni, ruc, phone, email, password } = parsed.data;
+
+  // Validación profunda del correo (MX + desechables + AbstractAPI opcional)
+  const emailCheck = await validateEmailDeep(email);
+  if (!emailCheck.valid) {
+    return c.json({ error: emailCheck.error }, 422);
+  }
 
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) return c.json({ error: "Este email ya está registrado" }, 409);
