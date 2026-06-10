@@ -250,41 +250,29 @@ auth.get("/test-email", async (c) => {
   const to = c.req.query("to");
   if (!to) return c.json({ error: "Falta ?to=email" }, 400);
 
-  const smtpConfig = {
-    host: process.env.SMTP_HOST ?? "smtp.gmail.com",
-    port: Number(process.env.SMTP_PORT ?? 465),
-    secure: Number(process.env.SMTP_PORT ?? 465) === 465,
-    user: process.env.SMTP_USER ?? "(no configurado)",
-    pass: process.env.SMTP_PASS ? "***configurado***" : "(no configurado)",
-    appUrl: process.env.APP_URL ?? "(no configurado)",
-    family: 4,
-  };
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) return c.json({ ok: false, error: "BREVO_API_KEY no configurado en Railway" }, 500);
 
   try {
-    const nodemailer = await import("nodemailer");
-    const { lookup } = await import("dns/promises");
-    let resolvedHost = smtpConfig.host;
-    try {
-      const { address } = await lookup(smtpConfig.host, { family: 4 });
-      resolvedHost = address;
-    } catch (_) {}
-    const t = nodemailer.default.createTransport({
-      host: resolvedHost,
-      port: smtpConfig.port,
-      secure: smtpConfig.secure,
-      auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
-      connectionTimeout: 10000,
-      socketTimeout: 10000,
-    } as any);
-    await t.sendMail({
-      from: `"GlowManager Test" <${process.env.SMTP_USER}>`,
-      to,
-      subject: "Test SMTP GlowManager",
-      text: "Si ves este correo, el SMTP funciona correctamente.",
+    const res = await fetch("https://api.brevo.com/v3/smtp/email", {
+      method: "POST",
+      headers: {
+        "accept": "application/json",
+        "api-key": apiKey,
+        "content-type": "application/json",
+      },
+      body: JSON.stringify({
+        sender: { name: "GlowManager", email: process.env.BREVO_SENDER_EMAIL ?? "noreply@glowmanager.app" },
+        to: [{ email: to }],
+        subject: "Test Brevo — GlowManager",
+        htmlContent: "<p>Si ves este correo, Brevo funciona correctamente desde Railway.</p>",
+      }),
     });
-    return c.json({ ok: true, resolvedHost, config: smtpConfig });
+    const data = await res.json();
+    if (!res.ok) return c.json({ ok: false, status: res.status, data }, 500);
+    return c.json({ ok: true, data });
   } catch (err: any) {
-    return c.json({ ok: false, error: err.message, code: err.code, config: smtpConfig }, 500);
+    return c.json({ ok: false, error: err.message }, 500);
   }
 });
 

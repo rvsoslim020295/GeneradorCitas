@@ -1,51 +1,50 @@
-import nodemailer from "nodemailer";
-import { lookup } from "dns/promises";
-
 const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
+const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
-async function createTransporter() {
-  const smtpHost = process.env.SMTP_HOST ?? "smtp.gmail.com";
-  const smtpPort = Number(process.env.SMTP_PORT ?? 465);
+async function sendBrevoEmail(payload: {
+  to: { email: string; name?: string }[];
+  subject: string;
+  htmlContent: string;
+}) {
+  const apiKey = process.env.BREVO_API_KEY;
+  if (!apiKey) throw new Error("BREVO_API_KEY no configurado");
 
-  // Forzar resolución IPv4 — Railway resuelve a IPv6 por defecto y lo bloquea
-  let host = smtpHost;
-  try {
-    const { address } = await lookup(smtpHost, { family: 4 });
-    host = address;
-    console.log(`[mailer] SMTP resuelto a IPv4: ${host}`);
-  } catch (e) {
-    console.warn("[mailer] No se pudo resolver IPv4, usando hostname:", smtpHost);
-  }
+  const senderName = process.env.BREVO_SENDER_NAME ?? "GlowManager";
+  const senderEmail = process.env.BREVO_SENDER_EMAIL ?? "noreply@glowmanager.app";
 
-  return nodemailer.createTransport({
-    host,
-    port: smtpPort,
-    secure: smtpPort === 465,
-    auth: {
-      user: process.env.SMTP_USER,
-      pass: process.env.SMTP_PASS,
+  const res = await fetch(BREVO_API_URL, {
+    method: "POST",
+    headers: {
+      "accept": "application/json",
+      "api-key": apiKey,
+      "content-type": "application/json",
     },
-    connectionTimeout: 10000,
-    socketTimeout: 10000,
-  } as any);
+    body: JSON.stringify({
+      sender: { name: senderName, email: senderEmail },
+      ...payload,
+    }),
+  });
+
+  if (!res.ok) {
+    const err = await res.text();
+    throw new Error(`Brevo error ${res.status}: ${err}`);
+  }
 }
 
 export async function sendVerificationEmail(email: string, token: string, name: string) {
   const verifyUrl = `${APP_URL}/verificar-email?token=${token}`;
 
-  if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
+  if (!process.env.BREVO_API_KEY) {
     console.log("\n[DEV] Email de verificación:");
     console.log(`   Para: ${email}`);
     console.log(`   Link: ${verifyUrl}\n`);
     return;
   }
 
-  const transporter = await createTransporter();
-  await transporter.sendMail({
-    from: `"GlowManager" <${process.env.SMTP_USER}>`,
-    to: email,
+  await sendBrevoEmail({
+    to: [{ email, name }],
     subject: "Verifica tu cuenta en GlowManager",
-    html: `
+    htmlContent: `
       <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
         <h2 style="color: #4441C4;">¡Bienvenido a GlowManager, ${name}!</h2>
         <p>Haz clic en el botón para verificar tu correo y activar tu cuenta:</p>
