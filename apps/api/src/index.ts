@@ -1,7 +1,6 @@
 import "dotenv/config";
 import { serve } from "@hono/node-server";
 import { Hono } from "hono";
-import { cors } from "hono/cors";
 import auth from "./routes/auth.js";
 import clients from "./routes/clients.js";
 import collaborators from "./routes/collaborators.js";
@@ -18,15 +17,18 @@ import { startReminderScheduler } from "./lib/reminder-scheduler.js";
 
 const app = new Hono();
 
-app.use(
-  "*",
-  cors({
-    origin: (origin) => origin,
-    allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
-    allowHeaders: ["Content-Type", "Authorization"],
-    credentials: true,
-  })
-);
+app.use("*", async (c, next) => {
+  const origin = c.req.header("Origin") ?? "*";
+  c.header("Access-Control-Allow-Origin", origin);
+  c.header("Access-Control-Allow-Methods", "GET, POST, PUT, PATCH, DELETE, OPTIONS");
+  c.header("Access-Control-Allow-Headers", "Content-Type, Authorization");
+  c.header("Access-Control-Allow-Credentials", "true");
+  c.header("Vary", "Origin");
+  if (c.req.method === "OPTIONS") {
+    return new Response(null, { status: 204 });
+  }
+  await next();
+});
 
 // Health check — útil para saber si el servidor está corriendo
 app.get("/health", (c) => c.json({ status: "ok", service: "GlowManager API" }));
