@@ -6,7 +6,7 @@ import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth, JWT_SECRET } from "../middleware/auth.js";
 import { ADMIN_JWT_SECRET } from "../middleware/admin-auth.js";
-import { sendVerificationEmail } from "../lib/mailer.js";
+import { sendVerificationEmail, sendPasswordResetEmail } from "../lib/mailer.js";
 import { validateEmailDeep } from "../lib/email-validator.js";
 
 const auth = createRouter();
@@ -285,6 +285,64 @@ auth.get("/test-email", async (c) => {
   } catch (err: any) {
     return c.json({ ok: false, error: err.message }, 500);
   }
+});
+
+// ─── POST /auth/forgot-password ──────────────────────────────────────────────
+auth.post("/forgot-password", async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const email = body?.email?.trim()?.toLowerCase();
+  if (!email) return c.json({ error: "El correo es requerido." }, 400);
+
+  const user = await prisma.user.findUnique({ where: { email } });
+
+  // Siempre respondemos igual para no revelar si el email existe
+  if (!user) {
+    return c.json({ ok: true });
+  }
+
+  const token = randomBytes(32).toString("hex");
+  const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
+
+  await prisma.user.update({
+    where: { email },
+    data: { passwordResetToken: token, passwordResetExpires: expires },
+  });
+
+  try {
+    await sendPasswordResetEmail(email, token, user.name);
+  } catch (err) {
+    console.error("Error enviando email de recuperación:", err);
+  }
+
+  return c.json({ ok: true });
+});
+
+// ─── POST /auth/reset-password ────────────────────────────────────────────────
+auth.post("/reset-password", async (c) => {
+  const body = await c.req.json().catch(() => null);
+  const { token, password } = body ?? {};
+
+  if (!token || !password || password.length < 6) {
+    return c.json({ error: "Datos inválidos." }, 400);
+  }
+
+  const user = await prisma.user.findUnique({ where: { passwordResetToken: token } });
+
+  if (!user || !user.passwordResetExpires || user.passwordResetExpires < new Date()) {
+    return c.json({ error: "El enlace no es válido o ha expirado." }, 400);
+  }
+
+  const hashed = await bcrypt.hash(password, 10);
+  await prisma.user.update({
+    where: { id: user.id },
+    data: {
+      password: hashed,
+      passwordResetToken: null,
+      passwordResetExpires: null,
+    },
+  });
+
+  return c.json({ ok: true });
 });
 
 export default auth;

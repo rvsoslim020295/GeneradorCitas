@@ -79,6 +79,8 @@ model User {
   role                   Role          @default(OWNER)
   emailVerified          Boolean       @default(false)
   emailVerificationToken String?       @unique
+  passwordResetToken     String?       @unique
+  passwordResetExpires   DateTime?
   businessId             String
   business               Business      @relation(fields: [businessId], references: [id])
   collaboratorId         String?       @unique

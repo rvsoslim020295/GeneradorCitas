@@ -31,6 +31,39 @@ async function sendBrevoEmail(payload: {
   }
 }
 
+export async function sendPasswordResetEmail(email: string, token: string, name: string) {
+  const resetUrl = `${APP_URL}/resetear-contrasena?token=${token}`;
+
+  if (!process.env.BREVO_API_KEY) {
+    console.log("\n[DEV] Email de recuperación de contraseña:");
+    console.log(`   Para: ${email}`);
+    console.log(`   Link: ${resetUrl}\n`);
+    return;
+  }
+
+  await sendBrevoEmail({
+    to: [{ email, name }],
+    subject: "Recupera tu contraseña en GlowManager",
+    htmlContent: `
+      <div style="font-family: sans-serif; max-width: 480px; margin: 0 auto; padding: 32px;">
+        <h2 style="color: #4441C4;">Recupera tu contraseña, ${name}</h2>
+        <p>Recibimos una solicitud para restablecer la contraseña de tu cuenta. Haz clic en el botón para crear una nueva:</p>
+        <a href="${resetUrl}"
+           style="display:inline-block; background:#4441C4; color:#fff; padding:12px 24px;
+                  border-radius:8px; text-decoration:none; font-weight:600; margin:16px 0;">
+          Restablecer contraseña
+        </a>
+        <p style="color:#888; font-size:13px;">
+          Este enlace expira en <strong>1 hora</strong>.<br>
+          Si no solicitaste este cambio, ignora este correo — tu contraseña no cambiará.
+        </p>
+        <hr style="border:none; border-top:1px solid #eee; margin:24px 0;">
+        <p style="color:#aaa; font-size:12px;">GlowManager · Panel de gestión para negocios de belleza</p>
+      </div>
+    `,
+  });
+}
+
 export async function sendVerificationEmail(email: string, token: string, name: string) {
   const verifyUrl = `${APP_URL}/verificar-email?token=${token}`;
 
