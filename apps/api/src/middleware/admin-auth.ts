@@ -1,7 +1,6 @@
 import { createMiddleware } from "hono/factory";
 import jwt from "jsonwebtoken";
-
-const ADMIN_JWT_SECRET = process.env.ADMIN_JWT_SECRET ?? "admin_secret_change_in_production";
+import { ADMIN_JWT_SECRET } from "../lib/env.js";
 
 export type AdminPayload = {
   adminId: string;

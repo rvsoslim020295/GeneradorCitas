@@ -1,3 +1,8 @@
+// En producción APP_URL es obligatoria: sin ella los enlaces de verificación y
+// reset apuntarían a localhost y quedarían rotos en silencio (auditoría 12.2).
+if (process.env.NODE_ENV === "production" && !process.env.APP_URL) {
+  throw new Error("[FATAL] APP_URL no está definido en producción. Los enlaces de email quedarían rotos.");
+}
 const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
 const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 

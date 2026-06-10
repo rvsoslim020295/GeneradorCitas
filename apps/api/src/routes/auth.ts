@@ -5,7 +5,7 @@ import { randomBytes } from "crypto";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth, JWT_SECRET } from "../middleware/auth.js";
-import { ADMIN_JWT_SECRET } from "../middleware/admin-auth.js";
+import { ADMIN_JWT_SECRET, requireSuperAdmin } from "../middleware/admin-auth.js";
 import { sendVerificationEmail, sendPasswordResetEmail } from "../lib/mailer.js";
 import { validateEmailDeep } from "../lib/email-validator.js";
 
@@ -257,7 +257,7 @@ auth.get("/me", requireAuth, async (c) => {
 });
 
 // ─── GET /auth/test-email?to=EMAIL ───────────────────────────────────────────
-auth.get("/test-email", async (c) => {
+auth.get("/test-email", requireSuperAdmin, async (c) => {
   const to = c.req.query("to");
   if (!to) return c.json({ error: "Falta ?to=email" }, 400);
 

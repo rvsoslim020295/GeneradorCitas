@@ -71,9 +71,15 @@ availability.get("/slots", async (c) => {
   const dayEnd   = new Date(`${date}T23:59:59.999`);
 
   const totalMinutes  = service.durationMin + (service.bufferMinutes ?? 0);
-  const slotStep      = business.slotMinutes;
+  // Guarda defensiva (auditoría 3.3): slotMinutes <= 0 provocaría un bucle
+  // infinito (`t += 0`) que congela el event loop de todo el proceso.
+  const slotStep      = business.slotMinutes > 0 ? business.slotMinutes : 30;
   const businessOpen  = timeToMinutes(business.openTime  ?? "00:00");
   const businessClose = timeToMinutes(business.closeTime ?? "23:59");
+
+  if (totalMinutes <= 0) {
+    return c.json({ slots: [], slotDuration: slotStep, reason: "El servicio tiene una duración inválida." });
+  }
 
   // Usamos toLocaleDateString/toLocaleTimeString con zona horaria explícita para
   // evitar depender de TZ del proceso (puede no estar cargado al iniciar ESM).
