@@ -1,5 +1,10 @@
 import { resolve } from "dns/promises";
-import disposableDomains from "disposable-email-domains";
+import { readFileSync } from "fs";
+import { createRequire } from "module";
+
+const _require = createRequire(import.meta.url);
+const _pkgPath: string = _require.resolve("disposable-email-domains");
+const disposableDomains: string[] = JSON.parse(readFileSync(_pkgPath, "utf-8"));
 
 /** Verifica que el dominio tenga servidores MX activos */
 async function hasMxRecords(email: string): Promise<boolean> {
