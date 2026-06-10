@@ -1,32 +1,46 @@
 import nodemailer from "nodemailer";
+import { lookup } from "dns/promises";
 
 const APP_URL = process.env.APP_URL ?? "http://localhost:3000";
 
-// eslint-disable-next-line @typescript-eslint/no-explicit-any
-const transporter = nodemailer.createTransport({
-  host: process.env.SMTP_HOST ?? "smtp.gmail.com",
-  port: Number(process.env.SMTP_PORT ?? 465),
-  secure: Number(process.env.SMTP_PORT ?? 465) === 465,
-  auth: {
-    user: process.env.SMTP_USER,
-    pass: process.env.SMTP_PASS,
-  },
-  connectionTimeout: 10000,
-  socketTimeout: 10000,
-  family: 4,
-} as any);
+async function createTransporter() {
+  const smtpHost = process.env.SMTP_HOST ?? "smtp.gmail.com";
+  const smtpPort = Number(process.env.SMTP_PORT ?? 465);
+
+  // Forzar resolución IPv4 — Railway resuelve a IPv6 por defecto y lo bloquea
+  let host = smtpHost;
+  try {
+    const { address } = await lookup(smtpHost, { family: 4 });
+    host = address;
+    console.log(`[mailer] SMTP resuelto a IPv4: ${host}`);
+  } catch (e) {
+    console.warn("[mailer] No se pudo resolver IPv4, usando hostname:", smtpHost);
+  }
+
+  return nodemailer.createTransport({
+    host,
+    port: smtpPort,
+    secure: smtpPort === 465,
+    auth: {
+      user: process.env.SMTP_USER,
+      pass: process.env.SMTP_PASS,
+    },
+    connectionTimeout: 10000,
+    socketTimeout: 10000,
+  } as any);
+}
 
 export async function sendVerificationEmail(email: string, token: string, name: string) {
   const verifyUrl = `${APP_URL}/verificar-email?token=${token}`;
 
-  // En desarrollo sin SMTP configurado, logueamos el link
   if (!process.env.SMTP_USER || !process.env.SMTP_PASS) {
-    console.log("\n📧 [DEV] Email de verificación:");
+    console.log("\n[DEV] Email de verificación:");
     console.log(`   Para: ${email}`);
     console.log(`   Link: ${verifyUrl}\n`);
     return;
   }
 
+  const transporter = await createTransporter();
   await transporter.sendMail({
     from: `"GlowManager" <${process.env.SMTP_USER}>`,
     to: email,

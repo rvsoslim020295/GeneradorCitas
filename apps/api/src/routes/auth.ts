@@ -262,14 +262,19 @@ auth.get("/test-email", async (c) => {
 
   try {
     const nodemailer = await import("nodemailer");
+    const { lookup } = await import("dns/promises");
+    let resolvedHost = smtpConfig.host;
+    try {
+      const { address } = await lookup(smtpConfig.host, { family: 4 });
+      resolvedHost = address;
+    } catch (_) {}
     const t = nodemailer.default.createTransport({
-      host: smtpConfig.host,
+      host: resolvedHost,
       port: smtpConfig.port,
       secure: smtpConfig.secure,
       auth: { user: process.env.SMTP_USER, pass: process.env.SMTP_PASS },
       connectionTimeout: 10000,
       socketTimeout: 10000,
-      family: 4,
     } as any);
     await t.sendMail({
       from: `"GlowManager Test" <${process.env.SMTP_USER}>`,
@@ -277,7 +282,7 @@ auth.get("/test-email", async (c) => {
       subject: "Test SMTP GlowManager",
       text: "Si ves este correo, el SMTP funciona correctamente.",
     });
-    return c.json({ ok: true, config: smtpConfig });
+    return c.json({ ok: true, resolvedHost, config: smtpConfig });
   } catch (err: any) {
     return c.json({ ok: false, error: err.message, code: err.code, config: smtpConfig }, 500);
   }
