@@ -31,7 +31,7 @@ Vulnerabilidades de acceso explotables sin condiciones especiales.
 | ☑ | 8.1 | Mass-assignment en `PATCH /clients/:id` | `routes/clients.ts` |
 | ☑ | 2.3 | FKs sin validar tenancy (IDOR cross-tenant en citas) | `routes/appointments.ts` |
 | ☑ | 4.1 | `planStatus` no se valida → middleware `requirePlanAccess` | `middleware/plan-access.ts` + rutas |
-| ☐ | 1.3 | Enumeración de usuarios en login | `routes/auth.ts` |
+| ☑ | 1.3 | Enumeración de usuarios en login (+ frontend) | `routes/auth.ts`, `web/login/page.tsx` |
 | ☐ | 1.4 / 6.6 | Sin rate-limiting en auth y admin login | `routes/auth.ts`, `routes/admin.ts` |
 | ☐ | 1.5 | Reset/logout no invalidan JWT (tokenVersion) | schema + `auth.ts` |
 | ☐ | 1.9 | Tokens de reset/verificación sin hashear | schema + `auth.ts` |

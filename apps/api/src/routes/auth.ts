@@ -12,6 +12,10 @@ import { validateEmailDeep } from "../lib/email-validator.js";
 
 const auth = createRouter();
 
+// Hash bcrypt "dummy" para igualar el costo de bcrypt.compare cuando el email
+// no existe, evitando enumeración de usuarios por timing (auditoría 1.3).
+const DUMMY_PASSWORD_HASH = "$2b$10$HVJNCJtGy2lr57ql.y9t/uzOm0BZvelIgTktR6mJhuJeMRbVgWmWe";
+
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 const loginSchema = z.object({
   email: z.string().email(),
@@ -44,16 +48,24 @@ auth.post("/login", async (c) => {
   // Con rememberMe → 30 días
   const maxAge = rememberMe ? 60 * 60 * 24 * 30 : null;
 
-  // ── Intentar como usuario de negocio primero ──────────────────────────────
+  // ── Buscar la cuenta (negocio o super admin) ──────────────────────────────
   const user = await prisma.user.findUnique({
     where: { email },
     include: { business: true, collaborator: { select: { id: true } } },
   });
+  const superAdmin = user ? null : await prisma.superAdmin.findUnique({ where: { email } });
 
+  // Timing y respuesta uniformes para no revelar si el email existe (auditoría 1.3).
+  // Siempre ejecutamos bcrypt, incluso sin cuenta, contra un hash dummy.
+  const hashToCompare = user?.password ?? superAdmin?.password ?? DUMMY_PASSWORD_HASH;
+  const validPassword = await bcrypt.compare(password, hashToCompare);
+
+  if ((!user && !superAdmin) || !validPassword) {
+    return c.json({ error: "Correo o contraseña incorrectos.", code: "INVALID_CREDENTIALS" }, 401);
+  }
+
+  // ── Usuario de negocio ─────────────────────────────────────────────────────
   if (user) {
-    const validPassword = await bcrypt.compare(password, user.password);
-    if (!validPassword) return c.json({ error: "Contraseña incorrecta. Inténtalo de nuevo.", code: "WRONG_PASSWORD" }, 401);
-
     if (!user.emailVerified) {
       return c.json({ error: "Debes verificar tu correo electrónico antes de iniciar sesión." }, 403);
     }
@@ -93,36 +105,27 @@ auth.post("/login", async (c) => {
     });
   }
 
-  // ── Intentar como super admin ─────────────────────────────────────────────
-  const superAdmin = await prisma.superAdmin.findUnique({ where: { email } });
+  // ── Super admin (password ya validado arriba) ─────────────────────────────
+  const token = jwt.sign(
+    { adminId: superAdmin!.id, email: superAdmin!.email },
+    ADMIN_JWT_SECRET,
+    { expiresIn: "7d" }
+  );
 
-  if (superAdmin) {
-    const validPassword = await bcrypt.compare(password, superAdmin.password);
-    if (!validPassword) return c.json({ error: "Contraseña incorrecta. Inténtalo de nuevo.", code: "WRONG_PASSWORD" }, 401);
+  c.header(
+    "Set-Cookie",
+    `gm_admin_token=${token}; HttpOnly; SameSite=None; Path=/${maxAge ? `; Max-Age=${maxAge}` : ""}; Secure`
+  );
 
-    const token = jwt.sign(
-      { adminId: superAdmin.id, email: superAdmin.email },
-      ADMIN_JWT_SECRET,
-      { expiresIn: "7d" }
-    );
-
-    c.header(
-      "Set-Cookie",
-      `gm_admin_token=${token}; HttpOnly; SameSite=None; Path=/${maxAge ? `; Max-Age=${maxAge}` : ""}; Secure`
-    );
-
-    return c.json({
-      token,
-      user: {
-        id: superAdmin.id,
-        name: superAdmin.name,
-        email: superAdmin.email,
-        role: "SUPER_ADMIN",
-      },
-    });
-  }
-
-  return c.json({ error: "No existe una cuenta con ese correo electrónico.", code: "EMAIL_NOT_FOUND" }, 404);
+  return c.json({
+    token,
+    user: {
+      id: superAdmin!.id,
+      name: superAdmin!.name,
+      email: superAdmin!.email,
+      role: "SUPER_ADMIN",
+    },
+  });
 });
 
 // ─── POST /auth/register ──────────────────────────────────────────────────────

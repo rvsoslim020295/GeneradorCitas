@@ -36,17 +36,17 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.status === 403) {
-        setError("Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.");
+        if (data.code === "PLAN_SUSPENDED") {
+          setError("Tu cuenta ha sido suspendida. Contacta a soporte para reactivarla.");
+        } else {
+          setError("Debes verificar tu correo electrónico antes de iniciar sesión. Revisa tu bandeja de entrada.");
+        }
         return;
       }
 
-      if (res.status === 404 || data.code === "EMAIL_NOT_FOUND") {
-        setError("No existe una cuenta con ese correo electrónico.");
-        return;
-      }
-
-      if (res.status === 401 || data.code === "WRONG_PASSWORD") {
-        setError("Contraseña incorrecta. Inténtalo de nuevo.");
+      // Respuesta genérica: no revelamos si el email existe o la contraseña falla.
+      if (res.status === 401 || data.code === "INVALID_CREDENTIALS") {
+        setError("Correo o contraseña incorrectos.");
         return;
       }
 
