@@ -105,6 +105,17 @@ appointments.post("/", async (c) => {
   const start = new Date(startTime);
   const end   = new Date(endTime);
 
+  // ── Verificar que cliente, colaborador y servicio sean del negocio ─────────
+  // Evita inyección de datos cross-tenant vía IDs de otro negocio (auditoría 2.3).
+  const [clientOk, collabOk, serviceOk] = await Promise.all([
+    prisma.client.findFirst({ where: { id: parsed.data.clientId, businessId }, select: { id: true } }),
+    prisma.collaborator.findFirst({ where: { id: collaboratorId, businessId }, select: { id: true } }),
+    prisma.service.findFirst({ where: { id: parsed.data.serviceId, businessId }, select: { id: true } }),
+  ]);
+  if (!clientOk || !collabOk || !serviceOk) {
+    return c.json({ error: "Cliente, colaborador o servicio no válido" }, 400);
+  }
+
   // ── Verificar límites del plan ────────────────────────────────────────────
   const business = await prisma.business.findUnique({ where: { id: businessId } });
   const limits = getLimits(business?.plan ?? "BASIC");

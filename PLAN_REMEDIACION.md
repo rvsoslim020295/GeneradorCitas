@@ -28,8 +28,8 @@ Vulnerabilidades de acceso explotables sin condiciones especiales.
 
 | Estado | ID | Hallazgo | Archivo |
 |:--:|---|---|---|
-| ☐ | 8.1 | Mass-assignment en `PATCH /clients/:id` | `routes/clients.ts` |
-| ☐ | 2.3 | FKs sin validar tenancy (IDOR cross-tenant en citas) | `routes/appointments.ts` |
+| ☑ | 8.1 | Mass-assignment en `PATCH /clients/:id` | `routes/clients.ts` |
+| ☑ | 2.3 | FKs sin validar tenancy (IDOR cross-tenant en citas) | `routes/appointments.ts` |
 | ☐ | 4.1 | `planStatus` no se valida → middleware `requireActivePlan` | nuevo middleware + rutas |
 | ☐ | 1.3 | Enumeración de usuarios en login | `routes/auth.ts` |
 | ☐ | 1.4 / 6.6 | Sin rate-limiting en auth y admin login | `routes/auth.ts`, `routes/admin.ts` |

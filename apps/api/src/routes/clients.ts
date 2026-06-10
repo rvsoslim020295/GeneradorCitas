@@ -18,6 +18,10 @@ const createClientSchema = z.object({
   notes: z.string().optional(),
 });
 
+// Para PATCH: mismos campos permitidos, todos opcionales (auditoría 8.1).
+// Evita mass-assignment de columnas sensibles (totalSpent, businessId, id...).
+const updateClientSchema = createClientSchema.partial();
+
 // ─── GET /clients ─────────────────────────────────────────────────────────────
 // Lista todos los clientes del negocio autenticado
 // Soporta búsqueda con ?search=texto (filtra por nombre o teléfono)
@@ -155,9 +159,12 @@ clients.patch("/:id", async (c) => {
   const existing = await prisma.client.findFirst({ where: { id, businessId } });
   if (!existing) return c.json({ error: "Cliente no encontrado" }, 404);
 
+  const parsed = updateClientSchema.safeParse(body);
+  if (!parsed.success) return c.json({ error: "Datos inválidos" }, 400);
+
   const client = await prisma.client.update({
     where: { id },
-    data: body,
+    data: parsed.data,
   });
 
   return c.json(client);
