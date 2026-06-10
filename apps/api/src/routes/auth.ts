@@ -64,7 +64,7 @@ auth.post("/login", async (c) => {
 
     c.header(
       "Set-Cookie",
-      `gm_token=${token}; HttpOnly; SameSite=Lax; Path=/${maxAge ? `; Max-Age=${maxAge}` : ""}${isProduction ? "; Secure" : ""}`
+      `gm_token=${token}; HttpOnly; SameSite=None; Path=/${maxAge ? `; Max-Age=${maxAge}` : ""}; Secure`
     );
 
     return c.json({
@@ -100,7 +100,7 @@ auth.post("/login", async (c) => {
 
     c.header(
       "Set-Cookie",
-      `gm_admin_token=${token}; HttpOnly; SameSite=Lax; Path=/${maxAge ? `; Max-Age=${maxAge}` : ""}${isProduction ? "; Secure" : ""}`
+      `gm_admin_token=${token}; HttpOnly; SameSite=None; Path=/${maxAge ? `; Max-Age=${maxAge}` : ""}; Secure`
     );
 
     return c.json({
@@ -193,7 +193,7 @@ auth.get("/verify-email", async (c) => {
   const isProduction = process.env.NODE_ENV === "production";
   c.header(
     "Set-Cookie",
-    `gm_token=${jwt_token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800${isProduction ? "; Secure" : ""}`
+    `gm_token=${jwt_token}; HttpOnly; SameSite=None; Path=/; Max-Age=604800; Secure`
   );
 
   return c.json({ user: { id: user.id, name: user.name, email: user.email } });
@@ -201,7 +201,7 @@ auth.get("/verify-email", async (c) => {
 
 // ─── POST /auth/logout ───────────────────────────────────────────────────────
 auth.post("/logout", (c) => {
-  c.header("Set-Cookie", "gm_token=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0");
+  c.header("Set-Cookie", "gm_token=; HttpOnly; SameSite=None; Path=/; Max-Age=0");
   return c.json({ ok: true });
 });
 

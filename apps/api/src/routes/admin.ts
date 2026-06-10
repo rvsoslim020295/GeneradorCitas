@@ -35,7 +35,7 @@ admin.post("/auth/login", async (c) => {
   const isProduction = process.env.NODE_ENV === "production";
   c.header(
     "Set-Cookie",
-    `gm_admin_token=${token}; HttpOnly; SameSite=Lax; Path=/; Max-Age=604800${isProduction ? "; Secure" : ""}`
+    `gm_admin_token=${token}; HttpOnly; SameSite=None; Path=/; Max-Age=604800; Secure`
   );
 
   return c.json({ name: superAdmin.name, email: superAdmin.email });
@@ -43,7 +43,7 @@ admin.post("/auth/login", async (c) => {
 
 // ─── POST /admin/auth/logout ──────────────────────────────────────────────────
 admin.post("/auth/logout", (c) => {
-  c.header("Set-Cookie", "gm_admin_token=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0");
+  c.header("Set-Cookie", "gm_admin_token=; HttpOnly; SameSite=None; Path=/; Max-Age=0");
   return c.json({ ok: true });
 });
 
