@@ -10,7 +10,7 @@
 
 GlowManager es un panel administrativo B2B para negocios de belleza (salones, barberías, spas, nail bars). Permite gestionar citas, clientes, colaboradores, servicios, paquetes, pagos y reportes desde una interfaz web orientada a dueños y recepcionistas en desktop.
 
-**Estado actual:** ✅ MVP 100% en producción y funcional. Login, registro, dashboard, clientes, servicios, colaboradores operativos. SMTP con IPv4 forzado (pendiente confirmar entrega de emails).
+**Estado actual:** ✅ MVP 100% en producción y funcional. Login, registro, verificación de email, dashboard, clientes, servicios, colaboradores operativos. Emails vía Brevo API.
 
 ---
 
@@ -134,7 +134,7 @@ BACKEND MIDDLEWARES:
 | Login usuario | ✅ | Token en localStorage + cookie |
 | Login super admin | ✅ | Mismo mecanismo |
 | Registro | ✅ | Cuenta creada, email pendiente confirmar |
-| Email verificación | ⚠️ | IPv4 forzado, pendiente confirmar entrega |
+| Email verificación | ✅ | Brevo API HTTP — funciona en Railway |
 | Onboarding negocio (4 pasos) | ✅ | Funciona después de verificar email |
 | Dashboard | ✅ | Carga correctamente |
 | Clientes | ✅ | CRUD completo, listado corregido |
@@ -154,7 +154,7 @@ BACKEND MIDDLEWARES:
 ### Crítico
 | Item | Descripción |
 |---|---|
-| **Emails de verificación** | Confirmar que lleguen con puerto 465 + IPv4. Si Railway sigue bloqueando, considerar Resend o SendGrid como alternativa a Gmail SMTP |
+| ~~Emails de verificación~~ | ✅ Resuelto — migrado a Brevo API HTTP (Railway bloquea todos los puertos SMTP) |
 
 ### Media prioridad
 | Item | Descripción |
