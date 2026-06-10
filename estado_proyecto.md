@@ -1,6 +1,6 @@
 # Estado del Proyecto — GlowManager
 **Fecha:** 10 de Junio 2026
-**Versión:** 14.0
+**Versión:** 14.1
 **Repositorio:** https://github.com/rvsoslim020295/GeneradorCitas
 **Rama activa:** `main`
 
@@ -159,17 +159,10 @@ Auto-deploy en push a `main`. No requiere configuración adicional.
 
 ## 8. Migraciones de Base de Datos
 
-### Estado actual
-La BD de producción fue creada inicialmente sin historial de migraciones de Prisma (probablemente con `prisma db push`). Esto causa el error `P3005` cuando se intenta correr `prisma migrate deploy`.
+### Estado actual ✅
+La BD de producción tiene historial de migraciones completo. Las 15 migraciones están aplicadas incluyendo `20260610_add_password_reset_fields`. El baseline se realizó manualmente en la Console de Railway el 10 de Junio 2026.
 
-### Cómo hacer el baseline (una sola vez)
-Si Railway falla con `P3005`, correr esto en la **Console de Railway**:
-
-```bash
-for m in 20260604235632_init_auth 20260605001723_add_client 20260605002226_add_collaborator 20260605003106_add_service 20260605003755_add_appointment 20260605004840_add_payment_fields 20260605010104_add_business_settings 20260605010952_add_trial 20260605030403_add_client_lastname_dni 20260605142527_add_avatar_url_to_collaborator 20260605143343_fix_service_collaborator_fields 20260605152210_add_deposit_amount_to_appointment 20260605154104_add_collaborator_lastname_document 20260605154508_add_collaborator_phone; do pnpm exec prisma migrate resolve --applied $m; done && pnpm exec prisma migrate deploy
-```
-
-Esto marca las 14 migraciones anteriores como ya aplicadas y ejecuta solo la nueva (`add_password_reset_fields`).
+A partir de ahora, nuevas migraciones se aplican automáticamente vía **Pre-Deploy Command** en Railway al hacer push a `main`. No se requiere intervención manual.
 
 ---
 
@@ -218,13 +211,13 @@ Esto marca las 14 migraciones anteriores como ya aplicadas y ejecuta solo la nue
 
 | Flujo | Estado | Notas |
 |---|---|---|
-| Login usuario | ⚠️ | Falla con 500 hasta que se aplique la migración `add_password_reset_fields` |
-| Login super admin | ⚠️ | Mismo problema |
+| Login usuario | ✅ | Mensajes de error específicos |
+| Login super admin | ✅ | |
 | Logout | ✅ | Vía `/api/logout` server-side |
 | Registro | ✅ | Validaciones completas, DNI/RUC opcionales |
 | Validación de email | ✅ | MX + desechables (fix Node 22.22 incluido) |
 | Email verificación | ✅ | Brevo API HTTP |
-| Recuperar contraseña | ✅ (código) | Requiere migración en BD para funcionar |
+| Recuperar contraseña | ✅ | Email con link, expira 1h |
 | Onboarding negocio (4 pasos) | ✅ | Guarda datos correctamente |
 | Dashboard | ✅ | Responsive móvil |
 | Clientes | ✅ | CRUD completo, responsive avanzado |
@@ -242,11 +235,6 @@ Esto marca las 14 migraciones anteriores como ya aplicadas y ejecuta solo la nue
 ---
 
 ## 11. Bugs / Pendientes
-
-### Crítico
-| Item | Descripción |
-|---|---|
-| **Baseline migraciones Railway** | Correr el comando de baseline en Railway Console (sección 8) para aplicar `add_password_reset_fields`. Sin esto, el login falla con 500. |
 
 ### Media prioridad
 | Item | Descripción |
