@@ -4,7 +4,7 @@ export function TopBar() {
   return (
     <header className="bg-[var(--color-surface)]/80 backdrop-blur-md fixed top-0 right-0 w-[calc(100%-16rem)] h-16 border-b border-[var(--color-outline-variant)] flex justify-between items-center px-6 z-30">
       {/* Búsqueda */}
-      <div className="relative w-96 group">
+      <div className="relative w-full md:w-96 group">
         <Search
           size={16}
           className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)] group-focus-within:text-[var(--color-primary)] transition-colors"

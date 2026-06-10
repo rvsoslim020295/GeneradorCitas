@@ -95,7 +95,7 @@ export default function ReportesPage() {
       <main className="flex-1 md:ml-64 flex flex-col h-full bg-[var(--color-background)] relative overflow-hidden">
         <TopBar />
         <div className="flex-1 overflow-y-auto pt-16" style={{ scrollbarWidth: "thin" }}>
-          <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
+          <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 space-y-6">
 
             {/* Header + filtro */}
             <div className="flex items-center justify-between">

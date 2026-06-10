@@ -60,8 +60,8 @@ export default function ClientesPage() {
         <TopBar hideSearch />
 
         <div className="flex flex-col flex-1 overflow-hidden pt-16">
-          <div className="flex items-center justify-between px-6 py-4 bg-[var(--color-background)] border-b border-[var(--color-outline-variant)]">
-            <div className="relative w-96 group">
+          <div className="flex flex-wrap items-center justify-between gap-3 px-4 md:px-6 py-4 bg-[var(--color-background)] border-b border-[var(--color-outline-variant)]">
+            <div className="relative w-full md:w-96 group">
               <Search
                 size={16}
                 className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--color-on-surface-variant)] group-focus-within:text-[var(--color-primary)] transition-colors"
@@ -80,7 +80,7 @@ export default function ClientesPage() {
             </p>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 py-6" style={{ scrollbarWidth: "thin" }}>
+          <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6" style={{ scrollbarWidth: "thin" }}>
             {error && (
               <div className="flex items-center gap-2 text-[var(--color-error)] bg-[var(--color-error-container)]/30 border border-[var(--color-error-container)] rounded-lg px-4 py-3 mb-4 text-body-md">
                 <AlertCircle size={16} strokeWidth={1.5} />

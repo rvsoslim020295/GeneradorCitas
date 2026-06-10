@@ -32,7 +32,7 @@ export default function ServiciosPage() {
         <TopBar hideSearch />
 
         <div className="flex flex-col flex-1 overflow-hidden pt-16">
-          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-6 py-5 border-b border-[var(--color-outline-variant)] bg-[var(--color-background)]">
+          <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 px-4 md:px-6 py-5 border-b border-[var(--color-outline-variant)] bg-[var(--color-background)]">
             <div>
               <h1 className="text-headline-md font-semibold text-[var(--color-on-surface)]">Servicios</h1>
               <p className="text-body-md text-[var(--color-on-surface-variant)]">
@@ -51,7 +51,7 @@ export default function ServiciosPage() {
             </div>
           </div>
 
-          <div className="flex-1 overflow-y-auto px-6 py-6 space-y-8" style={{ scrollbarWidth: "thin" }}>
+          <div className="flex-1 overflow-y-auto px-4 md:px-6 py-6 space-y-8" style={{ scrollbarWidth: "thin" }}>
             {error && (
               <div className="flex items-center gap-2 text-[var(--color-error)] bg-[var(--color-error-container)]/30 border border-[var(--color-error-container)] rounded-lg px-4 py-3 text-body-md">
                 <AlertCircle size={16} strokeWidth={1.5} />

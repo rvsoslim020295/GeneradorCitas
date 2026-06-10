@@ -93,7 +93,7 @@ export function GlobalSearch({ placeholder = "Buscar cliente, servicio o cita...
   const hasResults = results.clients.length + results.services.length + results.appointments.length > 0;
 
   return (
-    <div ref={wrapRef} className="relative w-80 group">
+    <div ref={wrapRef} className="relative w-full max-w-xs md:w-80 group">
       {/* Input */}
       <Search
         size={16}

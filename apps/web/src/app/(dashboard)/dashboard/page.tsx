@@ -160,7 +160,7 @@ export default function DashboardPage() {
           </>
         )}
 
-        <div className="flex-1 overflow-y-auto pt-[88px] px-8 pb-8" style={{ scrollbarWidth: "thin" }}>
+        <div className="flex-1 overflow-y-auto pt-16 px-4 md:px-8 pb-8" style={{ scrollbarWidth: "thin" }}>
 
           {/* Card de bienvenida — negocio */}
           {userData?.business?.name && (
@@ -169,7 +169,7 @@ export default function DashboardPage() {
               <div className="absolute top-0 right-0 w-64 h-64 bg-[var(--color-primary)]/6 rounded-full -translate-y-1/2 translate-x-1/3 pointer-events-none" />
               <div className="absolute bottom-0 left-1/2 w-40 h-40 bg-[var(--color-primary)]/4 rounded-full translate-y-1/2 pointer-events-none" />
 
-              <div className="relative px-8 py-6 flex items-center gap-6">
+              <div className="relative px-4 md:px-8 py-6 flex flex-wrap items-center gap-4">
                 {/* Logo / Iniciales */}
                 <div className="shrink-0 w-16 h-16 rounded-2xl shadow-md overflow-hidden">
                   {userData.business.logoUrl ? (
@@ -220,9 +220,9 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-12 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 md:gap-6">
             {/* Próxima cita */}
-            <div className="col-span-4 bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] shadow-sm p-6 flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
+            <div className="col-span-1 md:col-span-4 bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] shadow-sm p-6 flex flex-col justify-between relative overflow-hidden group hover:shadow-md transition-shadow">
               <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--color-primary)]/5 rounded-bl-full -z-10 group-hover:scale-110 transition-transform" />
               <div className="flex justify-between items-start mb-3">
                 <div className="flex items-center gap-2 text-[var(--color-primary)] text-label-md font-semibold uppercase tracking-wider">
@@ -263,7 +263,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Ingresos */}
-            <div className="col-span-4 bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] shadow-sm p-6 flex flex-col items-center justify-center gap-3">
+            <div className="col-span-1 md:col-span-4 bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] shadow-sm p-6 flex flex-col items-center justify-center gap-3">
               <div className="flex items-center gap-2 text-[var(--color-on-surface-variant)] text-label-md font-semibold uppercase tracking-wider">
                 <Banknote size={16} strokeWidth={1.5} /> Ingresos Totales
               </div>
@@ -277,7 +277,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Alertas */}
-            <div className="col-span-4 bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] shadow-sm p-6 flex flex-col">
+            <div className="col-span-1 md:col-span-4 bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] shadow-sm p-6 flex flex-col">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2 text-[var(--color-error)] text-label-md font-semibold uppercase tracking-wider">
                   <AlertTriangle size={16} strokeWidth={1.5} /> Acción Requerida
@@ -324,7 +324,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Contadores */}
-            <div className="col-span-12 grid grid-cols-4 gap-6 mt-3">
+            <div className="col-span-1 md:col-span-12 grid grid-cols-2 md:grid-cols-4 gap-4 md:gap-6 mt-3">
               {[
                 { label: "Pendientes",  status: "PENDING",   count: pending,   icon: Hourglass,  bg: "bg-[var(--color-surface-container-high)]",  color: "text-[var(--color-on-surface-variant)]", accent: null,                              opacity: "" },
                 { label: "Confirmadas", status: "CONFIRMED", count: confirmed, icon: CheckCircle, bg: "bg-[var(--color-secondary-fixed)]",          color: "text-[var(--color-on-secondary-container)]", accent: "bg-[var(--color-secondary-container)]", opacity: "" },
@@ -351,7 +351,7 @@ export default function DashboardPage() {
             </div>
 
             {/* Citas de hoy */}
-            <div className="col-span-12 bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] shadow-sm mt-3 p-6">
+            <div className="col-span-1 md:col-span-12 bg-[var(--color-surface-container-lowest)] rounded-xl border border-[var(--color-outline-variant)] shadow-sm mt-3 p-6">
               <div className="flex justify-between items-center mb-6 border-b border-[var(--color-outline-variant)] pb-3">
                 <h3 className="text-headline-sm font-semibold text-[var(--color-on-surface)] flex items-center gap-2">
                   <Users size={20} className="text-[var(--color-primary)]" strokeWidth={1.5} /> Citas de Hoy
@@ -364,7 +364,7 @@ export default function DashboardPage() {
                   <p className="text-body-md">Sin citas programadas para hoy</p>
                 </div>
               ) : (
-                <div className="grid grid-cols-3 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
                   {todayApts.map(apt => (
                     <Link
                       key={apt.id}

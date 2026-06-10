@@ -52,7 +52,7 @@ export default function ConfiguracionPage() {
         <TopBar />
 
         <div className="flex-1 overflow-y-auto pt-16" style={{ scrollbarWidth: "thin" }}>
-          <div className="max-w-2xl mx-auto px-6 py-8 space-y-4">
+          <div className="max-w-2xl mx-auto px-4 md:px-6 py-8 space-y-4">
             <div className="mb-6">
               <h1 className="text-headline-md font-semibold text-[var(--color-on-surface)]">Configuración</h1>
               <p className="text-body-md text-[var(--color-on-surface-variant)] mt-1">
