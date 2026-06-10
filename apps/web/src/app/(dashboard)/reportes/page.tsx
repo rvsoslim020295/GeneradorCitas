@@ -98,9 +98,9 @@ export default function ReportesPage() {
           <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 space-y-6">
 
             {/* Header + filtro */}
-            <div className="flex items-center justify-between">
+            <div className="flex flex-wrap items-center justify-between gap-2">
               <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Resumen</h2>
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-2 flex-wrap">
                 <div className="relative">
                   <select value={period} onChange={(e) => setPeriod(e.target.value)}
                     className="appearance-none bg-[var(--color-surface)] border border-[var(--color-outline-variant)] text-[var(--color-on-surface-variant)] text-body-md rounded-lg py-2 pl-3 pr-8 focus:outline-none focus:ring-2 focus:ring-[var(--color-primary)] cursor-pointer">
@@ -181,7 +181,7 @@ export default function ReportesPage() {
                     <KpiDelta current={data.kpis.completedAppointments} prev={data.kpis.completedAppointmentsPrev} isCount />
                   </div>
 
-                  <div className="col-span-2 grid grid-cols-3 gap-3">
+                  <div className="col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
                     <div className="bg-[var(--color-surface-container-lowest)] rounded-xl p-4 border border-[var(--color-outline-variant)] ambient-shadow">
                       <div className="flex justify-between items-start mb-2">
                         <span className="text-label-md font-semibold text-[var(--color-on-surface-variant)] uppercase">Por Servicios</span>

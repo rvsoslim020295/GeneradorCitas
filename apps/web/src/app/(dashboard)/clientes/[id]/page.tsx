@@ -215,7 +215,7 @@ export default function ClientProfilePage() {
       <main className="flex-1 md:ml-64 flex flex-col h-full bg-[var(--color-surface-container-low)] overflow-hidden">
         <TopBar />
         <div className="flex-1 overflow-y-auto pt-16" style={{ scrollbarWidth: "thin" }}>
-          <div className="max-w-4xl mx-auto px-6 py-6 space-y-6">
+          <div className="max-w-4xl mx-auto px-4 md:px-6 py-6 space-y-6">
 
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -235,7 +235,7 @@ export default function ClientProfilePage() {
               <div className="flex-1 text-center md:text-left z-10 w-full">
                 {editingContact ? (
                   <div className="space-y-3">
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {[
                         { label: "Nombre *", value: editName, setter: setEditName },
                         { label: "Apellidos", value: editLastName, setter: setEditLastName },
@@ -458,7 +458,7 @@ export default function ClientProfilePage() {
               {showRecordForm && (
                 <div className="bg-[var(--color-surface-container-low)] border border-[var(--color-primary)]/30 rounded-xl p-4 space-y-3">
                   <h3 className="text-label-md font-semibold text-[var(--color-on-surface)]">{editingRecord ? "Editar ficha" : "Nueva ficha"}</h3>
-                  <div className="grid grid-cols-2 gap-3">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     <div className="space-y-1">
                       <label className="text-[11px] font-semibold text-[var(--color-on-surface-variant)] uppercase tracking-wider">Fecha</label>
                       <input type="date" value={rDate} onChange={(e) => setRDate(e.target.value)}

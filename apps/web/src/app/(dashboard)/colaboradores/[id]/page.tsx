@@ -207,7 +207,7 @@ export default function CollaboratorProfilePage() {
         <TopBar />
         <div className="flex flex-col flex-1 overflow-y-auto pt-16" style={{ scrollbarWidth: "thin" }}>
 
-          <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface)] sticky top-0 z-10">
+          <div className="flex items-center justify-between px-4 md:px-6 py-4 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface)] sticky top-0 z-10">
             <div className="flex items-center gap-3">
               <Link href="/colaboradores" className="text-[var(--color-on-surface-variant)] hover:text-[var(--color-primary)] transition-colors">
                 <ArrowLeft size={20} strokeWidth={1.5} />
@@ -230,7 +230,7 @@ export default function CollaboratorProfilePage() {
             </div>
           )}
 
-          <div className="px-6 py-6 max-w-2xl space-y-8">
+          <div className="px-4 md:px-6 py-6 max-w-2xl space-y-8">
 
             {/* Avatar */}
             <div className="flex flex-col items-center gap-2">
@@ -254,7 +254,7 @@ export default function CollaboratorProfilePage() {
 
             {/* Datos básicos */}
             <div className="space-y-4">
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                 {[
                   { label: "Nombre *", value: firstName, setter: setFirstName },
                   { label: "Apellido *", value: lastName, setter: setLastName },
@@ -374,21 +374,21 @@ export default function CollaboratorProfilePage() {
                 {DAY_KEYS.map((key) => {
                   const { enabled, start, end } = schedule[key];
                   return (
-                    <div key={key} className="flex items-center gap-3 p-3 bg-[var(--color-surface-container-lowest)] rounded-lg border border-[var(--color-outline-variant)]">
+                    <div key={key} className="flex flex-wrap items-center gap-2 p-3 bg-[var(--color-surface-container-lowest)] rounded-lg border border-[var(--color-outline-variant)]">
                       <button type="button" onClick={() => updateDay(key, "enabled", !enabled)}
                         className={`relative inline-flex shrink-0 items-center w-11 h-6 rounded-full overflow-hidden transition-colors focus:outline-none ${enabled ? "bg-[var(--color-primary)]" : "bg-[var(--color-surface-variant)]"}`}>
                         <span className={`inline-block w-5 h-5 bg-white rounded-full shadow transition-transform ${enabled ? "translate-x-5" : "translate-x-1"}`} />
                       </button>
-                      <span className="w-12 shrink-0 text-body-md font-semibold text-[var(--color-on-surface)]">{DAY_LABELS[key]}</span>
+                      <span className="w-10 shrink-0 text-body-md font-semibold text-[var(--color-on-surface)]">{DAY_LABELS[key]}</span>
                       {enabled ? (
-                        <div className="flex items-center gap-2 flex-1">
+                        <div className="flex items-center gap-2 flex-1 min-w-0">
                           <input type="time" value={start} min={bizOpen} max={bizClose}
                             onChange={(e) => updateDay(key, "start", e.target.value)}
-                            className="bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] rounded-md px-2 py-1 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all" />
-                          <span className="text-[var(--color-outline)]">—</span>
+                            className="flex-1 min-w-0 bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] rounded-md px-2 py-1 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all" />
+                          <span className="text-[var(--color-outline)] shrink-0">—</span>
                           <input type="time" value={end} min={bizOpen} max={bizClose}
                             onChange={(e) => updateDay(key, "end", e.target.value)}
-                            className="bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] rounded-md px-2 py-1 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all" />
+                            className="flex-1 min-w-0 bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] rounded-md px-2 py-1 text-body-md text-[var(--color-on-surface)] focus:outline-none focus:border-[var(--color-primary)] transition-all" />
                         </div>
                       ) : (
                         <span className="text-label-md text-[var(--color-outline)] uppercase tracking-wider">Descanso</span>

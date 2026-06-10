@@ -498,7 +498,7 @@ export default function NegocioConfigPage() {
             <section className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl p-5 space-y-4">
               <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)]">Información de Contacto</h2>
               <div className="space-y-3">
-                <div className="grid grid-cols-2 gap-3">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                   <div>
                     <label className={labelClass}>RUC</label>
                     <input value={ruc} onChange={(e) => setRuc(e.target.value.replace(/\D/g, "").slice(0, 11))}

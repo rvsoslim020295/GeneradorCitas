@@ -82,10 +82,10 @@ export function AgendaToolbar({
     : null;
 
   return (
-    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-6 py-4 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface)] shrink-0 gap-4">
+    <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between px-4 md:px-6 py-3 border-b border-[var(--color-outline-variant)] bg-[var(--color-surface)] shrink-0 gap-3">
       {/* Navegación de fecha */}
-      <div className="flex items-center gap-4">
-        <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)] min-w-[220px] capitalize">
+      <div className="flex items-center gap-3 flex-wrap">
+        <h2 className="text-headline-sm font-semibold text-[var(--color-on-surface)] capitalize">
           {formatDate(currentDate, activeView)}
         </h2>
         <div className="flex gap-1 bg-[var(--color-surface-container)] border border-[var(--color-outline-variant)] rounded-lg p-1 shadow-sm">
