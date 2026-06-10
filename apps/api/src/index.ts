@@ -18,17 +18,10 @@ import { startReminderScheduler } from "./lib/reminder-scheduler.js";
 
 const app = new Hono();
 
-const ALLOWED_ORIGINS = [
-  process.env.FRONTEND_URL,
-  process.env.APP_URL,
-  "http://localhost:3000",
-  "http://localhost:3001",
-].filter(Boolean) as string[];
-
 app.use(
   "*",
   cors({
-    origin: (origin) => (ALLOWED_ORIGINS.includes(origin) ? origin : ALLOWED_ORIGINS[0]),
+    origin: (origin) => origin,
     allowMethods: ["GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"],
     allowHeaders: ["Content-Type", "Authorization"],
     credentials: true,
