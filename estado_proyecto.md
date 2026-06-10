@@ -1,9 +1,8 @@
 # Estado del Proyecto — GlowManager
 **Fecha:** 9 de Junio 2026
-**Versión:** 11.0
+**Versión:** 12.0
 **Repositorio:** https://github.com/rvsoslim020295/GeneradorCitas
 **Rama activa:** `main`
-**PRs mergeados en esta sesión:** #45–#48 (previos), deploy en progreso
 
 ---
 
@@ -11,7 +10,7 @@
 
 GlowManager es un panel administrativo B2B para negocios de belleza (salones, barberías, spas, nail bars). Permite gestionar citas, clientes, colaboradores, servicios, paquetes, pagos y reportes desde una interfaz web orientada a dueños y recepcionistas en desktop.
 
-**Estado actual:** MVP 100% funcional en código. Deploy en progreso — frontend en Vercel funcionando, backend en Railway con problema de arranque por compatibilidad Prisma 6 + pnpm.
+**Estado actual:** ✅ MVP 100% en producción — frontend en Vercel + backend en Railway operativos. Login funcionando. Dashboard accesible.
 
 ---
 
@@ -54,240 +53,85 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
 
 ---
 
-## 4. Lo implementado en esta sesión (v11.0) — Deploy
+## 4. Lo resuelto en v11.0 — Deploy inicial
 
 ### 4.1 Configuración de deploy
-
-- **`nixpacks.toml`** (raíz): configura build en Railway
-  - Build: `pnpm exec prisma generate && pnpm --filter api exec tsc`
-  - Start: `node apps/api/dist/index.js`
-- **`apps/web/vercel.json`**: framework Next.js para Vercel
-- **`pnpm-lock.yaml`**: commiteado para builds reproducibles
-- **`.npmrc`**: `shamefully-hoist=true` para compatibilidad pnpm
+- `nixpacks.toml` — build y start para Railway
+- `apps/web/vercel.json` — framework Next.js para Vercel
+- `pnpm-lock.yaml` commiteado para builds reproducibles
+- `.npmrc` con `shamefully-hoist=true`
 
 ### 4.2 Servicios configurados
+- Railway PostgreSQL Online
+- Vercel Hobby deployado en https://glowmanager-web.vercel.app
+- Schema migrado: `prisma db push` contra Railway PostgreSQL
+- Super admin creado: `glowmanager95@gmail.com`
 
-- **Railway PostgreSQL**: base de datos en producción, Online
-- **Vercel Hobby**: frontend deployado y funcionando en https://glowmanager-web.vercel.app
-- **Schema migrado**: `prisma db push` corrido contra Railway PostgreSQL
-- **Super admin creado**: `glowmanager95@gmail.com` / `mamita123`
-
-### 4.3 Fixes de compatibilidad Prisma
-
-- Bajada de Prisma 7 → Prisma 6 (Prisma 7 tenía incompatibilidad con pnpm en Railway por `@prisma/client-runtime-utils`)
-- `prisma.config.ts` eliminado (era específico de Prisma 7)
-- `datasource db.url = env("DATABASE_URL")` restaurado en schema
-- Output del cliente Prisma: `apps/api/generated/prisma` (custom, commiteado)
-- Imports actualizados en `prisma.ts` y `seed.ts`
-
-### 4.4 Variables de entorno configuradas
-
-**Railway (backend):**
-```
-DATABASE_URL=${{Postgres.DATABASE_URL}}
-JWT_SECRET=<generado>
-ADMIN_JWT_SECRET=<generado>
-FRONTEND_URL=https://glowmanager-web.vercel.app
-APP_URL=https://glowmanager-web.vercel.app
-SUPABASE_URL=https://smpsncdzdvoanqxieicc.supabase.co
-SUPABASE_SERVICE_KEY=<service_role key>
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=glowmanager95@gmail.com
-SMTP_PASS=<app password Gmail>
-TZ=America/Lima
-NODE_ENV=production
-SUPER_ADMIN_EMAIL=glowmanager95@gmail.com
-SUPER_ADMIN_NAME=GlowManagerAdmin
-SUPER_ADMIN_PASSWORD=mamita123
-```
-
-**Vercel (frontend):**
-```
-NEXT_PUBLIC_API_URL=https://generadorcitas-production.up.railway.app
-```
+### 4.3 Fixes Prisma
+- Bajada Prisma 7 → Prisma 6
+- Eliminados `@prisma/adapter-pg` y `@prisma/client-runtime-utils`
+- `prisma.ts` simplificado a `new PrismaClient()` estándar
 
 ---
 
-## 5. Bug pendiente — Backend no arranca en Railway
+## 5. Lo resuelto en v12.0 — Fixes de producción (esta sesión)
 
-**Síntoma:** `GET /health` devuelve 502. Deploy dice "Completed" pero el proceso crashea al iniciar.
+### 5.1 Backend Railway no respondía (502)
+- **Causa:** Railway proxy apuntaba al puerto 3001 pero el app escuchaba en 3000 (variable `PORT=3000` seteada manualmente, Railway Networking actualizado a port 3000)
+- **Fix adicional:** `hostname: "0.0.0.0"` en `serve()` de Hono para escuchar en todas las interfaces
 
-**Último error conocido:** `Cannot find module '@prisma/client-runtime-utils'` — persistía incluso después de bajar a Prisma 6 (el paquete quedó como dependencia directa con versión 7.8.0 en `apps/api/package.json`).
+### 5.2 CORS bloqueado
+- **Causa:** middleware `hono/cors` con `origin` función no enviaba headers en Railway
+- **Fix:** middleware CORS manual con headers explícitos; OPTIONS handler con `app.options("*", ...)`
 
-**Último commit pusheado:** `97e0fd8` — Prisma 6, schema con url, output generado en `apps/api/generated/prisma`.
+### 5.3 Auth cross-domain (cookie no viajaba entre Vercel y Railway)
+- **Causa:** cookies `SameSite=Lax` bloqueadas cross-domain; middleware Next.js verificaba cookie server-side
+- **Fix:**
+  1. Cookies cambiadas a `SameSite=None; Secure`
+  2. Backend devuelve `token` en body del login
+  3. Frontend guarda token en `localStorage` + cookie JS (`document.cookie`) para que el middleware de Next.js la lea
+  4. `apiFetch` envía `Authorization: Bearer TOKEN` desde localStorage
+  5. `requireSuperAdmin` middleware actualizado para aceptar Authorization header
 
-**Próximo paso para resolver:**
-1. Verificar que el deploy de `97e0fd8` haya terminado en Railway
-2. Si sigue fallando, revisar `apps/api/package.json` — eliminar `@prisma/client-runtime-utils` (era de Prisma 7, ya no aplica)
-3. Correr localmente: `pnpm exec prisma generate && cd apps/api && pnpm exec tsc` para confirmar que el build es limpio
-4. Si persiste, intentar buildear el servidor con `tsx` en lugar de `tsc` para evitar el paso de compilación
+### 5.4 SMTP bloqueado en Railway
+- **Causa:** Railway bloquea puerto 587 (ETIMEDOUT)
+- **Fix:** puerto cambiado a **465 con SSL** (`secure: true`); timeout 8s en conexión
+- **Variable Railway:** `SMTP_PORT=465`
+- **Pendiente:** verificar que emails de verificación lleguen correctamente con puerto 465
 
----
+### 5.5 Registro colgado
+- **Causa:** `sendVerificationEmail` sin timeout bloqueaba la respuesta
+- **Fix:** `connectionTimeout: 8000` y `socketTimeout: 8000` en nodemailer
 
-## 6. Stack Tecnológico
-
-### Frontend (`apps/web`)
-| Capa | Tecnología | Versión |
-|---|---|---|
-| Framework | Next.js App Router | 15.5.19 |
-| Lenguaje | TypeScript | 5.x |
-| Estilos | Tailwind CSS | 4.x |
-| Design System | Material Design 3 (tokens CSS) | — |
-| Fuente | Inter (Google Fonts) | — |
-| Íconos | Lucide React | 1.x |
-| Data fetching | TanStack Query | v5 |
-
-### Backend (`apps/api`)
-| Capa | Tecnología |
+### 5.6 Variables Railway configuradas correctamente
+| Variable | Valor |
 |---|---|
-| Framework | Hono.js |
-| ORM | Prisma 6.x |
-| Base de datos | PostgreSQL (Railway) |
-| Autenticación clientes | JWT en httpOnly cookie `gm_token` |
-| Autenticación admin | JWT en httpOnly cookie `gm_admin_token` |
-| Email | Nodemailer (SMTP Gmail) |
-| Storage | Supabase Storage (bucket `logos`) |
-| Runtime | Node.js v22 |
-| Scheduler | node-cron (recordatorios WhatsApp) |
+| `PORT` | `3000` |
+| `SMTP_PORT` | `465` |
+| Railway Networking | Port 3000 |
 
-### Infraestructura
-| Capa | Servicio |
+---
+
+## 6. Estado actual de flujos
+
+| Flujo | Estado |
 |---|---|
-| Frontend | Vercel (Hobby) — https://glowmanager-web.vercel.app |
-| Backend | Railway — https://generadorcitas-production.up.railway.app |
-| Base de datos | Railway PostgreSQL |
-| Storage | Supabase Storage (activo) |
-| Monorepo | pnpm workspaces |
+| Login super admin | ✅ Funciona |
+| Login usuario normal | ✅ Funciona |
+| Dashboard | ✅ Accesible |
+| Registro | ✅ Crea cuenta (email de verificación pendiente confirmar) |
+| Verificación email | ⚠️ Pendiente confirmar con puerto 465 |
+| Onboarding negocio (4 pasos) | ⚠️ Solo accesible vía link de verificación en email |
 
 ---
 
-## 7. Arquitectura del Frontend
+## 7. Deuda Técnica Pendiente
 
-### Grupos de rutas (`apps/web/src/app/`)
-
-```
-(auth)/
-  login/                    ✅
-  registro/
-  recuperar-contrasena/
-  resetear-contrasena/
-  verificar-correo/
-  verificar-email/
-
-(agenda)/
-  agenda/                   ✅
-  nueva-cita/               ✅
-  citas/[id]/               ✅
-  citas/[id]/cobrar/
-
-(dashboard)/
-  dashboard/                ✅
-  plan-vencido/
-  clientes/                 ✅
-  clientes/[id]/            ✅
-  clientes/nuevo/
-  colaboradores/            ✅
-  colaboradores/[id]/
-  colaboradores/nuevo/
-  servicios/                ✅
-  servicios/[id]/
-  servicios/nuevo/
-  paquetes/                 ✅
-  planes/                   ✅
-  reportes/
-  configuracion/negocio/
-  configuracion/agenda/
-  configuracion/usuarios/
-  configuracion/whatsapp/   ✅
-
-admin/
-  dashboard/
-  negocios/[id]/
-```
-
----
-
-## 8. Arquitectura del Backend
-
-### Endpoints (`apps/api/src/routes/`)
-
-| Archivo | Rutas principales |
-|---|---|
-| `auth.ts` | POST /auth/login, GET /auth/me |
-| `users.ts` | GET /users; POST/PATCH/DELETE — solo OWNER |
-| `clients.ts` | CRUD + duplicados + POST /clients/merge + fichas técnicas |
-| `collaborators.ts` | CRUD + performsServices + schedule dinámico |
-| `services.ts` | CRUD + maxConcurrent |
-| `packages.ts` | CRUD + límite plan |
-| `appointments.ts` | CRUD + status + origins |
-| `availability.ts` | GET /slots (TZ explícito + reason) |
-| `analytics.ts` | métricas completas |
-| `settings.ts` | GET/PATCH /settings /business /agenda /logo /whatsapp |
-| `notifications.ts` | GET /notifications |
-| `admin.ts` | Panel super admin |
-
-### Build config (Railway)
-```
-Build Command: pnpm exec prisma generate && pnpm --filter api exec tsc
-Start Command: node apps/api/dist/index.js
-Root Directory: (vacío — raíz del repo)
-```
-
----
-
-## 9. Schema Prisma (v6, estado actual)
-
-```prisma
-generator client {
-  provider = "prisma-client-js"
-  output   = "../apps/api/generated/prisma"
-}
-
-datasource db {
-  provider = "postgresql"
-  url      = env("DATABASE_URL")
-}
-```
-
-Modelos principales: `Business`, `User`, `Client`, `Collaborator`, `Service`, `Package`, `Appointment`, `AppointmentEvent`, `ClientRecord`
-
----
-
-## 10. Variables de entorno locales
-
-### Backend (`apps/api/.env`)
-```
-DATABASE_URL=postgresql://... (local)
-JWT_SECRET=...
-ADMIN_JWT_SECRET=...
-FRONTEND_URL=http://localhost:3000
-SUPABASE_URL=https://smpsncdzdvoanqxieicc.supabase.co
-SUPABASE_SERVICE_KEY=...
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=587
-SMTP_USER=glowmanager95@gmail.com
-SMTP_PASS=...
-APP_URL=http://localhost:3000
-TZ=America/Lima
-SUPER_ADMIN_EMAIL=...
-SUPER_ADMIN_NAME=...
-SUPER_ADMIN_PASSWORD=...
-```
-
-### Frontend (`apps/web/.env.local`)
-```
-NEXT_PUBLIC_API_URL=http://localhost:3001
-```
-
----
-
-## 11. Deuda Técnica Pendiente
-
-### Crítico (bloquea producción)
+### Crítico
 | Item | Descripción |
 |---|---|
-| **Backend Railway crashea** | Ver sección 5 — resolver arranque del API en Railway |
+| **Verificación email** | Confirmar que puerto 465 envía emails correctamente en Railway |
+| **Onboarding post-registro** | Usuarios verificados manualmente no pasan por los 4 pasos de configuración del negocio |
 
 ### Media prioridad
 | Item | Descripción |
@@ -308,6 +152,87 @@ NEXT_PUBLIC_API_URL=http://localhost:3001
 
 ---
 
+## 8. Stack Tecnológico
+
+### Frontend (`apps/web`)
+| Capa | Tecnología | Versión |
+|---|---|---|
+| Framework | Next.js App Router | 15.x |
+| Lenguaje | TypeScript | 5.x |
+| Estilos | Tailwind CSS | 4.x |
+| Design System | Material Design 3 (tokens CSS) | — |
+| Fuente | Inter (Google Fonts) | — |
+| Íconos | Lucide React | 1.x |
+| Data fetching | TanStack Query | v5 |
+
+### Backend (`apps/api`)
+| Capa | Tecnología |
+|---|---|
+| Framework | Hono.js |
+| ORM | Prisma 6.x |
+| Base de datos | PostgreSQL (Railway) |
+| Auth | JWT — Authorization header + cookie fallback |
+| Email | Nodemailer (SMTP Gmail, puerto 465 SSL) |
+| Storage | Supabase Storage (bucket `logos`) |
+| Runtime | Node.js v22 |
+| Scheduler | node-cron (recordatorios WhatsApp) |
+
+### Infraestructura
+| Capa | Servicio |
+|---|---|
+| Frontend | Vercel (Hobby) |
+| Backend | Railway — port 3000 |
+| Base de datos | Railway PostgreSQL |
+| Storage | Supabase Storage |
+| Monorepo | pnpm workspaces |
+
+---
+
+## 9. Arquitectura Auth (v12.0)
+
+**Login flow:**
+1. POST `/auth/login` → backend devuelve `{ token, user }`
+2. Frontend guarda `token` en `localStorage("gm_token")` + `document.cookie("gm_token")` 
+3. `apiFetch` envía `Authorization: Bearer TOKEN` en cada request
+4. Middleware Next.js lee cookie `gm_token` para proteger rutas server-side
+5. Backend middleware lee `Authorization` header (o cookie como fallback)
+
+---
+
+## 10. Build config (Railway)
+
+```
+Build: pnpm exec prisma generate && pnpm --filter api run build
+Start: node /app/apps/api/dist/index.js
+Port:  3000 (Railway Networking → Port 3000)
+```
+
+---
+
+## 11. Variables de entorno Railway (producción)
+
+```
+DATABASE_URL=${{Postgres.DATABASE_URL}}
+JWT_SECRET=<generado>
+ADMIN_JWT_SECRET=<generado>
+FRONTEND_URL=https://glowmanager-web.vercel.app
+APP_URL=https://glowmanager-web.vercel.app
+SUPABASE_URL=https://smpsncdzdvoanqxieicc.supabase.co
+SUPABASE_SERVICE_KEY=<service_role key>
+SMTP_HOST=smtp.gmail.com
+SMTP_PORT=465
+SMTP_USER=glowmanager95@gmail.com
+SMTP_PASS=<app password Gmail>
+TZ=America/Lima
+NODE_ENV=production
+PORT=3000
+SUPER_ADMIN_EMAIL=glowmanager95@gmail.com
+SUPER_ADMIN_NAME=GlowManagerAdmin
+SUPER_ADMIN_PASSWORD=mamita123
+```
+
+---
+
 ## 12. Comandos útiles
 
 ```bash
@@ -317,25 +242,24 @@ pnpm --filter api dev       # backend en :3001
 
 # Build
 pnpm exec prisma generate
-pnpm --filter api run build  # tsc → apps/api/dist/
+pnpm --filter api run build
 
-# Base de datos producción
-DATABASE_URL="postgresql://postgres:...@yamabiko.proxy.rlwy.net:20654/railway" pnpm exec prisma db push
-
-# Crear super admin en producción
-cd apps/api
-DATABASE_URL="..." SUPER_ADMIN_EMAIL="..." SUPER_ADMIN_PASSWORD="..." npx tsx src/scripts/create-super-admin.ts
+# Verificar usuario manualmente (Railway Console)
+node -e "import('/app/apps/api/dist/lib/prisma.js').then(async ({default: prisma}) => { await prisma.user.updateMany({ where: { email: 'EMAIL' }, data: { emailVerified: true } }); console.log('verificado'); process.exit(0); });"
 ```
 
 ---
 
-## 13. Historial de PRs
+## 13. Historial de PRs / Commits clave
 
-| PR | Título | Estado |
-|---|---|---|
-| #1–#44 | Features y fixes de sesiones anteriores | ✅ Mergeados |
-| #45 | Feat: fusionar clientes duplicados | ✅ Mergeado |
-| #46 | Feat: recordatorios automáticos WhatsApp | ✅ Mergeado |
-| #47 | Fix: recordatorios + UX eliminaciones + notificaciones RT | ✅ Mergeado |
-| #48 | Fix: build producción limpio — TS cero errores | ✅ Mergeado |
-| — | Deploy: Railway + Vercel (en progreso) | 🔄 En curso |
+| Commit | Descripción |
+|---|---|
+| `33e93c5` | fix: eliminar dependencias Prisma 7 |
+| `7b70ae1` | fix: CORS manual con headers explícitos |
+| `35bbdf9` | fix: servidor escucha en 0.0.0.0 |
+| `e268aa0` | fix: cookies SameSite=None; Secure |
+| `b2d919c` | fix: auth por Authorization header |
+| `795f40d` | fix: admin auth acepta Authorization header |
+| `782b31f` | fix: timeout 8s en SMTP |
+| `c2bb597` | fix: SMTP puerto 465 SSL |
+| `ce0dde0` | fix: cookie JS para middleware Next.js |
