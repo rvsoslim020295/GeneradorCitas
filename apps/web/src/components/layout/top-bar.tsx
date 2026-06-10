@@ -79,13 +79,8 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
   function handleLogout() {
     localStorage.removeItem("gm_user");
     localStorage.removeItem("gm_token");
-    // Borrar la cookie con todas las variantes posibles de atributos
-    const cookieClear = "gm_token=; path=/; max-age=0";
-    document.cookie = cookieClear;
-    document.cookie = cookieClear + "; SameSite=Lax";
-    document.cookie = cookieClear + "; SameSite=None; Secure";
-    fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" }).catch(() => {});
-    window.location.href = "/login";
+    // Redirigir a la ruta API de Next.js que borra la cookie server-side
+    window.location.href = "/api/logout";
   }
 
   function handleOpenNotifs() {
