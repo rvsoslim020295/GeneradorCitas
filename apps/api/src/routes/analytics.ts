@@ -1,12 +1,14 @@
 import { createRouter } from "../lib/hono.js";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { requirePlanAccess } from "../middleware/plan-access.js";
 import { getLimits } from "../lib/plan-limits.js";
 import * as XLSX from "xlsx";
 
 const analytics = createRouter();
 
 analytics.use("*", requireAuth);
+analytics.use("*", requirePlanAccess);
 
 type Period = "this_week" | "last_week" | "this_month" | "this_year";
 

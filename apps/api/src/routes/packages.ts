@@ -2,10 +2,12 @@ import { createRouter } from "../lib/hono.js";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { requirePlanAccess } from "../middleware/plan-access.js";
 import { getLimits } from "../lib/plan-limits.js";
 
 const packages = createRouter();
 packages.use("*", requireAuth);
+packages.use("*", requirePlanAccess);
 
 const packageSchema = z.object({
   name: z.string().min(2),

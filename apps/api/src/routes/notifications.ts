@@ -1,10 +1,12 @@
 import { createRouter } from "../lib/hono.js";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { requirePlanAccess } from "../middleware/plan-access.js";
 
 const notifications = createRouter();
 
 notifications.use("*", requireAuth);
+notifications.use("*", requirePlanAccess);
 
 // ─── GET /notifications ───────────────────────────────────────────────────────
 // Devuelve notificaciones derivadas del estado de las citas del negocio:

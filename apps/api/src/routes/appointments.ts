@@ -2,11 +2,13 @@ import { createRouter } from "../lib/hono.js";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { requirePlanAccess } from "../middleware/plan-access.js";
 import { getLimits } from "../lib/plan-limits.js";
 
 const appointments = createRouter();
 
 appointments.use("*", requireAuth);
+appointments.use("*", requirePlanAccess);
 
 // ─── Helper: registrar evento en el historial de la cita ──────────────────────
 async function logEvent(appointmentId: string, type: string, description: string) {

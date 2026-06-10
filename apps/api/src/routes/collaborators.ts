@@ -2,11 +2,13 @@ import { createRouter } from "../lib/hono.js";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { requirePlanAccess } from "../middleware/plan-access.js";
 import { getLimits } from "../lib/plan-limits.js";
 
 const collaborators = createRouter();
 
 collaborators.use("*", requireAuth);
+collaborators.use("*", requirePlanAccess);
 
 const dayScheduleSchema = z.object({
   enabled: z.boolean(),

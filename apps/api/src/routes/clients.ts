@@ -2,12 +2,14 @@ import { createRouter } from "../lib/hono.js";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { requirePlanAccess } from "../middleware/plan-access.js";
 import { getLimits } from "../lib/plan-limits.js";
 
 const clients = createRouter();
 
 // Todas las rutas de clientes requieren autenticación
 clients.use("*", requireAuth);
+clients.use("*", requirePlanAccess);
 
 const createClientSchema = z.object({
   name: z.string().min(2),

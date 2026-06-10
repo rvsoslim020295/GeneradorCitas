@@ -3,6 +3,7 @@ import { z } from "zod";
 import { StorageClient } from "@supabase/storage-js";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { requirePlanAccess } from "../middleware/plan-access.js";
 
 const SUPABASE_URL = process.env.SUPABASE_URL ?? "";
 const SUPABASE_SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY ?? "";
@@ -18,6 +19,7 @@ function getStorage() {
 const settings = createRouter();
 
 settings.use("*", requireAuth);
+settings.use("*", requirePlanAccess);
 
 // ─── GET /settings ────────────────────────────────────────────────────────────
 // Devuelve datos del negocio y del usuario autenticado

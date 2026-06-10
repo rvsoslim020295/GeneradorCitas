@@ -5,6 +5,7 @@ import { randomBytes } from "crypto";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth, JWT_SECRET } from "../middleware/auth.js";
+import { requirePlanAccess } from "../middleware/plan-access.js";
 import { ADMIN_JWT_SECRET, requireSuperAdmin } from "../middleware/admin-auth.js";
 import { sendVerificationEmail, sendPasswordResetEmail } from "../lib/mailer.js";
 import { validateEmailDeep } from "../lib/email-validator.js";
@@ -55,6 +56,11 @@ auth.post("/login", async (c) => {
 
     if (!user.emailVerified) {
       return c.json({ error: "Debes verificar tu correo electrónico antes de iniciar sesión." }, 403);
+    }
+
+    // Cuenta suspendida: bloqueo total, no puede ni iniciar sesión (auditoría 4.1).
+    if (user.business.planStatus === "SUSPENDED") {
+      return c.json({ error: "Tu cuenta ha sido suspendida. Contacta a soporte para reactivarla.", code: "PLAN_SUSPENDED" }, 403);
     }
 
     const token = jwt.sign(
@@ -219,7 +225,7 @@ auth.post("/logout", (c) => {
 });
 
 // ─── GET /auth/me ─────────────────────────────────────────────────────────────
-auth.get("/me", requireAuth, async (c) => {
+auth.get("/me", requireAuth, requirePlanAccess, async (c) => {
   const { userId } = c.get("user");
 
   const user = await prisma.user.findUnique({

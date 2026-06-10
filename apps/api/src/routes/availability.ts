@@ -1,10 +1,12 @@
 import { createRouter } from "../lib/hono.js";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { requirePlanAccess } from "../middleware/plan-access.js";
 
 const availability = createRouter();
 
 availability.use("*", requireAuth);
+availability.use("*", requirePlanAccess);
 
 type DaySchedule = { enabled: boolean; start: string; end: string };
 type WeekSchedule = Record<string, DaySchedule>;

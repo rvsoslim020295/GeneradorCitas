@@ -3,10 +3,12 @@ import { z } from "zod";
 import bcrypt from "bcryptjs";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
+import { requirePlanAccess } from "../middleware/plan-access.js";
 
 const users = createRouter();
 
 users.use("*", requireAuth);
+users.use("*", requirePlanAccess);
 
 // ─── GET /users — cualquier usuario autenticado puede ver la lista ─────────────
 users.get("/", async (c) => {
