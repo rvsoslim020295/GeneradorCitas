@@ -7,8 +7,7 @@ import {
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useRole } from "@/hooks/use-role";
-
-const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
+import { apiFetch } from "@/lib/api/client";
 
 const allNavItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, ownerOnly: false, collaboratorHidden: true },
@@ -38,8 +37,7 @@ export function Sidebar({ activePath }: SidebarProps) {
   const [trialDaysLeft, setTrialDaysLeft] = useState<number | null>(null);
 
   useEffect(() => {
-    fetch(`${API_URL}/auth/me`, { credentials: "include" })
-      .then((r) => r.ok ? r.json() : null)
+    apiFetch<{ business?: { trialDaysLeft?: number } }>("/auth/me")
       .then((data) => {
         if (data?.business?.trialDaysLeft !== undefined) {
           setTrialDaysLeft(data.business.trialDaysLeft);
