@@ -1,6 +1,6 @@
 # Estado del Proyecto — GlowManager
 **Fecha:** 9 de Junio 2026
-**Versión:** 12.0
+**Versión:** 12.1
 **Repositorio:** https://github.com/rvsoslim020295/GeneradorCitas
 **Rama activa:** `main`
 
@@ -10,7 +10,7 @@
 
 GlowManager es un panel administrativo B2B para negocios de belleza (salones, barberías, spas, nail bars). Permite gestionar citas, clientes, colaboradores, servicios, paquetes, pagos y reportes desde una interfaz web orientada a dueños y recepcionistas en desktop.
 
-**Estado actual:** ✅ MVP 100% en producción — frontend en Vercel + backend en Railway operativos. Login funcionando. Dashboard accesible.
+**Estado actual:** ✅ MVP 100% en producción y funcional. Login, registro, dashboard, clientes, servicios, colaboradores operativos. SMTP con IPv4 forzado (pendiente confirmar entrega de emails).
 
 ---
 
@@ -25,119 +25,142 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
 
 ---
 
-## 3. Lo implementado hasta v10.0 (sesiones anteriores)
+## 3. Todo lo resuelto en esta sesión (v12.x)
 
-- Login unificado + Remember Me
-- Planes BASIC / PRO / ENTERPRISE con restricciones en backend
-- Módulo de Paquetes/Combos
-- Métricas avanzadas en Reportes
-- Panel Super Admin completo
-- Bloqueo por plan vencido/suspendido → `/plan-vencido`
-- Campo `performsServices` en colaboradores
-- Capacidad máxima simultánea por servicio (`maxConcurrent`)
-- Slots dinámicos, Walk-in, Cobrar/Completar desacoplados
-- Fixes críticos de TZ y disponibilidad
-- Notificaciones WhatsApp via `wa.me` con plantillas editables
-- Políticas de cancelación y reagendamiento independientes
-- Sistema completo de roles OWNER / ADMIN / COLLABORATOR
-- Solo mis citas para COLLABORATOR (vínculo User↔Collaborator)
-- Historial real de cita (modelo `AppointmentEvent` + timeline)
-- Exportar reportes a Excel
-- Ficha técnica por cliente (modelo `ClientRecord` + CRUD + UI)
-- Fusionar clientes duplicados (endpoint merge + modal UI)
-- Recordatorios automáticos WhatsApp (scheduler 24h y 2h)
-- Modales in-page para eliminaciones
-- Notificaciones en tiempo real con TanStack Query
-- Mejoras de navegación en perfil de cliente
-- Build limpio: 0 errores TS, 0 errores ESLint, 32/32 páginas
+### 3.1 Backend Railway no respondía (502)
+- **Causa raíz:** Railway proxy apuntaba a puerto 3001, app escuchaba en 3000
+- **Fix:** Variable `PORT=3000` + Railway Networking → Port 3000
+- **Fix adicional:** `hostname: "0.0.0.0"` en `serve()` de Hono
 
----
+### 3.2 CORS bloqueado
+- **Causa:** middleware `hono/cors` no enviaba headers en Railway
+- **Fix:** middleware CORS manual con headers explícitos + `app.options("*", ...)`
 
-## 4. Lo resuelto en v11.0 — Deploy inicial
+### 3.3 Prisma — dependencias de Prisma 7
+- **Causa:** `@prisma/adapter-pg` y `@prisma/client-runtime-utils` (Prisma 7) incompatibles
+- **Fix:** eliminados ambos paquetes, `PrismaClient()` estándar sin driver adapter
 
-### 4.1 Configuración de deploy
-- `nixpacks.toml` — build y start para Railway
-- `apps/web/vercel.json` — framework Next.js para Vercel
-- `pnpm-lock.yaml` commiteado para builds reproducibles
-- `.npmrc` con `shamefully-hoist=true`
-
-### 4.2 Servicios configurados
-- Railway PostgreSQL Online
-- Vercel Hobby deployado en https://glowmanager-web.vercel.app
-- Schema migrado: `prisma db push` contra Railway PostgreSQL
-- Super admin creado: `glowmanager95@gmail.com`
-
-### 4.3 Fixes Prisma
-- Bajada Prisma 7 → Prisma 6
-- Eliminados `@prisma/adapter-pg` y `@prisma/client-runtime-utils`
-- `prisma.ts` simplificado a `new PrismaClient()` estándar
-
----
-
-## 5. Lo resuelto en v12.0 — Fixes de producción (esta sesión)
-
-### 5.1 Backend Railway no respondía (502)
-- **Causa:** Railway proxy apuntaba al puerto 3001 pero el app escuchaba en 3000 (variable `PORT=3000` seteada manualmente, Railway Networking actualizado a port 3000)
-- **Fix adicional:** `hostname: "0.0.0.0"` en `serve()` de Hono para escuchar en todas las interfaces
-
-### 5.2 CORS bloqueado
-- **Causa:** middleware `hono/cors` con `origin` función no enviaba headers en Railway
-- **Fix:** middleware CORS manual con headers explícitos; OPTIONS handler con `app.options("*", ...)`
-
-### 5.3 Auth cross-domain (cookie no viajaba entre Vercel y Railway)
-- **Causa:** cookies `SameSite=Lax` bloqueadas cross-domain; middleware Next.js verificaba cookie server-side
-- **Fix:**
+### 3.4 Auth cross-domain (cookie no funcionaba entre Vercel y Railway)
+- **Causa:** cookies `SameSite=Lax` bloqueadas cross-domain; middleware Next.js verificaba cookie server-side sin acceso a localStorage
+- **Fix completo:**
   1. Cookies cambiadas a `SameSite=None; Secure`
-  2. Backend devuelve `token` en body del login
-  3. Frontend guarda token en `localStorage` + cookie JS (`document.cookie`) para que el middleware de Next.js la lea
-  4. `apiFetch` envía `Authorization: Bearer TOKEN` desde localStorage
+  2. Backend devuelve `token` en body del login y verify-email
+  3. Frontend guarda token en `localStorage("gm_token")` + `document.cookie("gm_token")` para que el middleware de Next.js la lea
+  4. `apiFetch` envía `Authorization: Bearer TOKEN` en todas las peticiones
   5. `requireSuperAdmin` middleware actualizado para aceptar Authorization header
+  6. Sidebar corregido para usar `apiFetch` (enviaba `/auth/me` sin token)
 
-### 5.4 SMTP bloqueado en Railway
-- **Causa:** Railway bloquea puerto 587 (ETIMEDOUT)
-- **Fix:** puerto cambiado a **465 con SSL** (`secure: true`); timeout 8s en conexión
+### 3.5 SMTP bloqueado en Railway
+- **Causa:** Railway bloquea puerto 587 (ETIMEDOUT) y resuelve smtp.gmail.com con IPv6 (ENETUNREACH)
+- **Fix:** puerto 465 con SSL + `family: 4` para forzar IPv4
 - **Variable Railway:** `SMTP_PORT=465`
-- **Pendiente:** verificar que emails de verificación lleguen correctamente con puerto 465
+- **Estado:** pendiente confirmar entrega real de emails de verificación
 
-### 5.5 Registro colgado
-- **Causa:** `sendVerificationEmail` sin timeout bloqueaba la respuesta
-- **Fix:** `connectionTimeout: 8000` y `socketTimeout: 8000` en nodemailer
+### 3.6 Registro colgado
+- **Causa:** `sendVerificationEmail` sin timeout bloqueaba la respuesta indefinidamente
+- **Fix:** `connectionTimeout: 10000` y `socketTimeout: 10000` en nodemailer
 
-### 5.6 Variables Railway configuradas correctamente
+### 3.7 Clientes no aparecían en el listado
+- **Causa:** `historyFilter` en `GET /clients` ocultaba clientes sin citas (bug de lógica — el filtro de historial no debe afectar visibilidad)
+- **Fix:** eliminado `historyFilter` del listado de clientes
+
+### 3.8 Especialidades de colaborador hardcodeadas
+- **Causa:** lista `ALL_SPECIALTIES` con 20 valores hardcodeados en lugar de usar servicios reales
+- **Fix:** `useServices()` en páginas de nuevo y edición de colaborador — ahora muestra los servicios que el negocio haya creado
+
+### 3.9 Verificación de email no autenticaba al usuario
+- **Causa:** `/auth/verify-email` no devolvía token en el body, frontend no seteaba cookie
+- **Fix:** endpoint devuelve `{ token, user }`, frontend setea localStorage + cookie igual que el login
+
+### 3.10 Banner de trial no aparecía
+- **Causa:** sidebar hacía fetch directo a `/auth/me` sin `Authorization` header
+- **Fix:** sidebar usa `apiFetch` que incluye el token automáticamente
+
+---
+
+## 4. Arquitectura Auth (v12.x)
+
+```
+LOGIN FLOW:
+  POST /auth/login → { token, user }
+  → localStorage("gm_token") = token
+  → document.cookie("gm_token") = token   ← para Next.js middleware (server-side)
+  → router.push("/dashboard")
+
+REQUESTS:
+  apiFetch("/cualquier-ruta")
+  → Authorization: Bearer <localStorage("gm_token")>
+
+NEXT.JS MIDDLEWARE (server-side):
+  Lee cookies.get("gm_token")
+  → Si existe: deja pasar
+  → Si no: redirect /login
+
+BACKEND MIDDLEWARES:
+  requireAuth        → lee Authorization header || cookie "gm_token"
+  requireSuperAdmin  → lee Authorization header || cookie "gm_admin_token"
+```
+
+---
+
+## 5. Configuración Railway
+
 | Variable | Valor |
 |---|---|
 | `PORT` | `3000` |
 | `SMTP_PORT` | `465` |
-| Railway Networking | Port 3000 |
+| `SMTP_HOST` | `smtp.gmail.com` |
+| `NODE_ENV` | `production` |
+| `TZ` | `America/Lima` |
+| Railway Networking | Port `3000` |
+
+**Build:** `pnpm exec prisma generate && pnpm --filter api run build`
+**Start:** `node /app/apps/api/dist/index.js`
 
 ---
 
-## 6. Estado actual de flujos
+## 6. Configuración Vercel
 
-| Flujo | Estado |
+| Variable | Valor |
 |---|---|
-| Login super admin | ✅ Funciona |
-| Login usuario normal | ✅ Funciona |
-| Dashboard | ✅ Accesible |
-| Registro | ✅ Crea cuenta (email de verificación pendiente confirmar) |
-| Verificación email | ⚠️ Pendiente confirmar con puerto 465 |
-| Onboarding negocio (4 pasos) | ⚠️ Solo accesible vía link de verificación en email |
+| `NEXT_PUBLIC_API_URL` | `https://generadorcitas-production.up.railway.app` |
 
 ---
 
-## 7. Deuda Técnica Pendiente
+## 7. Estado de flujos en producción
+
+| Flujo | Estado | Notas |
+|---|---|---|
+| Login usuario | ✅ | Token en localStorage + cookie |
+| Login super admin | ✅ | Mismo mecanismo |
+| Registro | ✅ | Cuenta creada, email pendiente confirmar |
+| Email verificación | ⚠️ | IPv4 forzado, pendiente confirmar entrega |
+| Onboarding negocio (4 pasos) | ✅ | Funciona después de verificar email |
+| Dashboard | ✅ | Carga correctamente |
+| Clientes | ✅ | CRUD completo, listado corregido |
+| Colaboradores | ✅ | Especialidades desde servicios reales |
+| Servicios | ✅ | CRUD completo |
+| Agenda / Citas | ✅ | |
+| Paquetes | ✅ | |
+| Reportes | ✅ | |
+| Banner trial | ✅ | Muestra días restantes en sidebar |
+| Plan vencido | ✅ | Bloquea y redirige a /plan-vencido |
+| Panel Super Admin | ✅ | |
+
+---
+
+## 8. Bugs / Deuda Técnica Pendiente
 
 ### Crítico
 | Item | Descripción |
 |---|---|
-| **Verificación email** | Confirmar que puerto 465 envía emails correctamente en Railway |
-| **Onboarding post-registro** | Usuarios verificados manualmente no pasan por los 4 pasos de configuración del negocio |
+| **Emails de verificación** | Confirmar que lleguen con puerto 465 + IPv4. Si Railway sigue bloqueando, considerar Resend o SendGrid como alternativa a Gmail SMTP |
 
 ### Media prioridad
 | Item | Descripción |
 |---|---|
+| **Onboarding saltado manualmente** | Usuarios verificados via Console no configuran su negocio (nombre, tipo vacíos). Agregar aviso o redirect en dashboard si `business.name` está vacío |
 | **WhatsApp botón en ficha técnica** | Enviar resumen de tratamiento al cliente vía wa.me |
-| **WhatsApp automático real** | Evolucionar de wa.me manual a Baileys o Evolution API |
 | **Comisiones por colaborador** | % sobre servicios atendidos |
 | **Foto de resultado por cita** | Portafolio del negocio |
 
@@ -146,24 +169,21 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
 |---|---|
 | **Pagos automáticos (Culqi)** | Activación de plan es manual hoy |
 | **Drag & drop en calendario** | Evaluar FullCalendar |
-| **Tabla `payments` separada** | El pago está inline en `Appointment` |
 | **Responsividad móvil** | Solo desktop |
 | **`audit_log`** | Trazabilidad de acciones críticas |
 
 ---
 
-## 8. Stack Tecnológico
+## 9. Stack Tecnológico
 
 ### Frontend (`apps/web`)
-| Capa | Tecnología | Versión |
-|---|---|---|
-| Framework | Next.js App Router | 15.x |
-| Lenguaje | TypeScript | 5.x |
-| Estilos | Tailwind CSS | 4.x |
-| Design System | Material Design 3 (tokens CSS) | — |
-| Fuente | Inter (Google Fonts) | — |
-| Íconos | Lucide React | 1.x |
-| Data fetching | TanStack Query | v5 |
+| Capa | Tecnología |
+|---|---|
+| Framework | Next.js 15 App Router |
+| Lenguaje | TypeScript 5.x |
+| Estilos | Tailwind CSS 4.x + Material Design 3 tokens |
+| Data fetching | TanStack Query v5 |
+| Íconos | Lucide React |
 
 ### Backend (`apps/api`)
 | Capa | Tecnología |
@@ -172,94 +192,59 @@ GlowManager es un panel administrativo B2B para negocios de belleza (salones, ba
 | ORM | Prisma 6.x |
 | Base de datos | PostgreSQL (Railway) |
 | Auth | JWT — Authorization header + cookie fallback |
-| Email | Nodemailer (SMTP Gmail, puerto 465 SSL) |
+| Email | Nodemailer (Gmail SMTP, puerto 465 SSL, IPv4 forzado) |
 | Storage | Supabase Storage (bucket `logos`) |
 | Runtime | Node.js v22 |
 | Scheduler | node-cron (recordatorios WhatsApp) |
 
-### Infraestructura
-| Capa | Servicio |
-|---|---|
-| Frontend | Vercel (Hobby) |
-| Backend | Railway — port 3000 |
-| Base de datos | Railway PostgreSQL |
-| Storage | Supabase Storage |
-| Monorepo | pnpm workspaces |
-
 ---
 
-## 9. Arquitectura Auth (v12.0)
-
-**Login flow:**
-1. POST `/auth/login` → backend devuelve `{ token, user }`
-2. Frontend guarda `token` en `localStorage("gm_token")` + `document.cookie("gm_token")` 
-3. `apiFetch` envía `Authorization: Bearer TOKEN` en cada request
-4. Middleware Next.js lee cookie `gm_token` para proteger rutas server-side
-5. Backend middleware lee `Authorization` header (o cookie como fallback)
-
----
-
-## 10. Build config (Railway)
-
-```
-Build: pnpm exec prisma generate && pnpm --filter api run build
-Start: node /app/apps/api/dist/index.js
-Port:  3000 (Railway Networking → Port 3000)
-```
-
----
-
-## 11. Variables de entorno Railway (producción)
-
-```
-DATABASE_URL=${{Postgres.DATABASE_URL}}
-JWT_SECRET=<generado>
-ADMIN_JWT_SECRET=<generado>
-FRONTEND_URL=https://glowmanager-web.vercel.app
-APP_URL=https://glowmanager-web.vercel.app
-SUPABASE_URL=https://smpsncdzdvoanqxieicc.supabase.co
-SUPABASE_SERVICE_KEY=<service_role key>
-SMTP_HOST=smtp.gmail.com
-SMTP_PORT=465
-SMTP_USER=glowmanager95@gmail.com
-SMTP_PASS=<app password Gmail>
-TZ=America/Lima
-NODE_ENV=production
-PORT=3000
-SUPER_ADMIN_EMAIL=glowmanager95@gmail.com
-SUPER_ADMIN_NAME=GlowManagerAdmin
-SUPER_ADMIN_PASSWORD=mamita123
-```
-
----
-
-## 12. Comandos útiles
+## 10. Comandos útiles
 
 ```bash
-# Desarrollo local
-pnpm --filter web dev       # frontend en :3000
-pnpm --filter api dev       # backend en :3001
+# Dev local
+pnpm --filter web dev       # :3000
+pnpm --filter api dev       # :3001
 
 # Build
-pnpm exec prisma generate
-pnpm --filter api run build
+pnpm exec prisma generate && pnpm --filter api run build
 
 # Verificar usuario manualmente (Railway Console)
-node -e "import('/app/apps/api/dist/lib/prisma.js').then(async ({default: prisma}) => { await prisma.user.updateMany({ where: { email: 'EMAIL' }, data: { emailVerified: true } }); console.log('verificado'); process.exit(0); });"
+node -e "import('/app/apps/api/dist/lib/prisma.js').then(async ({default: p}) => {
+  await p.user.updateMany({ where:{email:'EMAIL'}, data:{emailVerified:true} });
+  console.log('verificado'); process.exit(0);
+});"
+
+# Obtener token de verificación (Railway Console)
+node -e "import('/app/apps/api/dist/lib/prisma.js').then(async ({default: p}) => {
+  const u = await p.user.findUnique({ where:{email:'EMAIL'}, select:{emailVerificationToken:true} });
+  console.log('TOKEN:', u?.emailVerificationToken); process.exit(0);
+});"
+
+# Generar nuevo token de verificación (Railway Console)
+node -e "import('/app/apps/api/dist/lib/prisma.js').then(async ({default: p}) => {
+  const {randomBytes} = await import('crypto');
+  const t = randomBytes(32).toString('hex');
+  await p.user.update({ where:{email:'EMAIL'}, data:{emailVerified:false, emailVerificationToken:t} });
+  console.log('TOKEN:',t); process.exit(0);
+});"
 ```
 
 ---
 
-## 13. Historial de PRs / Commits clave
+## 11. Commits clave de esta sesión
 
 | Commit | Descripción |
 |---|---|
 | `33e93c5` | fix: eliminar dependencias Prisma 7 |
 | `7b70ae1` | fix: CORS manual con headers explícitos |
 | `35bbdf9` | fix: servidor escucha en 0.0.0.0 |
-| `e268aa0` | fix: cookies SameSite=None; Secure |
 | `b2d919c` | fix: auth por Authorization header |
 | `795f40d` | fix: admin auth acepta Authorization header |
-| `782b31f` | fix: timeout 8s en SMTP |
 | `c2bb597` | fix: SMTP puerto 465 SSL |
+| `a98e1a1` | fix: forzar IPv4 en SMTP |
 | `ce0dde0` | fix: cookie JS para middleware Next.js |
+| `9d0c60f` | fix: eliminar historyFilter del listado de clientes |
+| `8aeaeaf` | fix: especialidades colaborador desde servicios reales |
+| `05dd53d` | fix: verify-email devuelve token y frontend setea cookie |
+| `075fe3d` | fix: sidebar usa apiFetch para /auth/me |
