@@ -1,8 +1,5 @@
 import { resolve } from "dns/promises";
-import { createRequire } from "module";
-
-const require = createRequire(import.meta.url);
-const disposableDomains: string[] = require("disposable-email-domains");
+import disposableDomains from "disposable-email-domains";
 
 /** Verifica que el dominio tenga servidores MX activos */
 async function hasMxRecords(email: string): Promise<boolean> {
