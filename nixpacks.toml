@@ -10,5 +10,10 @@ cmds = [
   "pnpm --filter api run build"
 ]
 
+# Aplica las migraciones pendientes contra la BD de producción justo antes de
+# arrancar (auditoría 1.5 — necesita la columna tokenVersion). Va en el start y
+# no en build para garantizar acceso de red a la BD.
+# Alternativa más robusta: configurar este mismo comando como "Pre-deploy
+# Command" en el dashboard de Railway y dejar el start con solo el node.
 [start]
-cmd = "node /app/apps/api/dist/index.js"
+cmd = "pnpm exec prisma migrate deploy && node /app/apps/api/dist/index.js"
