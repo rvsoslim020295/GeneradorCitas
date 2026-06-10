@@ -81,6 +81,9 @@ model User {
   emailVerificationToken String?       @unique
   passwordResetToken     String?       @unique
   passwordResetExpires   DateTime?
+  // Se incrementa al resetear contraseña / cerrar sesión global para invalidar
+  // JWTs previos (auditoría 1.5). El token lleva este valor y requireAuth lo compara.
+  tokenVersion           Int           @default(0)
   businessId             String
   business               Business      @relation(fields: [businessId], references: [id])
   collaboratorId         String?       @unique

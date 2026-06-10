@@ -33,10 +33,16 @@ Vulnerabilidades de acceso explotables sin condiciones especiales.
 | ☑ | 4.1 | `planStatus` no se valida → middleware `requirePlanAccess` | `middleware/plan-access.ts` + rutas |
 | ☑ | 1.3 | Enumeración de usuarios en login (+ frontend) | `routes/auth.ts`, `web/login/page.tsx` |
 | ☑ | 1.4 / 6.6 | Rate-limiting en auth y admin login (+ frontend 429) | `lib/rate-limit.ts`, `routes/auth.ts`, `routes/admin.ts`, `web/login` |
-| ☐ | 1.5 | Reset/logout no invalidan JWT (tokenVersion) | schema + `auth.ts` |
-| ☐ | 1.9 | Tokens de reset/verificación sin hashear | schema + `auth.ts` |
+| ☑ | 1.5 | Reset invalida JWT previos (tokenVersion) | migración + `middleware/auth.ts` + `auth.ts` |
+| ☑ | 1.9 | Tokens de reset/verificación hasheados (sha256) | `auth.ts` |
 
-**Criterio de salida:** ningún usuario puede tocar datos de otro tenant; suspender un negocio lo bloquea; login no filtra existencia; reset invalida sesiones.
+**Criterio de salida:** ningún usuario puede tocar datos de otro tenant; suspender un negocio lo bloquea; login no filtra existencia; reset invalida sesiones. ✅ **SPRINT 1 COMPLETADO**
+
+> 🔴 **ACCIÓN DE DESPLIEGUE CRÍTICA (1.5):** el pipeline de Railway (`nixpacks.toml`) NO corre `prisma migrate deploy`. Antes (o durante) el deploy de este código a producción hay que ejecutar la migración `20260610160000_add_token_version` contra la BD de producción (`pnpm exec prisma migrate deploy`). Si se despliega el código sin la columna `tokenVersion`, `requireAuth` fallará en cada request autenticado → caída total. Recomendado: añadir `pnpm exec prisma migrate deploy` al `[phases.build]` o a un pre-deploy de Railway.
+
+> ℹ️ Bonus: al regenerar el JWT de `/verify-email` se incluyó `collaboratorId`, lo que de paso corrige el hallazgo **1.8** (token sin `collaboratorId`).
+
+> ⚠️ Nota de rendimiento: `requireAuth` ahora hace 1 consulta (tokenVersion) y `requirePlanAccess` otra (planStatus) por request autenticado. Optimizable a futuro combinándolas en un solo lookup.
 
 ---
 

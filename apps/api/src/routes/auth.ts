@@ -1,7 +1,7 @@
 import { createRouter } from "../lib/hono.js";
 import bcrypt from "bcryptjs";
 import jwt from "jsonwebtoken";
-import { randomBytes } from "crypto";
+import { randomBytes, createHash } from "crypto";
 import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireAuth, JWT_SECRET } from "../middleware/auth.js";
@@ -16,6 +16,10 @@ const auth = createRouter();
 // Hash bcrypt "dummy" para igualar el costo de bcrypt.compare cuando el email
 // no existe, evitando enumeración de usuarios por timing (auditoría 1.3).
 const DUMMY_PASSWORD_HASH = "$2b$10$HVJNCJtGy2lr57ql.y9t/uzOm0BZvelIgTktR6mJhuJeMRbVgWmWe";
+
+// Hash de tokens de un solo uso (verificación de email, reset de contraseña).
+// En BD guardamos el hash; el token en claro solo viaja por email (auditoría 1.9).
+const hashToken = (token: string) => createHash("sha256").update(token).digest("hex");
 
 // ─── Schemas ─────────────────────────────────────────────────────────────────
 const loginSchema = z.object({
@@ -77,7 +81,7 @@ auth.post("/login", loginLimiter, async (c) => {
     }
 
     const token = jwt.sign(
-      { userId: user.id, email: user.email, businessId: user.businessId, role: user.role, collaboratorId: user.collaborator?.id ?? null },
+      { userId: user.id, email: user.email, businessId: user.businessId, role: user.role, collaboratorId: user.collaborator?.id ?? null, tv: user.tokenVersion },
       JWT_SECRET,
       { expiresIn: "7d" }
     );
@@ -150,7 +154,8 @@ auth.post("/register", async (c) => {
   if (existing) return c.json({ error: "Este email ya está registrado" }, 409);
 
   const hashedPassword = await bcrypt.hash(password, 10);
-  const verificationToken = randomBytes(32).toString("hex");
+  const verificationToken = randomBytes(32).toString("hex"); // se envía por email
+  const verificationTokenHash = hashToken(verificationToken); // se guarda en BD
 
   const trialEndsAt = new Date();
   trialEndsAt.setDate(trialEndsAt.getDate() + 7);
@@ -168,7 +173,7 @@ auth.post("/register", async (c) => {
         password: hashedPassword,
         role: "OWNER",
         businessId: business.id,
-        emailVerificationToken: verificationToken,
+        emailVerificationToken: verificationTokenHash,
       },
     });
     return { business, user };
@@ -193,7 +198,7 @@ auth.get("/verify-email", async (c) => {
   if (!token) return c.json({ error: "Token requerido" }, 400);
 
   const user = await prisma.user.findUnique({
-    where: { emailVerificationToken: token },
+    where: { emailVerificationToken: hashToken(token) },
   });
 
   if (!user) return c.json({ error: "Token inválido o ya utilizado" }, 400);
@@ -204,7 +209,7 @@ auth.get("/verify-email", async (c) => {
   });
 
   const jwt_token = jwt.sign(
-    { userId: user.id, email: user.email, businessId: user.businessId, role: user.role },
+    { userId: user.id, email: user.email, businessId: user.businessId, role: user.role, collaboratorId: null, tv: user.tokenVersion },
     JWT_SECRET,
     { expiresIn: "7d" }
   );
@@ -310,12 +315,12 @@ auth.post("/forgot-password", passwordResetLimiter, async (c) => {
     return c.json({ ok: true });
   }
 
-  const token = randomBytes(32).toString("hex");
+  const token = randomBytes(32).toString("hex"); // se envía por email
   const expires = new Date(Date.now() + 60 * 60 * 1000); // 1 hora
 
   await prisma.user.update({
     where: { email },
-    data: { passwordResetToken: token, passwordResetExpires: expires },
+    data: { passwordResetToken: hashToken(token), passwordResetExpires: expires },
   });
 
   try {
@@ -336,7 +341,7 @@ auth.post("/reset-password", passwordResetLimiter, async (c) => {
     return c.json({ error: "Datos inválidos." }, 400);
   }
 
-  const user = await prisma.user.findUnique({ where: { passwordResetToken: token } });
+  const user = await prisma.user.findUnique({ where: { passwordResetToken: hashToken(token) } });
 
   if (!user || !user.passwordResetExpires || user.passwordResetExpires < new Date()) {
     return c.json({ error: "El enlace no es válido o ha expirado." }, 400);
@@ -349,6 +354,8 @@ auth.post("/reset-password", passwordResetLimiter, async (c) => {
       password: hashed,
       passwordResetToken: null,
       passwordResetExpires: null,
+      // Invalida todas las sesiones previas tras cambiar la contraseña (auditoría 1.5)
+      tokenVersion: { increment: 1 },
     },
   });
 
