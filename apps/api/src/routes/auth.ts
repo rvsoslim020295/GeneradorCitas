@@ -203,7 +203,11 @@ auth.get("/verify-email", async (c) => {
 
 // ─── POST /auth/logout ───────────────────────────────────────────────────────
 auth.post("/logout", (c) => {
-  c.header("Set-Cookie", "gm_token=; HttpOnly; SameSite=None; Path=/; Max-Age=0");
+  // Borrar cookie con todas las variantes para cubrir local (Lax) y producción (None+Secure)
+  c.header("Set-Cookie", [
+    "gm_token=; HttpOnly; SameSite=Lax; Path=/; Max-Age=0",
+    "gm_token=; HttpOnly; SameSite=None; Secure; Path=/; Max-Age=0",
+  ].join(", "));
   return c.json({ ok: true });
 });
 

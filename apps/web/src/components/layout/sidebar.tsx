@@ -2,12 +2,14 @@
 
 import {
   LayoutDashboard, Calendar, Users, BadgeCheck,
-  Scissors, BarChart2, Settings, Plus, Sparkles, Zap, Package,
+  Scissors, BarChart2, Settings, Plus, Sparkles, Zap, Package, X,
 } from "lucide-react";
 import Link from "next/link";
+import { usePathname } from "next/navigation";
 import { useEffect, useState } from "react";
 import { useRole } from "@/hooks/use-role";
 import { apiFetch } from "@/lib/api/client";
+import { useSidebar } from "@/hooks/use-sidebar";
 
 const allNavItems = [
   { label: "Dashboard", href: "/dashboard", icon: LayoutDashboard, ownerOnly: false, collaboratorHidden: true },
@@ -29,6 +31,11 @@ const TRIAL_DAYS = 7;
 
 export function Sidebar({ activePath }: SidebarProps) {
   const role = useRole();
+  const { isOpen, close } = useSidebar();
+  const pathname = usePathname();
+
+  // Cerrar sidebar al navegar en móvil
+  useEffect(() => { close(); }, [pathname, close]);
   const navItems = allNavItems.filter((item) => {
     if (item.ownerOnly && role !== "OWNER" && role !== null) return false;
     if (item.collaboratorHidden && role === "COLLABORATOR") return false;
@@ -52,9 +59,27 @@ export function Sidebar({ activePath }: SidebarProps) {
     : 0;
 
   return (
-    <nav className="bg-[var(--color-surface)] h-full w-64 fixed left-0 top-0 border-r border-[var(--color-outline-variant)] shadow-sm flex flex-col py-2 px-3 z-40">
-      {/* Logo */}
+    <>
+      {/* Overlay móvil */}
+      {isOpen && (
+        <div
+          className="fixed inset-0 bg-black/50 z-40 md:hidden"
+          onClick={close}
+        />
+      )}
+
+    <nav className={`bg-[var(--color-surface)] h-full w-64 fixed left-0 top-0 border-r border-[var(--color-outline-variant)] shadow-sm flex flex-col py-2 px-3 z-50
+      transition-transform duration-300 ease-in-out
+      ${isOpen ? "translate-x-0" : "-translate-x-full"}
+      md:translate-x-0`}>
+      {/* Logo + botón cerrar en móvil */}
       <div className="flex items-center gap-3 px-1 py-3 mb-6">
+        <button
+          onClick={close}
+          className="md:hidden ml-auto p-1.5 rounded-lg text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)] transition-colors absolute right-3 top-3"
+        >
+          <X size={20} strokeWidth={1.5} />
+        </button>
         <div className="w-10 h-10 rounded-lg bg-[var(--color-primary-container)] flex items-center justify-center shrink-0">
           <Sparkles size={20} className="text-[var(--color-on-primary-container)]" />
         </div>
@@ -158,5 +183,6 @@ export function Sidebar({ activePath }: SidebarProps) {
         </Link>
       </div>
     </nav>
+    </>
   );
 }

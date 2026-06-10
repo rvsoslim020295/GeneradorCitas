@@ -3,10 +3,11 @@
 import { Suspense, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
-import { Bell, HelpCircle, LogOut, Settings, X, Sun, Moon, CalendarClock, CalendarCheck, CalendarX } from "lucide-react";
+import { Bell, HelpCircle, LogOut, Settings, X, Sun, Moon, CalendarClock, CalendarCheck, CalendarX, Menu } from "lucide-react";
 import { useTheme } from "@/components/theme-provider";
 import { GlobalSearch } from "@/components/layout/global-search";
 import { apiFetch } from "@/lib/api/client";
+import { useSidebar } from "@/hooks/use-sidebar";
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL ?? "http://localhost:3001";
 
@@ -27,6 +28,7 @@ type TopBarProps = {
 export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...", hideSearch = false }: TopBarProps) {
   const router = useRouter();
   const { theme, toggle: toggleTheme } = useTheme();
+  const { toggle: toggleSidebar } = useSidebar();
   const [showProfile, setShowProfile] = useState(false);
   const [showNotifications, setShowNotifications] = useState(false);
   const [showHelp, setShowHelp] = useState(false);
@@ -74,12 +76,16 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
 
-  async function handleLogout() {
+  function handleLogout() {
     localStorage.removeItem("gm_user");
     localStorage.removeItem("gm_token");
-    document.cookie = "gm_token=; path=/; max-age=0";
-    await fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" }).catch(() => {});
-    router.push("/login");
+    // Borrar la cookie con todas las variantes posibles de atributos
+    const cookieClear = "gm_token=; path=/; max-age=0";
+    document.cookie = cookieClear;
+    document.cookie = cookieClear + "; SameSite=Lax";
+    document.cookie = cookieClear + "; SameSite=None; Secure";
+    fetch(`${API_URL}/auth/logout`, { method: "POST", credentials: "include" }).catch(() => {});
+    window.location.href = "/login";
   }
 
   function handleOpenNotifs() {
@@ -90,12 +96,20 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
   }
 
   return (
-    <header className="bg-[var(--color-surface)]/80 backdrop-blur-md fixed top-0 right-0 w-[calc(100%-16rem)] h-16 border-b border-[var(--color-outline-variant)] flex justify-between items-center px-6 z-30">
-      {/* Búsqueda global */}
-      {hideSearch ? <div /> : <Suspense fallback={<div className="w-80 h-9" />}><GlobalSearch placeholder={searchPlaceholder} /></Suspense>}
+    <header className="bg-[var(--color-surface)]/80 backdrop-blur-md fixed top-0 right-0 w-full md:w-[calc(100%-16rem)] h-16 border-b border-[var(--color-outline-variant)] flex justify-between items-center px-4 md:px-6 z-30">
+      {/* Hamburger (solo móvil) + Búsqueda */}
+      <div className="flex items-center gap-2 flex-1 min-w-0">
+        <button
+          onClick={toggleSidebar}
+          className="md:hidden p-2 rounded-lg text-[var(--color-on-surface-variant)] hover:bg-[var(--color-surface-container-high)] transition-colors shrink-0"
+        >
+          <Menu size={22} strokeWidth={1.5} />
+        </button>
+        {hideSearch ? <div /> : <Suspense fallback={<div className="w-full max-w-xs h-9" />}><GlobalSearch placeholder={searchPlaceholder} /></Suspense>}
+      </div>
 
       {/* Acciones */}
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 md:gap-3 shrink-0">
 
         {/* Campana de notificaciones */}
         <div className="relative" ref={notifRef}>

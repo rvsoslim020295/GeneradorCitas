@@ -3,6 +3,7 @@
 import { useEffect } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import { apiFetch } from "@/lib/api/client";
+import { SidebarProvider } from "@/hooks/use-sidebar";
 
 const PLAN_EXEMPT_PATHS = ["/plan-vencido", "/planes"];
 
@@ -60,8 +61,10 @@ export default function DashboardLayout({
   }, [pathname, router]);
 
   return (
-    <div className="bg-[var(--color-background)] text-[var(--color-on-background)] h-screen w-screen overflow-hidden flex antialiased">
-      {children}
-    </div>
+    <SidebarProvider>
+      <div className="bg-[var(--color-background)] text-[var(--color-on-background)] h-screen w-screen overflow-hidden flex antialiased">
+        {children}
+      </div>
+    </SidebarProvider>
   );
 }
