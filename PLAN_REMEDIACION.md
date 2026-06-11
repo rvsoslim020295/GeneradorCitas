@@ -110,16 +110,20 @@ Fix transversal: usar `business.timezone` en todos los cálculos.
 
 | Estado | ID | Hallazgo | Archivo |
 |:--:|---|---|---|
-| ☐ | 5.2 | Ventana 2h: recordatorio perdido si se salta una corrida | `reminder-scheduler.ts` |
-| ☐ | 5.3 | Sin try/catch por cita → fallo en cascada | `reminder-scheduler.ts` |
-| ☐ | 5.1 | Doble envío con múltiples instancias (claim atómico) | `reminder-scheduler.ts` |
-| ☐ | 3.1 | N+1 en availability | `routes/availability.ts` |
-| ☐ | 11.1 | Analytics carga todo en memoria → agregación en BD | `routes/analytics.ts` |
-| ☐ | 5.4 | Semántica de "enviado" del recordatorio | `reminder-scheduler.ts` + UI |
-| ☐ | 5.5 | PII en logs | `reminder-scheduler.ts` |
-| ☐ | 12.3 | Prisma sin graceful shutdown | `lib/prisma.ts`, `index.ts` |
+| ☑ | 5.2 | Ventana abierta con recuperación de corridas perdidas | `reminder-scheduler.ts` |
+| ☑ | 5.3 | try/catch por cita → sin fallo en cascada | `reminder-scheduler.ts` |
+| ☑ | 5.1 | Claim atómico (`updateMany` condicional) anti-duplicado | `reminder-scheduler.ts` |
+| ☑ | 5.7 | Guarda de reentrancia en el cron | `reminder-scheduler.ts` |
+| ☑ | 5.8 | Filtra teléfonos vacíos/ inválidos | `reminder-scheduler.ts` |
+| ☑ | 5.5 | Logs sin PII (teléfono enmascarado, sin URL) | `reminder-scheduler.ts` |
+| ☑ | 3.1 | N+1 en availability eliminado (consulta única + agrupado) | `routes/availability.ts` |
+| ☑ | 12.3 | Graceful shutdown de Prisma (SIGTERM/SIGINT) | `index.ts` |
+| ⏸️ | 11.1 | Analytics agregación en BD — **pospuesto** (riesgo/valor) | `routes/analytics.ts` |
+| ✔️ | 5.4 | Recordatorios manuales: enlace wa.me en el evento, scheduler robusto | `reminder-scheduler.ts` |
 
-**Criterio de salida:** recordatorios robustos e idempotentes; dashboards rápidos bajo carga.
+**Criterio de salida:** recordatorios robustos e idempotentes; dashboards rápidos bajo carga. ✅ **SPRINT 5 COMPLETADO** (11.1 pospuesto).
+
+**Verificado: scheduler 7/7 + availability N+1 (Col1 ocupado / Col2 libre / agregado correcto).**
 
 ---
 

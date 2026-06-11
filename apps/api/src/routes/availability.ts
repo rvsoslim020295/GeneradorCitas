@@ -103,6 +103,24 @@ availability.get("/slots", async (c) => {
   // Para cada slot, guardar qué colaborador lo tiene libre (el primero encontrado)
   const slotCollaboratorMap: Record<string, string> = {};
 
+  // Una sola consulta para las citas del día de TODOS los colaboradores, agrupadas
+  // en memoria — evita el N+1 de consultar por colaborador (auditoría 3.1).
+  const allDayApts = await prisma.appointment.findMany({
+    where: {
+      collaboratorId: { in: collaborators.map(c => c.id) },
+      businessId,
+      status: { notIn: ["CANCELLED", "NO_SHOW", "COMPLETED", "RESCHEDULED"] },
+      startTime: { gte: dayStart, lte: dayEnd },
+    },
+    select: { collaboratorId: true, startTime: true, endTime: true },
+  });
+  const aptsByCollab = new Map<string, { startTime: Date; endTime: Date }[]>();
+  for (const a of allDayApts) {
+    const arr = aptsByCollab.get(a.collaboratorId) ?? [];
+    arr.push(a);
+    aptsByCollab.set(a.collaboratorId, arr);
+  }
+
   // Rastrear motivo cuando no hay slots
   let noScheduleCount = 0;
   let allPastCount    = 0;
@@ -118,15 +136,7 @@ availability.get("/slots", async (c) => {
     const workEnd   = Math.min(timeToMinutes(daySchedule.end),   businessClose);
 
     // COMPLETED también excluido: si terminó antes, el colaborador queda libre
-    const existingApts = await prisma.appointment.findMany({
-      where: {
-        collaboratorId: collab.id,
-        businessId,
-        status: { notIn: ["CANCELLED", "NO_SHOW", "COMPLETED", "RESCHEDULED"] },
-        startTime: { gte: dayStart, lte: dayEnd },
-      },
-      select: { startTime: true, endTime: true },
-    });
+    const existingApts = aptsByCollab.get(collab.id) ?? [];
 
     const busyRanges = existingApts.map(apt => ({
       start: dateToMinutes(apt.startTime, TZ),
@@ -268,6 +278,23 @@ availability.get("/check", async (c) => {
     }
   }
 
+  // Citas del día de todos los colaboradores en una sola consulta (auditoría 3.1)
+  const allDayApts = await prisma.appointment.findMany({
+    where: {
+      collaboratorId: { in: collaborators.map(c => c.id) },
+      businessId,
+      status: { notIn: ["CANCELLED", "NO_SHOW", "COMPLETED", "RESCHEDULED"] },
+      startTime: { gte: dayStart, lte: dayEnd },
+    },
+    select: { collaboratorId: true, startTime: true, endTime: true },
+  });
+  const aptsByCollab = new Map<string, { startTime: Date; endTime: Date }[]>();
+  for (const a of allDayApts) {
+    const arr = aptsByCollab.get(a.collaboratorId) ?? [];
+    arr.push(a);
+    aptsByCollab.set(a.collaboratorId, arr);
+  }
+
   // Buscar el primer colaborador libre en ese horario
   for (const collab of collaborators) {
     const schedule    = (collab.schedule ?? null) as WeekSchedule | null;
@@ -279,15 +306,7 @@ availability.get("/check", async (c) => {
 
     if (slotStart < workStart || slotEnd > workEnd) continue;
 
-    const existingApts = await prisma.appointment.findMany({
-      where: {
-        collaboratorId: collab.id,
-        businessId,
-        status: { notIn: ["CANCELLED", "NO_SHOW", "COMPLETED", "RESCHEDULED"] },
-        startTime: { gte: dayStart, lte: dayEnd },
-      },
-      select: { startTime: true, endTime: true },
-    });
+    const existingApts = aptsByCollab.get(collab.id) ?? [];
 
     const isBusy = existingApts.some(apt => {
       const aptStart = dateToMinutes(apt.startTime, TZ2);

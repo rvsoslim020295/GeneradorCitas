@@ -15,6 +15,7 @@ import packages from "./routes/packages.js";
 import admin from "./routes/admin.js";
 import { startReminderScheduler } from "./lib/reminder-scheduler.js";
 import { startPlanScheduler } from "./lib/plan-scheduler.js";
+import prisma from "./lib/prisma.js";
 
 const app = new Hono();
 
@@ -77,3 +78,13 @@ serve({ fetch: app.fetch, port: PORT, hostname: "0.0.0.0" }, () => {
   startReminderScheduler();
   startPlanScheduler();
 });
+
+// Cierre limpio: desconectar Prisma para no acumular conexiones colgadas en
+// redeploys/reinicios de Railway (auditoría 12.3).
+for (const signal of ["SIGTERM", "SIGINT"] as const) {
+  process.on(signal, async () => {
+    console.log(`[${signal}] Cerrando — desconectando Prisma...`);
+    await prisma.$disconnect();
+    process.exit(0);
+  });
+}

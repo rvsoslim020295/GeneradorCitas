@@ -3,6 +3,9 @@ import prisma from "./prisma.js";
 
 // Plantilla por defecto si el negocio no tiene una configurada
 const DEFAULT_REMINDER = `Hola {cliente}, 🔔 te recordamos tu cita de mañana en {negocio}.\n\n📅 {fecha} a las {hora}\n✂️ {servicio} con {colaborador}\n\nSi necesitas reagendar escríbenos. ¡Hasta mañana!`;
+const TPL_2H = `Hola {cliente}, ⏰ tu cita es en 2 horas en {negocio}.\n\n📅 {fecha} a las {hora}\n✂️ {servicio} con {colaborador}\n\n¡Te esperamos!`;
+
+const HOUR = 60 * 60 * 1000;
 
 function buildMessage(template: string, vars: Record<string, string>): string {
   return Object.entries(vars).reduce((msg, [k, v]) => msg.replaceAll(k, v), template);
@@ -14,24 +17,98 @@ function buildWaUrl(phone: string, message: string): string {
   return `https://wa.me/${number}?text=${encodeURIComponent(message)}`;
 }
 
+// Enmascara el teléfono para no exponer PII en logs (auditoría 5.5)
+function maskPhone(phone: string): string {
+  const digits = phone.replace(/\D/g, "");
+  return digits.length >= 4 ? `***${digits.slice(-4)}` : "***";
+}
+
 function formatDate(date: Date, tz: string): string {
-  return date.toLocaleDateString("es-PE", {
-    timeZone: tz,
-    weekday: "long", day: "numeric", month: "long",
-  });
+  return date.toLocaleDateString("es-PE", { timeZone: tz, weekday: "long", day: "numeric", month: "long" });
 }
 
 function formatTime(date: Date, tz: string): string {
-  return date.toLocaleTimeString("es-PE", {
-    timeZone: tz,
-    hour: "2-digit", minute: "2-digit", hour12: false,
-  });
+  return date.toLocaleTimeString("es-PE", { timeZone: tz, hour: "2-digit", minute: "2-digit", hour12: false });
 }
 
-async function processReminders() {
+type ReminderKind = {
+  label: "24h" | "2h";
+  sentField: "reminderSentAt" | "reminder2hSentAt";
+  template: string;
+  // Ventana relativa a "ahora" en ms: la cita debe empezar en (lower, upper].
+  // Límite inferior abierto para recuperar corridas perdidas (auditoría 5.2).
+  lower: number;
+  upper: number;
+};
+
+const reminderInclude = {
+  client:       { select: { name: true, phone: true } },
+  service:      { select: { name: true } },
+  collaborator: { select: { name: true } },
+} as const;
+
+async function processKind(
+  biz: { id: string; name: string; timezone: string; waTplReminder: string | null },
+  kind: ReminderKind,
+  now: Date,
+) {
+  const tz = biz.timezone ?? "America/Lima";
+  const appointments = await prisma.appointment.findMany({
+    where: {
+      businessId: biz.id,
+      startTime: { gt: new Date(now.getTime() + kind.lower), lte: new Date(now.getTime() + kind.upper) },
+      status: { in: ["PENDING", "CONFIRMED"] },
+      [kind.sentField]: null,
+      client: { phone: { not: null } },
+    },
+    include: reminderInclude,
+  });
+
+  for (const apt of appointments) {
+    // Aislar errores por cita: una falla no aborta el resto (auditoría 5.3)
+    try {
+      const phone = apt.client.phone?.trim();
+      if (!phone || phone.replace(/\D/g, "").length < 6) continue; // teléfono vacío/ inválido (auditoría 5.8)
+
+      // Claim atómico: solo procede quien logra marcar el campo (evita doble
+      // envío entre instancias / corridas solapadas) — auditoría 5.1
+      const claimed = await prisma.appointment.updateMany({
+        where: { id: apt.id, [kind.sentField]: null },
+        data: { [kind.sentField]: now },
+      });
+      if (claimed.count === 0) continue; // otra corrida/instancia ya lo tomó
+
+      const vars = {
+        "{cliente}":     apt.client.name,
+        "{negocio}":     biz.name,
+        "{fecha}":       formatDate(apt.startTime, tz),
+        "{hora}":        formatTime(apt.startTime, tz),
+        "{servicio}":    apt.service.name,
+        "{colaborador}": apt.collaborator.name,
+      };
+      const message = buildMessage(kind.template, vars);
+      const waUrl   = buildWaUrl(phone, message); // el enlace queda en el evento para envío manual
+
+      await prisma.appointmentEvent.create({
+        data: {
+          appointmentId: apt.id,
+          type: "REMINDER_SENT",
+          description: `Recordatorio ${kind.label} generado → ${waUrl}`,
+        },
+      });
+
+      // Log sin PII: nombre + teléfono enmascarado, sin la URL completa (auditoría 5.5)
+      console.log(`[Recordatorio ${kind.label}] ${apt.client.name} (${maskPhone(phone)}) — enlace listo`);
+    } catch (err) {
+      console.error(`[Recordatorio ${kind.label}] Falló la cita ${apt.id}:`, err);
+    }
+  }
+}
+
+// Exportada para pruebas / posible disparo manual.
+export async function processReminders() {
   const now = new Date();
 
-  // Buscar todos los negocios con al menos un recordatorio habilitado
   const businesses = await prisma.business.findMany({
     where: {
       OR: [{ reminderEnabled: true }, { reminder2hEnabled: true }],
@@ -45,120 +122,42 @@ async function processReminders() {
   });
 
   for (const biz of businesses) {
-    const tz = biz.timezone ?? "America/Lima";
-
-    // ── Recordatorio 24h ──────────────────────────────────────────────────────
     if (biz.reminderEnabled) {
-      const from24 = new Date(now.getTime() + 23 * 60 * 60 * 1000);
-      const to24   = new Date(now.getTime() + 25 * 60 * 60 * 1000);
-
-      const appointments = await prisma.appointment.findMany({
-        where: {
-          businessId: biz.id,
-          startTime: { gte: from24, lte: to24 },
-          status: { in: ["PENDING", "CONFIRMED"] },
-          reminderSentAt: null,
-          client: { phone: { not: null } },
-        },
-        include: {
-          client:      { select: { name: true, phone: true } },
-          service:     { select: { name: true } },
-          collaborator:{ select: { name: true } },
-        },
-      });
-
-      for (const apt of appointments) {
-        const vars = {
-          "{cliente}":     apt.client.name,
-          "{negocio}":     biz.name,
-          "{fecha}":       formatDate(apt.startTime, tz),
-          "{hora}":        formatTime(apt.startTime, tz),
-          "{servicio}":    apt.service.name,
-          "{colaborador}": apt.collaborator.name,
-        };
-        const message = buildMessage(biz.waTplReminder ?? DEFAULT_REMINDER, vars);
-        const waUrl   = buildWaUrl(apt.client.phone!, message);
-
-        // Registrar el evento en el historial de la cita
-        await prisma.$transaction([
-          prisma.appointment.update({
-            where: { id: apt.id },
-            data: { reminderSentAt: now },
-          }),
-          prisma.appointmentEvent.create({
-            data: {
-              appointmentId: apt.id,
-              type: "REMINDER_SENT",
-              description: `Recordatorio 24h generado → ${waUrl}`,
-            },
-          }),
-        ]);
-
-        console.log(`[Recordatorio 24h] ${apt.client.name} → ${waUrl}`);
-      }
+      // 24h: cita entre 2h y 24h de distancia, aún no recordada
+      await processKind(biz, {
+        label: "24h", sentField: "reminderSentAt",
+        template: biz.waTplReminder ?? DEFAULT_REMINDER,
+        lower: 2 * HOUR, upper: 24 * HOUR,
+      }, now);
     }
-
-    // ── Recordatorio 2h ───────────────────────────────────────────────────────
     if (biz.reminder2hEnabled) {
-      const from2 = new Date(now.getTime() + 1.5 * 60 * 60 * 1000);
-      const to2   = new Date(now.getTime() + 2.5 * 60 * 60 * 1000);
-
-      const appointments = await prisma.appointment.findMany({
-        where: {
-          businessId: biz.id,
-          startTime: { gte: from2, lte: to2 },
-          status: { in: ["PENDING", "CONFIRMED"] },
-          reminder2hSentAt: null,
-          client: { phone: { not: null } },
-        },
-        include: {
-          client:      { select: { name: true, phone: true } },
-          service:     { select: { name: true } },
-          collaborator:{ select: { name: true } },
-        },
-      });
-
-      for (const apt of appointments) {
-        const vars = {
-          "{cliente}":     apt.client.name,
-          "{negocio}":     biz.name,
-          "{fecha}":       formatDate(apt.startTime, tz),
-          "{hora}":        formatTime(apt.startTime, tz),
-          "{servicio}":    apt.service.name,
-          "{colaborador}": apt.collaborator.name,
-        };
-        const tpl2h = `Hola {cliente}, ⏰ tu cita es en 2 horas en {negocio}.\n\n📅 {fecha} a las {hora}\n✂️ {servicio} con {colaborador}\n\n¡Te esperamos!`;
-        const message = buildMessage(tpl2h, vars);
-        const waUrl   = buildWaUrl(apt.client.phone!, message);
-
-        await prisma.$transaction([
-          prisma.appointment.update({
-            where: { id: apt.id },
-            data: { reminder2hSentAt: now },
-          }),
-          prisma.appointmentEvent.create({
-            data: {
-              appointmentId: apt.id,
-              type: "REMINDER_SENT",
-              description: `Recordatorio 2h generado → ${waUrl}`,
-            },
-          }),
-        ]);
-
-        console.log(`[Recordatorio 2h] ${apt.client.name} → ${waUrl}`);
-      }
+      // 2h: cita en las próximas 2 horas, aún no recordada
+      await processKind(biz, {
+        label: "2h", sentField: "reminder2hSentAt",
+        template: TPL_2H,
+        lower: 0, upper: 2 * HOUR,
+      }, now);
     }
   }
 }
 
-// Corre cada hora en punto
+// Guarda de reentrancia: si una corrida se solapa con la anterior, se omite (auditoría 5.7)
+let running = false;
+
 export function startReminderScheduler() {
   cron.schedule("0 * * * *", async () => {
+    if (running) {
+      console.warn("[Scheduler] La corrida anterior sigue activa, se omite esta.");
+      return;
+    }
+    running = true;
     console.log("[Scheduler] Procesando recordatorios WhatsApp...");
     try {
       await processReminders();
     } catch (err) {
       console.error("[Scheduler] Error en recordatorios:", err);
+    } finally {
+      running = false;
     }
   });
   console.log("[Scheduler] Recordatorios WhatsApp activos (cada hora)");
