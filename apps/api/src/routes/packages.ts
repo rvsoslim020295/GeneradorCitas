@@ -9,6 +9,17 @@ const packages = createRouter();
 packages.use("*", requireAuth);
 packages.use("*", requirePlanAccess);
 
+function serPkg<T extends { price: unknown; services?: Array<{ service?: { price: unknown } | null }> }>(p: T) {
+  return {
+    ...p,
+    price: Number(p.price),
+    services: p.services?.map((ps) => ({
+      ...ps,
+      service: ps.service ? { ...ps.service, price: Number(ps.service.price) } : ps.service,
+    })),
+  };
+}
+
 const packageSchema = z.object({
   name: z.string().min(2),
   description: z.string().optional(),
@@ -37,7 +48,7 @@ packages.get("/", async (c) => {
     orderBy: { createdAt: "desc" },
   });
 
-  return c.json(data);
+  return c.json(data.map(serPkg));
 });
 
 // ─── GET /packages/:id ────────────────────────────────────────────────────────
@@ -51,7 +62,7 @@ packages.get("/:id", async (c) => {
   });
 
   if (!pkg) return c.json({ error: "Paquete no encontrado" }, 404);
-  return c.json(pkg);
+  return c.json(serPkg(pkg));
 });
 
 // ─── POST /packages ───────────────────────────────────────────────────────────
@@ -165,7 +176,7 @@ packages.patch("/:id", async (c) => {
     });
   });
 
-  return c.json(pkg);
+  return c.json(serPkg(pkg));
 });
 
 // ─── DELETE /packages/:id ─────────────────────────────────────────────────────

@@ -7,9 +7,10 @@ import { getLimits } from "../lib/plan-limits.js";
 
 const clients = createRouter();
 
-// Todas las rutas de clientes requieren autenticación
 clients.use("*", requireAuth);
 clients.use("*", requirePlanAccess);
+
+const serClient = <T extends { totalSpent: unknown }>(c: T) => ({ ...c, totalSpent: Number(c.totalSpent) });
 
 const createClientSchema = z.object({
   name: z.string().min(2),
@@ -47,7 +48,7 @@ clients.get("/", async (c) => {
     orderBy: { totalVisits: "desc" },
   });
 
-  return c.json(data);
+  return c.json(data.map(serClient));
 });
 
 // ─── GET /clients/:id ─────────────────────────────────────────────────────────
@@ -101,7 +102,13 @@ clients.get("/:id", async (c) => {
   const topCollab = Object.values(collabCount).sort((a, b) => b.count - a.count)[0] ?? null;
 
   return c.json({
-    ...client,
+    ...serClient(client),
+    appointments: client.appointments.map((a) => ({
+      ...a,
+      price:         Number(a.price),
+      paidAmount:    a.paidAmount    != null ? Number(a.paidAmount)    : null,
+      depositAmount: a.depositAmount != null ? Number(a.depositAmount) : null,
+    })),
     metrics: {
       topService: topService?.name ?? null,
       topCollaborator: topCollab?.name ?? null,
@@ -156,7 +163,7 @@ clients.post("/", async (c) => {
     return c.json({ error: "No se pudo guardar el cliente. Intenta de nuevo." }, 500);
   }
 
-  return c.json(client, 201);
+  return c.json(serClient(client), 201);
 });
 
 // ─── PATCH /clients/:id ───────────────────────────────────────────────────────
@@ -177,7 +184,7 @@ clients.patch("/:id", async (c) => {
     data: parsed.data,
   });
 
-  return c.json(client);
+  return c.json(serClient(client));
 });
 
 // ─── DELETE /clients/:id ──────────────────────────────────────────────────────
@@ -348,7 +355,7 @@ clients.post("/merge", async (c) => {
   });
 
   const updated = await prisma.client.findUnique({ where: { id: keepId } });
-  return c.json(updated);
+  return c.json(updated ? serClient(updated) : null);
 });
 
 export default clients;

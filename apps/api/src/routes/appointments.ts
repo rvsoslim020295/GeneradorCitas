@@ -1,5 +1,6 @@
 import { createRouter } from "../lib/hono.js";
 import { z } from "zod";
+import { Prisma } from "../../generated/prisma/index.js";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requirePlanAccess } from "../middleware/plan-access.js";
@@ -66,6 +67,19 @@ const appointmentInclude = {
   service: { select: { id: true, name: true, durationMin: true, bufferMinutes: true, category: true } },
 } as const;
 
+// Convierte Decimal → number en campos de dinero para mantener el contrato JSON
+// que el frontend espera (números, no strings como devuelve Prisma con Decimal).
+function serializeAppointment<T extends {
+  price: unknown; paidAmount: unknown; depositAmount: unknown;
+}>(a: T) {
+  return {
+    ...a,
+    price:         Number(a.price),
+    paidAmount:    a.paidAmount    != null ? Number(a.paidAmount)    : null,
+    depositAmount: a.depositAmount != null ? Number(a.depositAmount) : null,
+  };
+}
+
 // ─── GET /appointments ────────────────────────────────────────────────────────
 // Acepta ?search= para filtrar por nombre de cliente o servicio
 // Si el usuario es COLLABORATOR con collaboratorId vinculado, solo ve sus propias citas
@@ -92,7 +106,7 @@ appointments.get("/", async (c) => {
     orderBy: { startTime: "desc" },
   });
 
-  return c.json(data);
+  return c.json(data.map(serializeAppointment));
 });
 
 // ─── GET /appointments/:id ────────────────────────────────────────────────────
@@ -107,7 +121,7 @@ appointments.get("/:id", async (c) => {
 
   if (!appointment) return c.json({ error: "Cita no encontrada" }, 404);
 
-  return c.json(appointment);
+  return c.json(serializeAppointment(appointment));
 });
 
 // ─── POST /appointments ───────────────────────────────────────────────────────
@@ -262,7 +276,7 @@ appointments.post("/", async (c) => {
       return created;
     });
 
-    return c.json(appointment, 201);
+    return c.json(serializeAppointment(appointment), 201);
   } catch (e) {
     if (e instanceof HttpError) return c.json(e.body, e.status);
     throw e;
@@ -339,7 +353,7 @@ appointments.patch("/:id/status", async (c) => {
     `Estado cambiado a ${STATUS_LABELS[newStatus] ?? newStatus}`
   );
 
-  return c.json(appointment);
+  return c.json(serializeAppointment(appointment));
 });
 
 // ─── POST /appointments/:id/payment ──────────────────────────────────────────
@@ -369,7 +383,7 @@ appointments.post("/:id/payment", async (c) => {
   }
 
   const { tipPercent, paymentMethod } = parsed.data;
-  const totalWithTip = existing.price * (1 + tipPercent);
+  const totalWithTip = new Prisma.Decimal(existing.price).mul(1 + tipPercent).toDecimalPlaces(2);
 
   // El guard anti-doble-cobro se aplica DENTRO de la transacción con un
   // updateMany condicional (paidAmount: null). Si dos pagos concurrentes llegan
@@ -395,14 +409,14 @@ appointments.post("/:id/payment", async (c) => {
         data: {
           appointmentId: id,
           type: "PAYMENT_REGISTERED",
-          description: `Pago registrado: S/${totalWithTip.toFixed(2)} vía ${paymentMethod}`,
+          description: `Pago registrado: S/${totalWithTip.toFixed(2)} vía ${paymentMethod as string}`,
         },
       });
 
       return tx.appointment.findUnique({ where: { id }, include: appointmentInclude });
     });
 
-    return c.json(result);
+    return c.json(serializeAppointment(result!));
   } catch (e) {
     if (e instanceof AlreadyPaidError) {
       return c.json({ error: "Esta cita ya fue cobrada" }, 400);
@@ -435,9 +449,9 @@ appointments.post("/:id/deposit", async (c) => {
   if (!existing) return c.json({ error: "Cita no encontrada" }, 404);
   if (existing.status === "COMPLETED") return c.json({ error: "La cita ya fue cobrada" }, 400);
 
-  if (parsed.data.depositAmount > existing.price) {
+  if (new Prisma.Decimal(parsed.data.depositAmount).gt(existing.price)) {
     return c.json({
-      error: `El anticipo no puede superar el precio del servicio (S/${existing.price.toFixed(2)}).`,
+      error: `El anticipo no puede superar el precio del servicio (S/${Number(existing.price).toFixed(2)}).`,
     }, 422);
   }
 
@@ -451,7 +465,7 @@ appointments.post("/:id/deposit", async (c) => {
     `Anticipo registrado: S/${parsed.data.depositAmount.toFixed(2)}`
   );
 
-  return c.json(appointment);
+  return c.json(serializeAppointment(appointment));
 });
 
 // ─── GET /appointments/:id/events ────────────────────────────────────────────

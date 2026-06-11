@@ -114,12 +114,12 @@ model Appointment {
   startTime      DateTime
   endTime        DateTime
   status         AppointmentStatus @default(PENDING)
-  price          Float
+  price          Decimal           @db.Decimal(10,2)
   notes          String?
   tipPercent     Float             @default(0)
-  paidAmount     Float?
+  paidAmount     Decimal?          @db.Decimal(10,2)
   paymentMethod  String?
-  depositAmount     Float?
+  depositAmount  Decimal?          @db.Decimal(10,2)
   origin            String?   @default("walkin")
   reminderSentAt    DateTime?
   reminder2hSentAt  DateTime?
@@ -151,7 +151,7 @@ model Package {
   id          String           @id @default(cuid())
   name        String
   description String?
-  price       Float
+  price       Decimal          @db.Decimal(10,2)
   isActive    Boolean          @default(true)
   businessId  String
   business    Business         @relation(fields: [businessId], references: [id])
@@ -180,7 +180,7 @@ model Service {
   durationMin   Int
   bufferMinutes  Int      @default(0)
   maxConcurrent  Int?
-  price          Float
+  price          Decimal  @db.Decimal(10,2)
   color         String   @default("#3B82F6")
   isActive      Boolean  @default(true)
   businessId    String
@@ -223,7 +223,7 @@ model Client {
   email        String?
   notes        String?
   totalVisits  Int      @default(0)
-  totalSpent   Float    @default(0)
+  totalSpent   Decimal  @db.Decimal(10,2) @default(0)
   businessId   String
   business     Business      @relation(fields: [businessId], references: [id])
   appointments Appointment[]

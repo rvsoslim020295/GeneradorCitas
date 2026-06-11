@@ -9,6 +9,8 @@ const services = createRouter();
 services.use("*", requireAuth);
 services.use("*", requirePlanAccess);
 
+const serSvc = <T extends { price: unknown }>(s: T) => ({ ...s, price: Number(s.price) });
+
 const serviceSchema = z.object({
   name: z.string().min(2),
   description: z.string().optional(),
@@ -45,7 +47,7 @@ services.get("/", async (c) => {
     return acc;
   }, {});
 
-  return c.json({ services: data, grouped });
+  return c.json({ services: data.map(serSvc), grouped: Object.fromEntries(Object.entries(grouped).map(([k,v])=>[k,v.map(serSvc)])) });
 });
 
 // ─── GET /services/:id ────────────────────────────────────────────────────────
@@ -58,7 +60,7 @@ services.get("/:id", async (c) => {
   });
 
   if (!service) return c.json({ error: "Servicio no encontrado" }, 404);
-  return c.json(service);
+  return c.json(serSvc(service));
 });
 
 // ─── POST /services ───────────────────────────────────────────────────────────
@@ -75,7 +77,7 @@ services.post("/", async (c) => {
     data: { ...parsed.data, businessId },
   });
 
-  return c.json(service, 201);
+  return c.json(serSvc(service), 201);
 });
 
 // ─── PATCH /services/:id ──────────────────────────────────────────────────────
@@ -91,7 +93,7 @@ services.patch("/:id", async (c) => {
   if (!parsed.success) return c.json({ error: "Datos inválidos" }, 400);
 
   const service = await prisma.service.update({ where: { id }, data: parsed.data });
-  return c.json(service);
+  return c.json(serSvc(service));
 });
 
 // ─── DELETE /services/:id ─────────────────────────────────────────────────────

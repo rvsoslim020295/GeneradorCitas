@@ -169,21 +169,21 @@ analytics.get("/", async (c) => {
 
   // price = precio base del servicio (inmutable)
   // paidAmount = lo que realmente se cobró (base + propina), null si aún no se cobró
-  const serviceRevenue = completed.reduce((sum, a) => sum + a.price, 0);
-  const tipRevenue     = completed.reduce((sum, a) => sum + ((a.paidAmount ?? a.price) - a.price), 0);
+  const serviceRevenue = completed.reduce((sum, a) => sum + Number(a.price), 0);
+  const tipRevenue     = completed.reduce((sum, a) => sum + ((Number(a.paidAmount ?? a.price)) - Number(a.price)), 0);
   const totalRevenue   = serviceRevenue + tipRevenue;
   const noShowRate     = total > 0 ? (noShow.length / total) * 100 : 0;
 
   const prevTotal     = prevAppointments.length;
   const prevCompleted = prevAppointments.filter((a) => a.status === "COMPLETED");
   const prevNoShow    = prevAppointments.filter((a) => a.status === "NO_SHOW");
-  const prevServiceRevenue = prevCompleted.reduce((sum, a) => sum + a.price, 0);
-  const prevTipRevenue     = prevCompleted.reduce((sum, a) => sum + ((a.paidAmount ?? a.price) - a.price), 0);
+  const prevServiceRevenue = prevCompleted.reduce((sum, a) => sum + Number(a.price), 0);
+  const prevTipRevenue     = prevCompleted.reduce((sum, a) => sum + (Number(a.paidAmount ?? a.price) - Number(a.price)), 0);
   const prevRevenue        = prevServiceRevenue + prevTipRevenue;
   const prevNoShowRate = prevTotal > 0 ? (prevNoShow.length / prevTotal) * 100 : null;
 
   const dailyRevenue = buildDailyRevenue(
-    completed.map((a) => ({ startTime: a.startTime, price: a.paidAmount ?? a.price })),
+    completed.map((a) => ({ startTime: a.startTime, price: Number(a.paidAmount ?? a.price) })),
     period,
     start,
     end,
@@ -199,8 +199,8 @@ analytics.get("/", async (c) => {
   for (const apt of completed) {
     const cid = apt.collaborator.id;
     if (!collabMap[cid]) collabMap[cid] = { name: apt.collaborator.name, serviceRevenue: 0, tipRevenue: 0, appointmentCount: 0 };
-    const tip = (apt.paidAmount ?? apt.price) - apt.price;
-    collabMap[cid].serviceRevenue += apt.price;
+    const tip = Number(apt.paidAmount ?? apt.price) - Number(apt.price);
+    collabMap[cid].serviceRevenue += Number(apt.price);
     collabMap[cid].tipRevenue     += tip;
     collabMap[cid].appointmentCount++;
   }
@@ -221,7 +221,7 @@ analytics.get("/", async (c) => {
     const sid = apt.service.id;
     if (!serviceMap[sid]) serviceMap[sid] = { name: apt.service.name, count: 0, revenue: 0 };
     serviceMap[sid].count++;
-    serviceMap[sid].revenue += apt.paidAmount ?? apt.price;
+    serviceMap[sid].revenue += Number(apt.paidAmount ?? apt.price);
   }
   const topServices = Object.values(serviceMap)
     .sort((a, b) => b.revenue - a.revenue)
@@ -238,7 +238,7 @@ analytics.get("/", async (c) => {
     const name = [apt.client.name, apt.client.lastName].filter(Boolean).join(" ");
     if (!clientMap[cid]) clientMap[cid] = { name, visits: 0, revenue: 0 };
     clientMap[cid].visits++;
-    clientMap[cid].revenue += apt.paidAmount ?? apt.price;
+    clientMap[cid].revenue += Number(apt.paidAmount ?? apt.price);
   }
   const topClients = Object.values(clientMap)
     .sort((a, b) => b.revenue - a.revenue)
@@ -421,9 +421,9 @@ analytics.get("/export", async (c) => {
     Servicio:     a.service.name,
     Colaborador:  a.collaborator.name,
     Estado:       STATUS_ES[a.status] ?? a.status,
-    "Precio (S/)":a.price,
-    "Pagado (S/)":a.paidAmount ?? "",
-    "Anticipo (S/)": a.depositAmount ?? "",
+    "Precio (S/)":Number(a.price),
+    "Pagado (S/)":a.paidAmount != null ? Number(a.paidAmount) : "",
+    "Anticipo (S/)": a.depositAmount != null ? Number(a.depositAmount) : "",
     "Método de pago": a.paymentMethod ? (PAYMENT_ES[a.paymentMethod] ?? a.paymentMethod) : "",
   }));
 
@@ -431,7 +431,7 @@ analytics.get("/export", async (c) => {
   const completed   = appointments.filter((a) => a.status === "COMPLETED");
   const cancelled   = appointments.filter((a) => a.status === "CANCELLED");
   const noShow      = appointments.filter((a) => a.status === "NO_SHOW");
-  const totalRevenue = completed.reduce((s, a) => s + (a.paidAmount ?? a.price), 0);
+  const totalRevenue = completed.reduce((s, a) => s + Number(a.paidAmount ?? a.price), 0);
 
   const summary = [
     { Métrica: "Período",               Valor: PERIOD_LABELS[period] },
