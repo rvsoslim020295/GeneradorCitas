@@ -153,3 +153,68 @@ Fix transversal: usar `business.timezone` en todos los cálculos.
 - **Cambios de schema** (1.5, 1.9, 2.5, 6.1, 2.1) requieren migración Prisma → agrupar y probar en staging.
 - Cada sprint cierra con pruebas manuales del flujo afectado antes de mergear.
 - Sprint 0 y 1 son los de mayor relación impacto/esfuerzo: priorizar.
+
+---
+
+## PLAN LISTO — 2.5: dinero `Float` → `Decimal` (próxima sesión)
+
+> Objetivo: eliminar el error de redondeo IEEE-754 acumulado en dinero. Migración
+> + ajuste de cálculos + serialización. Riesgo medio-alto (toca dinero y el
+> contrato JSON con el frontend). Hacer en rama propia `fix/auditoria-2.5-decimal`.
+
+### 1. Campos afectados (schema.prisma)
+Cambiar `Float` → `Decimal @db.Decimal(10,2)`:
+- `Appointment.price`, `Appointment.paidAmount` (nullable), `Appointment.depositAmount` (nullable)
+- `Client.totalSpent`
+- `Service.price`
+- `Package.price`
+
+`Appointment.tipPercent` es una **fracción** (0–1), no dinero → dejar como `Float`
+o pasar a `Decimal @db.Decimal(5,4)`. Recomendado: dejarlo `Float` para no
+complicar (se multiplica, no se acumula).
+
+### 2. Migración SQL (crear manual, como las anteriores por el drift local)
+Postgres castea `double precision` → `numeric` sin pérdida visible:
+```sql
+ALTER TABLE "Appointment" ALTER COLUMN "price" TYPE numeric(10,2);
+ALTER TABLE "Appointment" ALTER COLUMN "paidAmount" TYPE numeric(10,2);
+ALTER TABLE "Appointment" ALTER COLUMN "depositAmount" TYPE numeric(10,2);
+ALTER TABLE "Client" ALTER COLUMN "totalSpent" TYPE numeric(10,2);
+ALTER TABLE "Service" ALTER COLUMN "price" TYPE numeric(10,2);
+ALTER TABLE "Package" ALTER COLUMN "price" TYPE numeric(10,2);
+```
+Aplicar con `prisma db execute` + `prisma migrate resolve --applied` (patrón usado
+en `20260610160000_add_token_version` por el drift de la BD local).
+
+### 3. Cálculos a ajustar (Prisma devuelve `Prisma.Decimal`)
+- `routes/appointments.ts` POST `/:id/payment`: `existing.price * (1 + tipPercent)`
+  → usar `new Prisma.Decimal(existing.price).mul(1 + tipPercent)`. El `increment`
+  de `totalSpent` admite `Decimal`. Redondear a 2 decimales.
+- `routes/appointments.ts` `/:id/deposit`: comparación `depositAmount > price` →
+  usar `.gt()` / convertir.
+- `routes/analytics.ts`: TODAS las reducciones `reduce((s,a)=>s+a.price,0)` y
+  `paidAmount ?? price` → operar con `Prisma.Decimal` o convertir a number con
+  `Number(x)` solo al final para los KPIs (acepta pérdida en agregados de
+  display, no en persistencia). Heatmap/topClients/topServices igual.
+- `routes/analytics.ts` export Excel: `xlsx` quiere numbers → `Number(decimal)`.
+
+### 4. Serialización JSON ⚠️ (lo más delicado)
+Prisma serializa `Decimal` como **string** en JSON (`"50.00"`, no `50`). El
+frontend hace `price.toFixed(2)` y aritmética asumiendo `number` → **se rompería**.
+Dos opciones:
+- **(A, recomendada)** Convertir a `number` en la frontera de salida: mapear las
+  respuestas de citas/servicios/paquetes/clientes con `Number(x)` antes de
+  `c.json(...)`. Mantiene el contrato actual del frontend intacto.
+- **(B)** Actualizar el frontend para parsear strings (`Number(price)`) en cada
+  uso. Más invasivo y propenso a olvidos.
+
+### 5. Verificación (runtime, como en los sprints)
+- Pago: `S/100 * 1.1 = 110.00` exacto (no `110.00000000000001`).
+- `client.totalSpent` tras varios pagos cuadra al centavo.
+- Analytics: `serviceRevenue`, `totalRevenue`, `tipRevenue` correctos.
+- Export Excel abre con números, no strings.
+- Frontend (agenda, cobro, analíticas) muestra montos bien.
+
+### 6. Despliegue
+- Migración se aplica sola con `migrate deploy` en el `start` de Railway.
+- No requiere env vars nuevas.
