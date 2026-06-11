@@ -57,12 +57,12 @@ Race conditions y consistencia financiera. Requiere pruebas de concurrencia.
 | ☑ | 8.2 | Fusión de clientes destruye fichas clínicas | `routes/clients.ts` |
 | ☑ | 9.1 | Paquete: `deleteMany`+`createMany` sin transacción | `routes/packages.ts` |
 | ☑ | 6.1 | Orden de borrado de negocio viola FKs | `routes/admin.ts` |
-| ☐ | 2.5 | Dinero en `Float` → migrar a `Decimal` | schema + cálculos |
+| ☑ | 2.5 | Dinero en `Float` → migrar a `Decimal` | schema + cálculos |
 | ☑ | 4.4 | check-then-act de límites → advisory lock (citas, colaboradores, paquetes) | `appointments.ts`, `collaborators.ts`, `packages.ts` |
 
-**Criterio de salida:** doble clic / reintentos no producen doble cobro ni doble reserva; ninguna fusión o borrado pierde datos; el dinero cuadra al centavo. ✅ **SPRINT 2 COMPLETADO** (excepto 2.5, pospuesto)
+**Criterio de salida:** doble clic / reintentos no producen doble cobro ni doble reserva; ninguna fusión o borrado pierde datos; el dinero cuadra al centavo. ✅ **SPRINT 2 COMPLETADO** (incluyendo 2.5)
 
-> 2.5 (dinero a Decimal) queda pendiente por decisión del usuario — se abordará en una sesión dedicada.
+> 2.5: S/50 * 1.1 = 55.00 exacto verificado en BD (numeric) y JSON API (number). totalSpent, analytics y export Excel sin drift IEEE-754.
 > Verificado en runtime con pruebas de concurrencia: 8 reservas simultáneas → 1 creada; 4 pagos → 1 aceptado; 5 colaboradores en BASIC → 2 creados; merge preserva fichas; delete de negocio con dependencias OK.
 
 ---
@@ -144,7 +144,7 @@ Fix transversal: usar `business.timezone` en todos los cálculos.
 - `6.4` auditoría admin (pospuesto por decisión del usuario)
 - `10.3` logo: validar magic bytes (hardening menor)
 - `11.3` "this_month" = 4 semanas, no mes calendario (etiqueta/UX)
-- `2.5` dinero `Float` → `Decimal` (migración invasiva)
+- ~~`2.5` dinero `Float` → `Decimal`~~ ✅ hecho
 - `11.1` analytics: agregación en BD (rendimiento)
 
 ---
