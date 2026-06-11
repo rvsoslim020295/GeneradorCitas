@@ -77,7 +77,7 @@ Lógica de negocio correcta y enforcement de planes.
 | ☑ | 2.10 | `price` derivado del servicio en backend | `routes/appointments.ts` |
 | ☑ | 4.2 | Trial expira con cron diario + pasada al arrancar | `lib/plan-scheduler.ts`, `index.ts` |
 | ☑ | 4.3 | Re-chequeo de límite al reactivar `isActive` | `collaborators.ts`, `packages.ts` |
-| ☐ | 6.3 | Downgrade de plan sin reconciliar datos (pendiente decisión) | `routes/admin.ts` |
+| ☑ | 6.3 | Downgrade avisa qué excede el nuevo plan (no destructivo) | `routes/admin.ts` |
 | ☑ | 8.3 | `clientHistoryDays` aplicado por plan | `routes/clients.ts` |
 | ☑ | 7.1 / 10.1 | Soft-delete de colaborador/servicio con historial | `collaborators.ts`, `services.ts` |
 

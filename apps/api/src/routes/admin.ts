@@ -5,6 +5,7 @@ import { z } from "zod";
 import prisma from "../lib/prisma.js";
 import { requireSuperAdmin, ADMIN_JWT_SECRET } from "../middleware/admin-auth.js";
 import { loginLimiter } from "../lib/rate-limit.js";
+import { getLimits } from "../lib/plan-limits.js";
 
 const admin = createRouter();
 
@@ -138,7 +139,22 @@ admin.patch("/businesses/:id/plan", async (c) => {
     },
   });
 
-  return c.json(business);
+  // Aviso de downgrade (auditoría 6.3): no desactivamos nada, pero informamos
+  // qué recursos exceden los límites del nuevo plan para que el admin lo sepa.
+  const limits = getLimits(parsed.data.plan);
+  const [activeCollaborators, activePackages] = await Promise.all([
+    prisma.collaborator.count({ where: { businessId: id, isActive: true } }),
+    prisma.package.count({ where: { businessId: id, isActive: true } }),
+  ]);
+  const warnings: string[] = [];
+  if (limits.maxCollaborators !== -1 && activeCollaborators > limits.maxCollaborators) {
+    warnings.push(`Colaboradores activos: ${activeCollaborators}/${limits.maxCollaborators}. No podrá crear más hasta desactivar el excedente.`);
+  }
+  if (limits.maxPackages !== -1 && activePackages > limits.maxPackages) {
+    warnings.push(`Paquetes activos: ${activePackages}/${limits.maxPackages}. No podrá crear más hasta desactivar el excedente.`);
+  }
+
+  return c.json({ ...business, warnings });
 });
 
 // ─── PATCH /admin/businesses/:id/suspend ─────────────────────────────────────
