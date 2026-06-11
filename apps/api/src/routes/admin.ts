@@ -128,6 +128,11 @@ admin.patch("/businesses/:id/plan", async (c) => {
     if (isNaN(expiresDate.getTime())) {
       return c.json({ error: "Fecha de vencimiento inválida" }, 400);
     }
+    // Un plan ACTIVE no puede tener vencimiento en el pasado (auditoría 6.7)
+    const effectiveStatus = parsed.data.planStatus ?? "ACTIVE";
+    if (effectiveStatus === "ACTIVE" && expiresDate < new Date()) {
+      return c.json({ error: "La fecha de vencimiento no puede estar en el pasado para un plan activo." }, 400);
+    }
   }
 
   const business = await prisma.business.update({

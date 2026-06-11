@@ -2,9 +2,17 @@ import { resolve } from "dns/promises";
 import { readFileSync } from "fs";
 import { createRequire } from "module";
 
-const _require = createRequire(import.meta.url);
-const _pkgPath: string = _require.resolve("disposable-email-domains");
-const disposableDomains: string[] = JSON.parse(readFileSync(_pkgPath, "utf-8"));
+// Carga defensiva: si el paquete falta o el JSON está corrupto, no tumbamos el
+// arranque — degradamos a lista vacía (auditoría 12.4).
+let disposableDomains: string[] = [];
+try {
+  const _require = createRequire(import.meta.url);
+  const _pkgPath: string = _require.resolve("disposable-email-domains");
+  disposableDomains = JSON.parse(readFileSync(_pkgPath, "utf-8"));
+} catch (err) {
+  console.error("[email-validator] No se pudo cargar disposable-email-domains:", err);
+}
+const disposableSet = new Set(disposableDomains);
 
 /** Verifica que el dominio tenga servidores MX activos */
 async function hasMxRecords(email: string): Promise<boolean> {
@@ -22,7 +30,13 @@ async function hasMxRecords(email: string): Promise<boolean> {
 function isDisposableEmail(email: string): boolean {
   const domain = email.split("@")[1]?.toLowerCase();
   if (!domain) return false;
-  return disposableDomains.includes(domain);
+  // Match exacto o por dominio raíz: bloquea también subdominios como
+  // x.mailinator.com que antes evadían el filtro (auditoría 12.4).
+  const parts = domain.split(".");
+  for (let i = 0; i < parts.length - 1; i++) {
+    if (disposableSet.has(parts.slice(i).join("."))) return true;
+  }
+  return false;
 }
 
 /** Verificación profunda con UserCheck (1000/mes gratis, sin tarjeta) */

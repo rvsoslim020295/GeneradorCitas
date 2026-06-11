@@ -128,7 +128,24 @@ Fix transversal: usar `business.timezone` en todos los cálculos.
 ---
 
 ## Backlog (baja prioridad)
-`4.5` (getLimits log), `4.6` (TRIAL=BASIC), `5.6`, `5.7`, `5.8`, `6.4` (auditoría admin), `6.5`, `6.7`, `7.2`, `7.3`, `8.4`, `10.3`, `11.3`, `12.4`.
+**Hechos en el lote de backlog:**
+- ☑ `4.5` getLimits loguea plan desconocido (no degrada en silencio)
+- ☑ `4.6` TRIAL ahora = experiencia PRO (incentiva conversión)
+- ☑ `6.5` id inexistente en admin → 404 vía `onError` global (cubierto en Sprint 0)
+- ☑ `6.7` `planExpiresAt` no puede ser pasado en plan ACTIVE
+- ☑ `7.2` validación profunda de `schedule` (HH:MM + end>start)
+- ☑ `7.3` = 4.3 (ya hecho en Sprint 3)
+- ☑ `8.4` merge usa `||` (cubre cadena vacía, no solo null)
+- ☑ `12.4` email-validator: carga defensiva + bloquea subdominios desechables
+- ☑ `5.7`, `5.8` (hechos en Sprint 5)
+
+**Quedan en backlog (cosméticos / decisión):**
+- `5.6` plantilla 2h hardcodeada (requiere campo `waTplReminder2h` + migración)
+- `6.4` auditoría admin (pospuesto por decisión del usuario)
+- `10.3` logo: validar magic bytes (hardening menor)
+- `11.3` "this_month" = 4 semanas, no mes calendario (etiqueta/UX)
+- `2.5` dinero `Float` → `Decimal` (migración invasiva)
+- `11.1` analytics: agregación en BD (rendimiento)
 
 ---
 

@@ -334,10 +334,11 @@ clients.post("/merge", async (c) => {
       data: {
         totalVisits: { increment: del.totalVisits },
         totalSpent:  { increment: del.totalSpent  },
-        // Conservar teléfono/email/dni del keep; si está vacío tomar del duplicado
-        phone: keep.phone ?? del.phone,
-        email: keep.email ?? del.email,
-        dni:   keep.dni   ?? del.dni,
+        // Conservar teléfono/email/dni del keep; si está vacío/null tomar del
+        // duplicado (auditoría 8.4: `||` también cubre cadena vacía, no solo null)
+        phone: keep.phone || del.phone,
+        email: keep.email || del.email,
+        dni:   keep.dni   || del.dni,
         notes: [keep.notes, del.notes].filter(Boolean).join("\n") || null,
       },
     });

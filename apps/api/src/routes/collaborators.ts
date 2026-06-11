@@ -10,10 +10,17 @@ const collaborators = createRouter();
 collaborators.use("*", requireAuth);
 collaborators.use("*", requirePlanAccess);
 
+// Valida formato HH:MM y que end > start cuando el día está habilitado
+// (auditoría 7.2). Sin esto, un horario malformado hace NaN en la disponibilidad
+// y el colaborador "desaparece" silenciosamente de los slots.
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
 const dayScheduleSchema = z.object({
   enabled: z.boolean(),
-  start: z.string(),
-  end: z.string(),
+  start: z.string().regex(HHMM, "Hora de inicio inválida (HH:MM)"),
+  end: z.string().regex(HHMM, "Hora de fin inválida (HH:MM)"),
+}).refine((d) => !d.enabled || d.end > d.start, {
+  message: "La hora de fin debe ser posterior a la de inicio",
+  path: ["end"],
 });
 
 const collaboratorSchema = z.object({
