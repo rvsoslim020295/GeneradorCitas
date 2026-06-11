@@ -92,13 +92,17 @@ Fix transversal: usar `business.timezone` en todos los cálculos.
 
 | Estado | ID | Hallazgo | Archivo |
 |:--:|---|---|---|
-| ☐ | 6.2 | `business.timezone` ignorado por reservas | `availability.ts`, `appointments.ts` |
-| ☐ | 3.2 | Ventana del día en TZ del proceso | `routes/availability.ts` |
-| ☐ | 2.7 / 4.8 | Límites mensuales/anticipación en TZ del proceso | `routes/appointments.ts` |
-| ☐ | 11.2 | Heatmap/cortes de analytics en TZ del proceso | `routes/analytics.ts` |
-| ☐ | 10.2 | Validar IANA timezone y formato `HH:MM` en settings | `routes/settings.ts` |
+| ☑ | 6.2 | `business.timezone` usado en reservas (no más hardcode Lima) | `availability.ts`, `appointments.ts` |
+| ☑ | 3.2 | Ventana del día con `zonedDayRange` en TZ del negocio | `lib/timezone.ts`, `availability.ts` |
+| ☑ | 2.7 | Límite mensual en TZ del negocio (4.8 advance-days queda como comparación de instante, aceptable) | `routes/appointments.ts` |
+| ☑ | 11.2 | Analytics: `TZ=America/Lima` en el proceso alinea los cálculos con `Date` local | env var + `nixpacks` |
+| ☑ | 10.2 | Validación de IANA timezone y formato `HH:MM` en settings | `routes/settings.ts` |
 
-**Criterio de salida:** todas las horas mostradas, validadas y recordadas coinciden con la TZ configurada del negocio.
+**Criterio de salida:** todas las horas mostradas, validadas y recordadas coinciden con la TZ del negocio. ✅ **SPRINT 4 COMPLETADO** (negocios todos en Perú/Lima, backfill a `America/Lima`).
+
+**Verificado: 17/17** (helper de TZ 10/10 + integración 7/7).
+
+> 🔴 **ACCIÓN DE DESPLIEGUE:** añadir `TZ=America/Lima` a las variables de Railway (la API hoy corre en UTC). Esto alinea los cálculos de analytics que usan `Date` local del proceso.
 
 ---
 

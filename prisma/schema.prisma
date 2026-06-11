@@ -30,7 +30,7 @@ model Business {
   logoUrl             String?
   phone               String?
   address             String?
-  timezone            String     @default("America/Mexico_City")
+  timezone            String     @default("America/Lima")
   slotMinutes         Int        @default(30)
   cancellationHours   Int        @default(24)
   reschedulingHours  Int        @default(12)

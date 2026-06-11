@@ -18,6 +18,18 @@ function getStorage() {
 
 const settings = createRouter();
 
+// Valida que una cadena sea una zona horaria IANA reconocida (auditoría 10.2).
+function isValidTimeZone(tz: string): boolean {
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+const HHMM = /^([01]\d|2[0-3]):[0-5]\d$/;
+
 settings.use("*", requireAuth);
 settings.use("*", requirePlanAccess);
 
@@ -48,7 +60,7 @@ settings.patch("/business", async (c) => {
     ruc: z.string().optional(),
     phone: z.string().optional(),
     address: z.string().optional(),
-    timezone: z.string().optional(),
+    timezone: z.string().refine(isValidTimeZone, "Zona horaria inválida").optional(),
     logoUrl: z.string().optional(),
   });
 
@@ -112,8 +124,8 @@ settings.patch("/agenda", async (c) => {
     cancellationHours: z.number().int().nonnegative().optional(),
     reschedulingHours: z.number().int().nonnegative().optional(),
     operatingDays: z.array(z.string()).optional(),
-    openTime: z.string().optional(),
-    closeTime: z.string().optional(),
+    openTime: z.string().regex(HHMM, "Formato de hora inválido (HH:MM)").optional(),
+    closeTime: z.string().regex(HHMM, "Formato de hora inválido (HH:MM)").optional(),
     waTplConfirmation: z.string().optional(),
     waTplReminder: z.string().optional(),
     waTplPayment: z.string().optional(),

@@ -2,6 +2,7 @@ import { createRouter } from "../lib/hono.js";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requirePlanAccess } from "../middleware/plan-access.js";
+import { zonedDayRange, zonedDateStr, minutesInZone } from "../lib/timezone.js";
 
 const availability = createRouter();
 
@@ -19,12 +20,8 @@ function timeToMinutes(t: string): number {
   return h * 60 + m;
 }
 
-// Extrae minutos desde medianoche de un Date usando la zona horaria del negocio.
-// Evita depender de TZ del proceso Node (puede no estar activo en ESM antes de dotenv).
-function dateToMinutes(d: Date, tz: string): number {
-  const [h, m] = d.toLocaleTimeString("en-GB", { timeZone: tz, hour: "2-digit", minute: "2-digit" }).split(":").map(Number);
-  return h * 60 + m;
-}
+// Minutos desde medianoche de un Date en la zona del negocio (ver lib/timezone).
+const dateToMinutes = minutesInZone;
 
 // ─── GET /availability/slots ──────────────────────────────────────────────────
 // Devuelve los slots de tiempo disponibles para un colaborador + servicio + fecha.
@@ -67,10 +64,10 @@ availability.get("/slots", async (c) => {
     return c.json({ slots: [], slotDuration: business.slotMinutes, reason: "Sin colaboradores disponibles" });
   }
 
-  const dateObj  = new Date(`${date}T12:00:00`);
-  const dayKey   = DAY_KEYS[dateObj.getDay()];
-  const dayStart = new Date(`${date}T00:00:00.000`);
-  const dayEnd   = new Date(`${date}T23:59:59.999`);
+  // Día de la semana del mediodía UTC (no cruza frontera de día por TZ)
+  const dayKey   = DAY_KEYS[new Date(`${date}T12:00:00Z`).getUTCDay()];
+  // Ventana del día en la zona horaria del negocio (auditoría 3.2)
+  const { start: dayStart, end: dayEnd } = zonedDayRange(date, business.timezone);
 
   const totalMinutes  = service.durationMin + (service.bufferMinutes ?? 0);
   // Guarda defensiva (auditoría 3.3): slotMinutes <= 0 provocaría un bucle
@@ -83,14 +80,11 @@ availability.get("/slots", async (c) => {
     return c.json({ slots: [], slotDuration: slotStep, reason: "El servicio tiene una duración inválida." });
   }
 
-  // Usamos toLocaleDateString/toLocaleTimeString con zona horaria explícita para
-  // evitar depender de TZ del proceso (puede no estar cargado al iniciar ESM).
-  const TZ = process.env.TZ || "America/Lima";
+  // Cálculos en la zona horaria del negocio (auditoría 6.2)
+  const TZ = business.timezone;
   const now = new Date();
-  const localDateStr = now.toLocaleDateString("en-CA", { timeZone: TZ }); // "YYYY-MM-DD"
-  const isToday = date === localDateStr;
-  const [nowH, nowM] = now.toLocaleTimeString("en-GB", { timeZone: TZ, hour: "2-digit", minute: "2-digit" }).split(":").map(Number);
-  const nowMinutes = isToday ? nowH * 60 + nowM : 0;
+  const isToday = date === zonedDateStr(now, TZ);
+  const nowMinutes = isToday ? minutesInZone(now, TZ) : 0;
 
   // ── Citas activas del servicio en el día (para chequeo de capacidad) ─────────
   // Solo cuenta PENDING, CONFIRMED e IN_PROGRESS — COMPLETED libera el cupo
@@ -238,10 +232,9 @@ availability.get("/check", async (c) => {
 
   if (collaborators.length === 0) return c.json({ available: false, collaboratorId: null });
 
-  const TZ2    = process.env.TZ || "America/Lima";
-  const dayKey = DAY_KEYS[new Date(`${date}T12:00:00`).getDay()];
-  const dayStart = new Date(`${date}T00:00:00.000`);
-  const dayEnd   = new Date(`${date}T23:59:59.999`);
+  const TZ2    = business.timezone;
+  const dayKey = DAY_KEYS[new Date(`${date}T12:00:00Z`).getUTCDay()];
+  const { start: dayStart, end: dayEnd } = zonedDayRange(date, business.timezone);
 
   const slotStart     = timeToMinutes(time);
   const totalMinutes  = service.durationMin + (service.bufferMinutes ?? 0);

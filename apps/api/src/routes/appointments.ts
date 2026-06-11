@@ -4,6 +4,7 @@ import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requirePlanAccess } from "../middleware/plan-access.js";
 import { getLimits } from "../lib/plan-limits.js";
+import { zonedDateStr, zonedWallTimeToUtc } from "../lib/timezone.js";
 
 const appointments = createRouter();
 
@@ -142,24 +143,13 @@ appointments.post("/", async (c) => {
   const business = await prisma.business.findUnique({ where: { id: businessId } });
   const limits = getLimits(business?.plan ?? "BASIC");
 
-  // Límite de citas por mes
-  if (limits.maxAppointmentsPerMonth !== -1) {
-    const monthStart = new Date(start.getFullYear(), start.getMonth(), 1);
-    const monthEnd   = new Date(start.getFullYear(), start.getMonth() + 1, 1);
-    const monthCount = await prisma.appointment.count({
-      where: {
-        businessId,
-        startTime: { gte: monthStart, lt: monthEnd },
-        status: { notIn: ["CANCELLED", "NO_SHOW"] },
-      },
-    });
-    if (monthCount >= limits.maxAppointmentsPerMonth) {
-      return c.json({
-        error: `Has alcanzado el límite de ${limits.maxAppointmentsPerMonth} citas este mes. Actualiza tu plan para continuar.`,
-        code: "PLAN_LIMIT_APPOINTMENTS",
-      }, 403);
-    }
-  }
+  // Rango del mes de la cita calculado en la zona horaria del negocio (auditoría 2.7).
+  // El conteo mensual se hace de forma autoritativa dentro del lock más abajo.
+  const bizTz = business?.timezone ?? "America/Lima";
+  const [mYear, mMonth] = zonedDateStr(start, bizTz).split("-").map(Number);
+  const monthStart = zonedWallTimeToUtc(`${mYear}-${String(mMonth).padStart(2, "0")}-01`, 0, 0, 0, 0, bizTz);
+  const nextMonthStr = mMonth === 12 ? `${mYear + 1}-01-01` : `${mYear}-${String(mMonth + 1).padStart(2, "0")}-01`;
+  const monthEnd = zonedWallTimeToUtc(nextMonthStr, 0, 0, 0, 0, bizTz);
 
   // Límite de anticipación
   if (limits.maxAdvanceDays !== -1) {
@@ -175,7 +165,7 @@ appointments.post("/", async (c) => {
 
   // ── Validar que la cita esté dentro del horario del negocio ──
   if (business?.openTime && business?.closeTime) {
-    const tz = process.env.TZ || "America/Lima";
+    const tz = business.timezone;
     const [oh, om] = (business.openTime).split(":").map(Number);
     const [ch, cm] = (business.closeTime).split(":").map(Number);
     const openMins  = oh * 60 + om;
@@ -203,10 +193,8 @@ appointments.post("/", async (c) => {
     const appointment = await prisma.$transaction(async (tx) => {
       await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`appt:${businessId}`}))`;
 
-      // Re-chequeo autoritativo del límite mensual dentro del lock (auditoría 4.4)
+      // Chequeo autoritativo del límite mensual dentro del lock (auditoría 4.4 + 2.7)
       if (limits.maxAppointmentsPerMonth !== -1) {
-        const monthStart = new Date(start.getFullYear(), start.getMonth(), 1);
-        const monthEnd   = new Date(start.getFullYear(), start.getMonth() + 1, 1);
         const monthCount = await tx.appointment.count({
           where: { businessId, startTime: { gte: monthStart, lt: monthEnd }, status: { notIn: ["CANCELLED", "NO_SHOW"] } },
         });
