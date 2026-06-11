@@ -56,10 +56,18 @@ clients.get("/:id", async (c) => {
   const { businessId } = c.get("user");
   const id = c.req.param("id");
 
+  // El plan limita la profundidad del historial visible (auditoría 8.3).
+  const business = await prisma.business.findUnique({ where: { id: businessId } });
+  const limits = getLimits(business?.plan ?? "BASIC");
+  const historyFilter = limits.clientHistoryDays === -1
+    ? {}
+    : { startTime: { gte: new Date(Date.now() - limits.clientHistoryDays * 24 * 60 * 60 * 1000) } };
+
   const client = await prisma.client.findFirst({
     where: { id, businessId },
     include: {
       appointments: {
+        where: historyFilter,
         include: {
           service: { select: { id: true, name: true, category: true } },
           collaborator: { select: { id: true, name: true, role: true } },

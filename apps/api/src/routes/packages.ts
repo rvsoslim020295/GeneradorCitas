@@ -133,6 +133,22 @@ packages.patch("/:id", async (c) => {
     }
   }
 
+  // Reactivar un paquete (isActive false→true) cuenta contra el límite del plan
+  // para no saltarlo creando inactivo y luego activando (auditoría 4.3).
+  if (parsed.data.isActive === true && !existing.isActive) {
+    const business = await prisma.business.findUnique({ where: { id: businessId } });
+    const limits = getLimits(business?.plan ?? "BASIC");
+    if (limits.maxPackages !== -1) {
+      const activeCount = await prisma.package.count({ where: { businessId, isActive: true } });
+      if (activeCount >= limits.maxPackages) {
+        return c.json({
+          error: `Tu plan permite máximo ${limits.maxPackages} paquete${limits.maxPackages !== 1 ? "s" : ""} activo${limits.maxPackages !== 1 ? "s" : ""}. Desactiva otro antes de reactivar este.`,
+          code: "PLAN_LIMIT_PACKAGES",
+        }, 403);
+      }
+    }
+  }
+
   // Reemplazo de servicios + update en una sola transacción: si algo falla, el
   // paquete no queda sin servicios (auditoría 9.1).
   const pkg = await prisma.$transaction(async (tx) => {

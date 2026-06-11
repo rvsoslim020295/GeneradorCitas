@@ -43,6 +43,10 @@ const createSchema = z.object({
   price: z.number().nonnegative(),
   notes: z.string().optional(),
   origin: z.enum(ORIGINS).optional().default("walkin"),
+}).refine((d) => new Date(d.endTime) > new Date(d.startTime), {
+  // Sin esto, un rango invertido (end < start) esquiva la detección de conflictos (auditoría 2.4)
+  message: "La hora de fin debe ser posterior a la de inicio",
+  path: ["endTime"],
 });
 
 const statusSchema = z.object({
@@ -124,11 +128,15 @@ appointments.post("/", async (c) => {
   const [clientOk, collabOk, serviceOk] = await Promise.all([
     prisma.client.findFirst({ where: { id: parsed.data.clientId, businessId }, select: { id: true } }),
     prisma.collaborator.findFirst({ where: { id: collaboratorId, businessId }, select: { id: true } }),
-    prisma.service.findFirst({ where: { id: parsed.data.serviceId, businessId }, select: { id: true } }),
+    prisma.service.findFirst({ where: { id: parsed.data.serviceId, businessId }, select: { id: true, price: true } }),
   ]);
   if (!clientOk || !collabOk || !serviceOk) {
     return c.json({ error: "Cliente, colaborador o servicio no válido" }, 400);
   }
+
+  // El precio lo fija el servidor desde el servicio, no el cliente (auditoría 2.10).
+  // Evita manipular el precio de la cita por fuera del catálogo.
+  const servicePrice = serviceOk.price;
 
   // ── Verificar límites del plan ────────────────────────────────────────────
   const business = await prisma.business.findUnique({ where: { id: businessId } });
@@ -257,7 +265,7 @@ appointments.post("/", async (c) => {
       }
 
       const created = await tx.appointment.create({
-        data: { ...parsed.data, startTime: start, endTime: end, businessId },
+        data: { ...parsed.data, price: servicePrice, startTime: start, endTime: end, businessId },
         include: appointmentInclude,
       });
       await tx.appointmentEvent.create({
@@ -292,6 +300,24 @@ appointments.patch("/:id/status", async (c) => {
   if (!existing) return c.json({ error: "Cita no encontrada" }, 404);
 
   const newStatus = parsed.data.status;
+
+  // ── Máquina de estados: solo transiciones válidas (auditoría 2.6) ─────────
+  // Los estados terminales no admiten más cambios (no reabrir citas cerradas).
+  const ALLOWED_TRANSITIONS: Record<string, string[]> = {
+    PENDING:     ["CONFIRMED", "IN_PROGRESS", "CANCELLED", "NO_SHOW", "RESCHEDULED"],
+    CONFIRMED:   ["IN_PROGRESS", "COMPLETED", "CANCELLED", "NO_SHOW", "RESCHEDULED"],
+    IN_PROGRESS: ["COMPLETED", "CANCELLED"],
+    COMPLETED:   [],
+    CANCELLED:   [],
+    NO_SHOW:     [],
+    RESCHEDULED: [],
+  };
+  if (newStatus !== existing.status && !ALLOWED_TRANSITIONS[existing.status]?.includes(newStatus)) {
+    return c.json({
+      error: `No se puede cambiar el estado de ${STATUS_LABELS[existing.status] ?? existing.status} a ${STATUS_LABELS[newStatus] ?? newStatus}.`,
+      code: "INVALID_STATUS_TRANSITION",
+    }, 422);
+  }
 
   // ── Validar política de cancelación ──────────────────────────────────────
   if (newStatus === "CANCELLED" && business?.cancellationHours) {

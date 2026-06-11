@@ -138,6 +138,28 @@ collaborators.patch("/:id", async (c) => {
     return c.json({ error: "Datos inválidos" }, 400);
   }
 
+  // Reactivar (isActive false→true) cuenta contra el límite del plan: si no, se
+  // podría crear inactivo y luego activar para saltarse el límite (auditoría 4.3).
+  if (parsed.data.isActive === true && !existing.isActive) {
+    const business = await prisma.business.findUnique({ where: { id: businessId } });
+    const limits = getLimits(business?.plan ?? "BASIC");
+    if (limits.maxCollaborators !== -1) {
+      const reactivated = await prisma.$transaction(async (tx) => {
+        await tx.$executeRaw`SELECT pg_advisory_xact_lock(hashtext(${`collab:${businessId}`}))`;
+        const count = await tx.collaborator.count({ where: { businessId, isActive: true } });
+        if (count >= limits.maxCollaborators) return { limited: true as const };
+        return { limited: false as const, collaborator: await tx.collaborator.update({ where: { id }, data: parsed.data }) };
+      });
+      if (reactivated.limited) {
+        return c.json({
+          error: `Tu plan permite máximo ${limits.maxCollaborators} colaborador${limits.maxCollaborators !== 1 ? "es" : ""} activo${limits.maxCollaborators !== 1 ? "s" : ""}. Desactiva otro antes de reactivar este.`,
+          code: "PLAN_LIMIT_COLLABORATORS",
+        }, 403);
+      }
+      return c.json(reactivated.collaborator);
+    }
+  }
+
   const collaborator = await prisma.collaborator.update({
     where: { id },
     data: parsed.data,
@@ -156,8 +178,27 @@ collaborators.delete("/:id", async (c) => {
   });
   if (!existing) return c.json({ error: "Colaborador no encontrado" }, 404);
 
-  await prisma.collaborator.delete({ where: { id } });
+  // No permitir eliminar si tiene citas futuras activas (auditoría 7.1)
+  const futureActive = await prisma.appointment.count({
+    where: { collaboratorId: id, status: { in: ["PENDING", "CONFIRMED", "IN_PROGRESS"] } },
+  });
+  if (futureActive > 0) {
+    return c.json({
+      error: `No se puede eliminar: el colaborador tiene ${futureActive} cita(s) activa(s). Reasígnalas o complétalas primero.`,
+      code: "HAS_ACTIVE_APPOINTMENTS",
+    }, 409);
+  }
 
+  // Si tiene historial de citas, hacemos soft-delete (desactivar) para no
+  // romper la integridad referencial ni perder el historial. Solo se borra
+  // físicamente si nunca tuvo citas.
+  const anyAppointments = await prisma.appointment.count({ where: { collaboratorId: id } });
+  if (anyAppointments > 0) {
+    await prisma.collaborator.update({ where: { id }, data: { isActive: false } });
+    return c.json({ success: true, softDeleted: true });
+  }
+
+  await prisma.collaborator.delete({ where: { id } });
   return c.json({ success: true });
 });
 

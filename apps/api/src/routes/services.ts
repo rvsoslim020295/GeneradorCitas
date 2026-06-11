@@ -102,6 +102,28 @@ services.delete("/:id", async (c) => {
   const existing = await prisma.service.findFirst({ where: { id, businessId } });
   if (!existing) return c.json({ error: "Servicio no encontrado" }, 404);
 
+  // No permitir eliminar si tiene citas futuras activas (auditoría 10.1)
+  const futureActive = await prisma.appointment.count({
+    where: { serviceId: id, status: { in: ["PENDING", "CONFIRMED", "IN_PROGRESS"] } },
+  });
+  if (futureActive > 0) {
+    return c.json({
+      error: `No se puede eliminar: el servicio tiene ${futureActive} cita(s) activa(s). Complétalas o cancélalas primero.`,
+      code: "HAS_ACTIVE_APPOINTMENTS",
+    }, 409);
+  }
+
+  // Si fue usado en citas o paquetes, soft-delete (desactivar) para preservar
+  // historial e integridad referencial; solo borrado físico si nunca se usó.
+  const [anyAppointments, inPackages] = await Promise.all([
+    prisma.appointment.count({ where: { serviceId: id } }),
+    prisma.packageService.count({ where: { serviceId: id } }),
+  ]);
+  if (anyAppointments > 0 || inPackages > 0) {
+    await prisma.service.update({ where: { id }, data: { isActive: false } });
+    return c.json({ success: true, softDeleted: true });
+  }
+
   await prisma.service.delete({ where: { id } });
   return c.json({ success: true });
 });
