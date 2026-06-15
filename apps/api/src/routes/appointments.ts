@@ -5,7 +5,7 @@ import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requirePlanAccess } from "../middleware/plan-access.js";
 import { getLimits } from "../lib/plan-limits.js";
-import { zonedDateStr, zonedWallTimeToUtc } from "../lib/timezone.js";
+import { zonedDateStr, zonedWallTimeToUtc, safeTimezone } from "../lib/timezone.js";
 
 const appointments = createRouter();
 
@@ -179,7 +179,7 @@ appointments.post("/", async (c) => {
 
   // ── Validar que la cita esté dentro del horario del negocio ──
   if (business?.openTime && business?.closeTime) {
-    const tz = business.timezone;
+    const tz = safeTimezone(business.timezone);
     const [oh, om] = (business.openTime).split(":").map(Number);
     const [ch, cm] = (business.closeTime).split(":").map(Number);
     const openMins  = oh * 60 + om;

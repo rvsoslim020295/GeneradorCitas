@@ -5,6 +5,19 @@
 // Nota: el algoritmo de offset es exacto salvo en la hora exacta de un cambio
 // de horario de verano (DST). América/Lima no tiene DST, así que es exacto.
 
+// Devuelve `tz` si es un IANA válido, o el fallback si no lo es.
+// Protege contra valores corrompidos en business.timezone (ej. "Lima|Lima|Magdalena del Mar").
+export function safeTimezone(tz: string | null | undefined, fallback = "America/Lima"): string {
+  if (!tz) return fallback;
+  try {
+    new Intl.DateTimeFormat("en-US", { timeZone: tz });
+    return tz;
+  } catch {
+    console.warn(`[timezone] Valor inválido "${tz}", usando fallback "${fallback}"`);
+    return fallback;
+  }
+}
+
 // Minutos desde medianoche de un instante, expresados en la zona `tz`.
 export function minutesInZone(date: Date, tz: string): number {
   const [h, m] = date

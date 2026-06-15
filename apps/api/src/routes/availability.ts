@@ -2,7 +2,7 @@ import { createRouter } from "../lib/hono.js";
 import prisma from "../lib/prisma.js";
 import { requireAuth } from "../middleware/auth.js";
 import { requirePlanAccess } from "../middleware/plan-access.js";
-import { zonedDayRange, zonedDateStr, minutesInZone } from "../lib/timezone.js";
+import { zonedDayRange, zonedDateStr, minutesInZone, safeTimezone } from "../lib/timezone.js";
 
 const availability = createRouter();
 
@@ -67,7 +67,8 @@ availability.get("/slots", async (c) => {
   // Día de la semana del mediodía UTC (no cruza frontera de día por TZ)
   const dayKey   = DAY_KEYS[new Date(`${date}T12:00:00Z`).getUTCDay()];
   // Ventana del día en la zona horaria del negocio (auditoría 3.2)
-  const { start: dayStart, end: dayEnd } = zonedDayRange(date, business.timezone);
+  const TZ = safeTimezone(business.timezone);
+  const { start: dayStart, end: dayEnd } = zonedDayRange(date, TZ);
 
   const totalMinutes  = service.durationMin + (service.bufferMinutes ?? 0);
   // Guarda defensiva (auditoría 3.3): slotMinutes <= 0 provocaría un bucle
@@ -80,8 +81,6 @@ availability.get("/slots", async (c) => {
     return c.json({ slots: [], slotDuration: slotStep, reason: "El servicio tiene una duración inválida." });
   }
 
-  // Cálculos en la zona horaria del negocio (auditoría 6.2)
-  const TZ = business.timezone;
   const now = new Date();
   const isToday = date === zonedDateStr(now, TZ);
   const nowMinutes = isToday ? minutesInZone(now, TZ) : 0;
@@ -242,9 +241,9 @@ availability.get("/check", async (c) => {
 
   if (collaborators.length === 0) return c.json({ available: false, collaboratorId: null });
 
-  const TZ2    = business.timezone;
+  const TZ2    = safeTimezone(business.timezone);
   const dayKey = DAY_KEYS[new Date(`${date}T12:00:00Z`).getUTCDay()];
-  const { start: dayStart, end: dayEnd } = zonedDayRange(date, business.timezone);
+  const { start: dayStart, end: dayEnd } = zonedDayRange(date, TZ2);
 
   const slotStart     = timeToMinutes(time);
   const totalMinutes  = service.durationMin + (service.bufferMinutes ?? 0);
