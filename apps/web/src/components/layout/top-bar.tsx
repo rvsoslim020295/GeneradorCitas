@@ -1,6 +1,7 @@
 "use client";
 
 import { Suspense, useEffect, useRef, useState } from "react";
+import { createPortal } from "react-dom";
 import { useRouter } from "next/navigation";
 import { useQuery } from "@tanstack/react-query";
 import { Bell, HelpCircle, LogOut, Settings, X, Sun, Moon, CalendarClock, CalendarCheck, CalendarX, Menu } from "lucide-react";
@@ -200,10 +201,10 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
             className="w-9 h-9 rounded-full bg-[var(--color-primary-container)] border-2 border-[var(--color-surface-container-highest)] flex items-center justify-center cursor-pointer hover:opacity-90 transition-opacity">
             <span className="text-label-md font-bold text-[var(--color-primary)]">{userInitials}</span>
           </button>
-          {showProfile && (
+          {showProfile && typeof document !== "undefined" && createPortal(
             <div
-              style={{ position: "fixed", top: profilePos.top, right: profilePos.right, zIndex: 9999 }}
-              className="w-56 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl shadow-xl"
+              style={{ position: "fixed", top: profilePos.top, right: profilePos.right, zIndex: 9999, width: 224 }}
+              className="bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl shadow-xl"
             >
               <div className="px-4 py-3 border-b border-[var(--color-outline-variant)]">
                 <p className="text-body-md font-semibold text-[var(--color-on-surface)] truncate">{userName}</p>
@@ -216,12 +217,13 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
                 </button>
                 <div className="border-t border-[var(--color-outline-variant)] mx-2 my-1" />
                 <button onClick={handleLogout}
-                  className="flex items-center gap-3 w-full px-4 py-2.5 text-body-md text-[var(--color-error)] hover:bg-[var(--color-error-container)]/20 transition-colors">
+                  className="flex items-center gap-3 w-full px-4 py-2.5 text-[var(--color-error)] hover:bg-[var(--color-error-container)]/20 transition-colors">
                   <LogOut size={16} strokeWidth={1.5} />
                   Cerrar sesión
                 </button>
               </div>
-            </div>
+            </div>,
+            document.body
           )}
         </div>
       </div>
