@@ -192,23 +192,22 @@ export function TopBar({ searchPlaceholder = "Buscar cliente, servicio o cita...
             <span className="text-label-md font-bold text-[var(--color-primary)]">{userInitials}</span>
           </button>
           {showProfile && (
-            <div className="absolute right-0 top-12 w-56 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl shadow-xl z-50 overflow-hidden">
+            <div className="absolute right-0 top-12 w-56 bg-[var(--color-surface-container-lowest)] border border-[var(--color-outline-variant)] rounded-xl shadow-xl z-50">
               <div className="px-4 py-3 border-b border-[var(--color-outline-variant)]">
                 <p className="text-body-md font-semibold text-[var(--color-on-surface)] truncate">{userName}</p>
               </div>
               <div className="py-1">
                 <button onClick={() => { router.push("/configuracion/negocio"); setShowProfile(false); }}
-                  className="flex items-center gap-3 w-full px-4 py-2.5 text-body-md text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-low)] transition-colors">
+                  className="flex items-center gap-3 w-full px-4 py-2.5 text-body-md text-[var(--color-on-surface)] hover:bg-[var(--color-surface-container-low)] transition-colors rounded-t-lg">
                   <Settings size={16} strokeWidth={1.5} className="text-[var(--color-outline)]" />
                   Configuración
                 </button>
-                <div className="border-t border-[var(--color-outline-variant)] mt-1 pt-1">
-                  <button onClick={handleLogout}
-                    className="flex items-center gap-3 w-full px-4 py-2.5 text-body-md text-[var(--color-error)] hover:bg-[var(--color-error-container)]/20 transition-colors">
-                    <LogOut size={16} strokeWidth={1.5} />
-                    Cerrar sesión
-                  </button>
-                </div>
+                <div className="border-t border-[var(--color-outline-variant)] mx-2" />
+                <button onClick={handleLogout}
+                  className="flex items-center gap-3 w-full px-4 py-2.5 text-body-md text-[var(--color-error)] hover:bg-[var(--color-error-container)]/20 transition-colors rounded-b-lg">
+                  <LogOut size={16} strokeWidth={1.5} />
+                  Cerrar sesión
+                </button>
               </div>
             </div>
           )}
