@@ -36,10 +36,10 @@ export default function PlanVencidoPage() {
   const status = me?.business?.planStatus ?? "EXPIRED";
   const copy = STATUS_COPY[status] ?? STATUS_COPY.EXPIRED;
 
-  async function handleLogout() {
-    await apiFetch("/auth/logout", { method: "POST" });
+  function handleLogout() {
     localStorage.removeItem("gm_user");
-    router.push("/login");
+    localStorage.removeItem("gm_token");
+    window.location.href = "/login";
   }
 
   return (
