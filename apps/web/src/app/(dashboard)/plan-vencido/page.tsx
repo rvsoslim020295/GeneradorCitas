@@ -39,7 +39,7 @@ export default function PlanVencidoPage() {
   function handleLogout() {
     localStorage.removeItem("gm_user");
     localStorage.removeItem("gm_token");
-    window.location.href = "/login";
+    window.location.href = "/api/logout";
   }
 
   return (
