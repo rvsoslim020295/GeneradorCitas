@@ -13,7 +13,7 @@ export async function apiFetch<T>(path: string, options?: RequestInit): Promise<
   });
 
   if (res.status === 401) {
-    if (typeof window !== "undefined") window.location.href = "/login";
+    if (typeof window !== "undefined") window.location.href = "/api/logout";
     throw new Error("No autorizado");
   }
 
