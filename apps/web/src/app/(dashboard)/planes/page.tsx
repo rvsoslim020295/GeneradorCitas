@@ -87,7 +87,9 @@ export default function PlanesPage() {
     queryFn: () => apiFetch<MeData>("/auth/me"),
   });
 
-  const currentPlan = me?.business?.plan ?? null;
+  const planStatus  = me?.business?.planStatus ?? null;
+  const isExpired   = planStatus === "EXPIRED" || planStatus === "SUSPENDED";
+  const currentPlan = isExpired ? null : (me?.business?.plan ?? null);
 
   return (
     <div className="flex h-screen w-screen overflow-hidden bg-[var(--color-surface-container-low)]">
@@ -122,7 +124,7 @@ export default function PlanesPage() {
             <div className="grid grid-cols-3 gap-5">
               {PLANS.map((plan) => {
                 const Icon = plan.icon;
-                const isCurrentPlan = currentPlan === plan.key || (currentPlan === "TRIAL" && plan.key === "BASIC");
+                const isCurrentPlan = !isExpired && (currentPlan === plan.key || (currentPlan === "TRIAL" && plan.key === "BASIC"));
                 return (
                   <div
                     key={plan.key}
